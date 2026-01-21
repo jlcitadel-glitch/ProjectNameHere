@@ -293,11 +293,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: '::'
   rb: {fileID: 381582374}
   speed: 10
-  jumpingPower: 5
+  jumpingPower: 18
+  jumpCutMultiplier: 0.3
+  coyoteTime: 0.15
+  jumpBufferTime: 0.1
+  baseGravityScale: 3
+  fallGravityMultiplier: 5
+  maxFallSpeed: -30
   groundLayer:
     serializedVersion: 2
     m_Bits: 128
   groundCheck: {fileID: 1795545995}
+  groundCheckRadius: 0.2
 --- !u!114 &381582376
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -489,7 +496,7 @@ Camera:
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 2
-  m_BackGroundColor: {r: 0, g: 1, b: 1, a: 0}
+  m_BackGroundColor: {r: 0.5137255, g: 0.6, b: 0.65882355, a: 1}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -654,8 +661,8 @@ Transform:
   m_GameObject: {fileID: 1795545994}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.5, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 0, y: -1, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 0}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 381582372}
