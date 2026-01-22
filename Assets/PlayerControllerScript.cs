@@ -7,20 +7,20 @@ public class PlayerControllerScript : MonoBehaviour
     [SerializeField] Rigidbody2D rb;
 
     [Header("Movement")]
-    [SerializeField] float speed = 10f;
+    [SerializeField] float speed = 8f;
 
     [Header("Jump")]
-    [SerializeField] float jumpingPower = 18f;
-    [SerializeField] float jumpCutMultiplier = 0.3f;
+    [SerializeField] float jumpingPower = 12f;
+    [SerializeField] float jumpCutMultiplier = 0.5f;
 
     [Header("Jump Forgiveness")]
     [SerializeField] float coyoteTime = 0.15f;
-    [SerializeField] float jumpBufferTime = 0.1f;
+    [SerializeField] float jumpBufferTime = 0.15f;
 
     [Header("Gravity")]
-    [SerializeField] float baseGravityScale = 3f;
-    [SerializeField] float fallGravityMultiplier = 5f;
-    [SerializeField] float maxFallSpeed = -30f;
+    [SerializeField] float baseGravityScale = 1f;
+    [SerializeField] float fallGravityMultiplier = 2.5f;
+    [SerializeField] float maxFallSpeed = -20f;
 
     [Header("Grounding")]
     [SerializeField] LayerMask groundLayer;
@@ -31,6 +31,15 @@ public class PlayerControllerScript : MonoBehaviour
     private float coyoteTimeCounter;
     private float jumpBufferCounter;
     private bool wasGrounded;
+
+    // Ability components
+    private DoubleJumpAbility doubleJumpAbility;
+    private DashAbility dashAbility;
+
+    // Double-tap dash detection
+    private float lastTapTime;
+    private float lastTapDirection;
+    private float doubleTapWindow = 0.3f; // Time window for double-tap
 
     private void Awake()
     {
@@ -47,16 +56,32 @@ public class PlayerControllerScript : MonoBehaviour
         {
             Debug.LogError("PlayerControllerScript: groundCheck Transform is not assigned!");
         }
+
+        // Get ability components if they exist
+        doubleJumpAbility = GetComponent<DoubleJumpAbility>();
+        dashAbility = GetComponent<DashAbility>();
     }
 
     private void Update()
     {
+        // Refresh ability references each frame (only checks if null)
+        if (doubleJumpAbility == null)
+            doubleJumpAbility = GetComponent<DoubleJumpAbility>();
+        if (dashAbility == null)
+            dashAbility = GetComponent<DashAbility>();
+
         bool grounded = IsGrounded();
 
         // Only reset coyote time when transitioning from air to ground
         if (grounded && !wasGrounded)
         {
             coyoteTimeCounter = coyoteTime;
+
+            // Reset double jump when landing
+            if (doubleJumpAbility != null)
+            {
+                doubleJumpAbility.ResetJumps();
+            }
         }
 
         // Only decrement coyote time when in the air
@@ -69,18 +94,42 @@ public class PlayerControllerScript : MonoBehaviour
 
         jumpBufferCounter = Mathf.Max(0, jumpBufferCounter - Time.deltaTime);
 
+        // First jump (grounded or coyote time)
         if (jumpBufferCounter > 0 && coyoteTimeCounter > 0)
         {
             PerformJump();
             jumpBufferCounter = 0;
             coyoteTimeCounter = 0;
         }
+        // Double jump (if ability exists and in air)
+        else if (doubleJumpAbility != null && jumpBufferCounter > 0 && doubleJumpAbility.CanJump())
+        {
+            PerformJump();
+            doubleJumpAbility.ConsumeJump();
+            jumpBufferCounter = 0;
+        }
     }
 
     private void FixedUpdate()
     {
+        // Skip normal movement if dashing
+        if (dashAbility != null && dashAbility.IsDashing())
+        {
+            return;
+        }
+
         // Horizontal movement
         rb.linearVelocity = new Vector2(horizontal * speed, rb.linearVelocity.y);
+
+        // Flip character based on movement direction
+        if (horizontal > 0)
+        {
+            transform.localScale = new Vector3(1, 1, 1);
+        }
+        else if (horizontal < 0)
+        {
+            transform.localScale = new Vector3(-1, 1, 1);
+        }
 
         // Faster falling
         if (rb.linearVelocity.y < 0)
@@ -104,7 +153,30 @@ public class PlayerControllerScript : MonoBehaviour
     {
         if (context.performed)
         {
-            horizontal = context.ReadValue<Vector2>().x;
+            float newInput = context.ReadValue<Vector2>().x;
+
+            // Detect double-tap for dash
+            if (dashAbility != null && newInput != 0)
+            {
+                float currentTime = Time.time;
+
+                // Check if this is a double-tap in the same direction
+                if (currentTime - lastTapTime < doubleTapWindow &&
+                    Mathf.Sign(newInput) == Mathf.Sign(lastTapDirection))
+                {
+                    // Double-tap detected! Perform dash
+                    dashAbility.PerformDash(newInput);
+                    lastTapTime = 0; // Reset to prevent triple-tap
+                }
+                else
+                {
+                    // First tap, record it
+                    lastTapTime = currentTime;
+                    lastTapDirection = newInput;
+                }
+            }
+
+            horizontal = newInput;
         }
         else if (context.canceled)
         {
@@ -127,6 +199,23 @@ public class PlayerControllerScript : MonoBehaviour
                 rb.linearVelocity.x,
                 rb.linearVelocity.y * jumpCutMultiplier
             );
+        }
+    }
+
+    public void Dash(InputAction.CallbackContext context)
+    {
+        if (context.performed && dashAbility != null)
+        {
+            // Dash in the direction the player is facing
+            float dashDirection = transform.localScale.x;
+
+            // If player is inputting a direction, use that instead
+            if (horizontal != 0)
+            {
+                dashDirection = horizontal;
+            }
+
+            dashAbility.PerformDash(dashDirection);
         }
     }
     #endregion
@@ -159,5 +248,12 @@ public class PlayerControllerScript : MonoBehaviour
         }
 
         return false;
+    }
+
+    // Call this when a new ability is added
+    public void RefreshAbilities()
+    {
+        doubleJumpAbility = GetComponent<DoubleJumpAbility>();
+        dashAbility = GetComponent<DashAbility>();
     }
 }
