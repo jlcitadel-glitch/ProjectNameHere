@@ -34,6 +34,16 @@ public class PowerUpPickup : MonoBehaviour
 
     void GrantPowerUp(GameObject player)
     {
+        // Get or add PowerUpManager
+        PowerUpManager powerUpManager = player.GetComponent<PowerUpManager>();
+        if (powerUpManager == null)
+        {
+            powerUpManager = player.AddComponent<PowerUpManager>();
+        }
+
+        // Register the unlock
+        powerUpManager.UnlockPowerUp(powerUpType);
+
         switch (powerUpType)
         {
             case PowerUpType.DoubleJump:
