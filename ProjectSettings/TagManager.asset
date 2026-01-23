@@ -14,8 +14,8 @@ TagManager:
   - 
   - Ground
   - Consumable Powerups
-  - 
-  - 
+  - Background
+  - Foreground
   - 
   - 
   - 
@@ -40,6 +40,27 @@ TagManager:
   m_SortingLayers:
   - name: Default
     uniqueID: 0
+    locked: 0
+  - name: Background Far
+    uniqueID: 4294503849
+    locked: 0
+  - name: Background Close
+    uniqueID: 2445834941
+    locked: 0
+  - name: Midground
+    uniqueID: 3450494315
+    locked: 0
+  - name: Midground Close
+    uniqueID: 4007293261
+    locked: 0
+  - name: Ground
+    uniqueID: 1790128183
+    locked: 0
+  - name: Foreground
+    uniqueID: 2140653941
+    locked: 0
+  - name: Foreground Close
+    uniqueID: 732188871
     locked: 0
   m_RenderingLayers:
   - Default
