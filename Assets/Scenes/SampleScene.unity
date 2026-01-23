@@ -660,6 +660,7 @@ GameObject:
   m_Component:
   - component: {fileID: 439432657}
   - component: {fileID: 439432658}
+  - component: {fileID: 439432659}
   m_Layer: 0
   m_Name: Foreground Close
   m_TagString: Untagged
@@ -696,6 +697,22 @@ SortingGroup:
   m_SortingOrder: 0
   m_SortAtRoot: 0
   m_Sort3DAs2D: 0
+--- !u!114 &439432659
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 439432656}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ae47e4bead14ce4489ea0018b2578b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ParallaxLayer
+  parallaxEffectX: 0.5
+  parallaxEffectY: 0.5
+  autoCalculateFromZ: 1
+  showDebugInfo: 0
 --- !u!1 &619394800
 GameObject:
   m_ObjectHideFlags: 0
@@ -790,6 +807,7 @@ GameObject:
   m_Component:
   - component: {fileID: 726506818}
   - component: {fileID: 726506819}
+  - component: {fileID: 726506820}
   m_Layer: 0
   m_Name: Midground
   m_TagString: Untagged
@@ -825,6 +843,22 @@ SortingGroup:
   m_SortingOrder: 0
   m_SortAtRoot: 0
   m_Sort3DAs2D: 0
+--- !u!114 &726506820
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 726506817}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ae47e4bead14ce4489ea0018b2578b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ParallaxLayer
+  parallaxEffectX: 0.5
+  parallaxEffectY: 0.5
+  autoCalculateFromZ: 1
+  showDebugInfo: 0
 --- !u!1 &811285055
 GameObject:
   m_ObjectHideFlags: 0
@@ -934,7 +968,7 @@ SpriteRenderer:
   m_SortingLayer: 6
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
+  m_Sprite: {fileID: 6897734487075970892, guid: 19972c4b3ffaced4d8c86ba7dc4145a3, type: 3}
   m_Color: {r: 0.2264151, g: 0.2264151, b: 0.2264151, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -1129,6 +1163,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1091227784}
   - component: {fileID: 1091227785}
+  - component: {fileID: 1091227786}
   m_Layer: 0
   m_Name: Midground Close
   m_TagString: Untagged
@@ -1164,6 +1199,22 @@ SortingGroup:
   m_SortingOrder: 0
   m_SortAtRoot: 0
   m_Sort3DAs2D: 0
+--- !u!114 &1091227786
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1091227783}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ae47e4bead14ce4489ea0018b2578b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ParallaxLayer
+  parallaxEffectX: 0.5
+  parallaxEffectY: 0.5
+  autoCalculateFromZ: 1
+  showDebugInfo: 0
 --- !u!1 &1177395284
 GameObject:
   m_ObjectHideFlags: 0
@@ -1273,7 +1324,7 @@ SpriteRenderer:
   m_SortingLayer: 7
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
+  m_Sprite: {fileID: -3734866324992513012, guid: e71276de70d530c45a6d9a94b34cb53e, type: 3}
   m_Color: {r: 0.4716981, g: 0.28534526, b: 0, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -1403,6 +1454,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1565596847}
   - component: {fileID: 1565596848}
+  - component: {fileID: 1565596849}
   m_Layer: 10
   m_Name: Foreground
   m_TagString: Untagged
@@ -1419,7 +1471,7 @@ Transform:
   m_GameObject: {fileID: 1565596846}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 2, y: 0, z: -1}
+  m_LocalPosition: {x: 2.0000002, y: 0, z: -1}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -1439,6 +1491,22 @@ SortingGroup:
   m_SortingOrder: 0
   m_SortAtRoot: 0
   m_Sort3DAs2D: 0
+--- !u!114 &1565596849
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1565596846}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ae47e4bead14ce4489ea0018b2578b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ParallaxLayer
+  parallaxEffectX: 0.5
+  parallaxEffectY: 0.5
+  autoCalculateFromZ: 1
+  showDebugInfo: 0
 --- !u!1 &1629276927
 GameObject:
   m_ObjectHideFlags: 0
@@ -1817,6 +1885,69 @@ Transform:
   m_Children: []
   m_Father: {fileID: 55499380}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1875114198
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1875114200}
+  - component: {fileID: 1875114199}
+  m_Layer: 0
+  m_Name: ParallaxManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1875114199
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1875114198}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e6cf0f21f7dddd4d9ff3b33b7942b01, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ParallaxBackgroundManager
+  layers:
+  - layerName: 
+    layerObject: {fileID: 439432656}
+    zDepth: -2
+  - layerName: 
+    layerObject: {fileID: 1565596846}
+    zDepth: -1
+  - layerName: 
+    layerObject: {fileID: 1091227783}
+    zDepth: 1
+  - layerName: 
+    layerObject: {fileID: 726506817}
+    zDepth: 3
+  - layerName: 
+    layerObject: {fileID: 2057293910}
+    zDepth: 6
+  - layerName: 
+    layerObject: {fileID: 1885143295}
+    zDepth: 9
+--- !u!4 &1875114200
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1875114198}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 2.35014, y: 2.41139, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1885143295
 GameObject:
   m_ObjectHideFlags: 0
@@ -1827,6 +1958,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1885143296}
   - component: {fileID: 1885143297}
+  - component: {fileID: 1885143298}
   m_Layer: 9
   m_Name: Background Far
   m_TagString: Untagged
@@ -1863,6 +1995,22 @@ SortingGroup:
   m_SortingOrder: 0
   m_SortAtRoot: 0
   m_Sort3DAs2D: 0
+--- !u!114 &1885143298
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1885143295}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ae47e4bead14ce4489ea0018b2578b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ParallaxLayer
+  parallaxEffectX: 0.5
+  parallaxEffectY: 0.5
+  autoCalculateFromZ: 1
+  showDebugInfo: 0
 --- !u!1 &1996727770
 GameObject:
   m_ObjectHideFlags: 0
@@ -1911,6 +2059,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2057293911}
   - component: {fileID: 2057293912}
+  - component: {fileID: 2057293913}
   m_Layer: 9
   m_Name: Background Close
   m_TagString: Untagged
@@ -1947,6 +2096,22 @@ SortingGroup:
   m_SortingOrder: 0
   m_SortAtRoot: 0
   m_Sort3DAs2D: 0
+--- !u!114 &2057293913
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2057293910}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ae47e4bead14ce4489ea0018b2578b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ParallaxLayer
+  parallaxEffectX: 0.5
+  parallaxEffectY: 0.5
+  autoCalculateFromZ: 1
+  showDebugInfo: 0
 --- !u!1 &2061598913
 GameObject:
   m_ObjectHideFlags: 0
@@ -2241,3 +2406,4 @@ SceneRoots:
   - {fileID: 839976013}
   - {fileID: 416011}
   - {fileID: 1996727771}
+  - {fileID: 1875114200}
