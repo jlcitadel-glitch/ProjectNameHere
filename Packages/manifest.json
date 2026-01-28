@@ -1,5 +1,15 @@
 {
+  "scopedRegistries": [
+    {
+      "name": "OpenUPM",
+      "url": "https://package.openupm.com",
+      "scopes": [
+        "com.demigiant"
+      ]
+    }
+  ],
   "dependencies": {
+    "com.demigiant.dotween": "1.2.765",
     "com.unity.2d.animation": "13.0.2",
     "com.unity.2d.aseprite": "3.0.1",
     "com.unity.2d.psdimporter": "12.0.1",

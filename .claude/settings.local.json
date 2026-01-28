@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git -C \"M:\\\\Video Game Development\\\\ProjectNameHere\" status)"
+      "Bash(git -C \"M:\\\\Video Game Development\\\\ProjectNameHere\" status)",
+      "Bash(dir:*)",
+      "Bash(find:*)"
     ]
   }
 }
