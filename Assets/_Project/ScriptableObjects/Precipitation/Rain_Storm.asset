@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 45c7cfd5800c12e4abcb924dd07ea628, type: 3}
+  m_Name: Rain_Storm
+  m_EditorClassIdentifier: Assembly-CSharp::PrecipitationPreset
+  displayName: Storm Rain
+  particleSprite: {fileID: 0}
+  tint: {r: 0.5, g: 0.6, b: 0.75, a: 0.8}
+  sizeRange: {x: 0.04, y: 0.08}
+  sizeVariation: 0.3
+  emissionRate: 200
+  lifetime: 1
+  lifetimeVariation: 0.2
+  maxParticles: 1200
+  spawnAreaSize: {x: 40, y: 3}
+  spawnOffset: {x: 0, y: 10}
+  fallSpeed: 22
+  fallSpeedVariation: 4
+  driftAmount: 0.3
+  driftFrequency: 0.5
+  windInfluenceMultiplier: 1
+  turbulenceInfluenceMultiplier: 0.5
+  enableRotation: 0
+  rotationSpeedRange: {x: -45, y: 45}
+  fadeIn: 0
+  fadeInPoint: 0.1
+  fadeOut: 1
+  fadeOutPoint: 0.8
+  sortingLayerName: Default
+  orderInLayer: 10
+  zOffset: -1
+  enableCollision: 0
+  collisionLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  collisionBounce: 0
+  collisionLifetimeLoss: 0.8

@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 45c7cfd5800c12e4abcb924dd07ea628, type: 3}
+  m_Name: Rain_Heavy
+  m_EditorClassIdentifier: Assembly-CSharp::PrecipitationPreset
+  displayName: Heavy Rain
+  particleSprite: {fileID: 0}
+  tint: {r: 0.6, g: 0.7, b: 0.85, a: 0.7}
+  sizeRange: {x: 0.03, y: 0.06}
+  sizeVariation: 0.3
+  emissionRate: 120
+  lifetime: 1.2
+  lifetimeVariation: 0.2
+  maxParticles: 800
+  spawnAreaSize: {x: 35, y: 2}
+  spawnOffset: {x: 0, y: 10}
+  fallSpeed: 18
+  fallSpeedVariation: 3
+  driftAmount: 0.15
+  driftFrequency: 0.3
+  windInfluenceMultiplier: 0.6
+  turbulenceInfluenceMultiplier: 0.3
+  enableRotation: 0
+  rotationSpeedRange: {x: -45, y: 45}
+  fadeIn: 0
+  fadeInPoint: 0.1
+  fadeOut: 1
+  fadeOutPoint: 0.85
+  sortingLayerName: Default
+  orderInLayer: 10
+  zOffset: -1
+  enableCollision: 0
+  collisionLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  collisionBounce: 0
+  collisionLifetimeLoss: 0.8
