@@ -7,6 +7,7 @@ Specialized Claude Code agents for this project. Each agent has its own CLAUDE.m
 | Agent | Path | Specialization |
 |-------|------|----------------|
 | **Architect** | `.claude/agents/architect/` | System design, Unity C# patterns, 2D platformer architecture |
+| **UI/UX** | `.claude/agents/ui-ux/` | Gothic UI design (SOTN/Soul Reaver), metroidvania menus, Unity UI systems |
 
 ## Usage
 
