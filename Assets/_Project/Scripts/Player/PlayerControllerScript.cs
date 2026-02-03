@@ -52,9 +52,14 @@ public class PlayerControllerScript : MonoBehaviour
             }
         }
 
+        // Auto-find GroundCheck child if not assigned
         if (!groundCheck)
         {
-            Debug.LogError("PlayerControllerScript: groundCheck Transform is not assigned!");
+            groundCheck = transform.Find("GroundCheck");
+            if (!groundCheck)
+            {
+                Debug.LogError("PlayerControllerScript: groundCheck Transform is not assigned and GroundCheck child not found!");
+            }
         }
 
         // Get ability components if they exist
@@ -229,7 +234,13 @@ public class PlayerControllerScript : MonoBehaviour
     {
         if (!groundCheck)
         {
-            return false;
+            // Try to find it again at runtime
+            groundCheck = transform.Find("GroundCheck");
+            if (!groundCheck)
+            {
+                Debug.LogWarning("PlayerControllerScript: GroundCheck still not found!");
+                return false;
+            }
         }
 
         Collider2D[] colliders = Physics2D.OverlapCircleAll(
@@ -238,16 +249,26 @@ public class PlayerControllerScript : MonoBehaviour
             groundLayer
         );
 
-        // Check if any collider found is NOT our own
+        // Check if any collider found is NOT our own and is NOT a trigger
         foreach (Collider2D collider in colliders)
         {
-            if (collider.gameObject != gameObject)
+            if (collider.gameObject != gameObject && !collider.isTrigger)
             {
                 return true;
             }
         }
 
         return false;
+    }
+
+    // Debug visualization
+    private void OnDrawGizmosSelected()
+    {
+        if (groundCheck != null)
+        {
+            Gizmos.color = IsGrounded() ? Color.green : Color.red;
+            Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
+        }
     }
 
     // Call this when a new ability is added

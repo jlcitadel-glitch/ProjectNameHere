@@ -429,7 +429,7 @@ namespace ProjectName.UI
 
             if (playerInput == null)
             {
-                playerInput = FindObjectOfType<PlayerInput>();
+                playerInput = FindAnyObjectByType<PlayerInput>();
             }
         }
 #endif

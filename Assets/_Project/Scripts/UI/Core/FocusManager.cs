@@ -38,7 +38,7 @@ namespace ProjectName.UI
             eventSystem = EventSystem.current;
             if (eventSystem == null)
             {
-                eventSystem = FindObjectOfType<EventSystem>();
+                eventSystem = FindAnyObjectByType<EventSystem>();
             }
         }
 
