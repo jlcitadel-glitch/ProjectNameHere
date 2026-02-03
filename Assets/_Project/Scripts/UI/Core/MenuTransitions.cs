@@ -1,13 +1,13 @@
 using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
-using DG.Tweening;
 
 namespace ProjectName.UI
 {
     /// <summary>
     /// Handles animated menu transitions with gothic visual effects.
-    /// Uses DOTween for smooth, customizable animations.
+    /// Uses coroutines for smooth animations (DOTween-free).
     /// </summary>
     public class MenuTransitions : MonoBehaviour
     {
@@ -15,8 +15,6 @@ namespace ProjectName.UI
         [SerializeField] private float fadeDuration = 0.3f;
         [SerializeField] private float slideDuration = 0.4f;
         [SerializeField] private float slideDistance = 50f;
-        [SerializeField] private Ease openEase = Ease.OutQuart;
-        [SerializeField] private Ease closeEase = Ease.InQuart;
 
         [Header("Gothic Effects")]
         [SerializeField] private Image vignetteOverlay;
@@ -26,11 +24,12 @@ namespace ProjectName.UI
         [SerializeField] private Color spectralGlowColor = new Color(0.25f, 0.88f, 0.82f, 0.8f);
         [SerializeField] private float spectralPulseSpeed = 0.5f;
 
-        private Sequence currentSequence;
+        private Coroutine currentSequence;
 
         private void OnDestroy()
         {
-            currentSequence?.Kill();
+            if (currentSequence != null)
+                StopCoroutine(currentSequence);
         }
 
         /// <summary>
@@ -41,51 +40,74 @@ namespace ProjectName.UI
             if (menuGroup == null)
                 return;
 
-            currentSequence?.Kill();
+            if (currentSequence != null)
+                StopCoroutine(currentSequence);
+
+            currentSequence = StartCoroutine(OpenMenuCoroutine(menuGroup, panel, onComplete));
+        }
+
+        private IEnumerator OpenMenuCoroutine(CanvasGroup menuGroup, RectTransform panel, Action onComplete)
+        {
             menuGroup.gameObject.SetActive(true);
             menuGroup.alpha = 0f;
             menuGroup.interactable = false;
             menuGroup.blocksRaycasts = false;
 
+            Vector2 startPos = Vector2.zero;
             if (panel != null)
             {
-                panel.anchoredPosition = new Vector2(panel.anchoredPosition.x, -slideDistance);
+                startPos = panel.anchoredPosition;
+                panel.anchoredPosition = new Vector2(startPos.x, -slideDistance);
             }
 
-            currentSequence = DOTween.Sequence();
-
-            // Fade in
-            currentSequence.Append(menuGroup.DOFade(1f, fadeDuration).SetEase(openEase));
-
-            // Slide up
-            if (panel != null)
-            {
-                currentSequence.Join(
-                    panel.DOAnchorPosY(0f, slideDuration).SetEase(openEase)
-                );
-            }
-
-            // Vignette effect
             if (vignetteOverlay != null)
             {
                 Color startColor = vignetteOverlay.color;
                 startColor.a = 0f;
                 vignetteOverlay.color = startColor;
                 vignetteOverlay.gameObject.SetActive(true);
-
-                currentSequence.Join(
-                    vignetteOverlay.DOFade(vignetteIntensity, fadeDuration).SetEase(openEase)
-                );
             }
 
-            currentSequence.OnComplete(() =>
-            {
-                menuGroup.interactable = true;
-                menuGroup.blocksRaycasts = true;
-                onComplete?.Invoke();
-            });
+            float elapsed = 0f;
+            float duration = Mathf.Max(fadeDuration, slideDuration);
 
-            currentSequence.SetUpdate(true); // Ignore time scale
+            while (elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(elapsed / duration);
+                float eased = EaseOutQuart(t);
+
+                // Fade
+                float fadeT = Mathf.Clamp01(elapsed / fadeDuration);
+                menuGroup.alpha = EaseOutQuart(fadeT);
+
+                // Slide
+                if (panel != null)
+                {
+                    float slideT = Mathf.Clamp01(elapsed / slideDuration);
+                    float slideEased = EaseOutQuart(slideT);
+                    panel.anchoredPosition = new Vector2(startPos.x, Mathf.Lerp(-slideDistance, 0f, slideEased));
+                }
+
+                // Vignette
+                if (vignetteOverlay != null)
+                {
+                    float vignetteT = Mathf.Clamp01(elapsed / fadeDuration);
+                    Color c = vignetteOverlay.color;
+                    c.a = Mathf.Lerp(0f, vignetteIntensity, EaseOutQuart(vignetteT));
+                    vignetteOverlay.color = c;
+                }
+
+                yield return null;
+            }
+
+            menuGroup.alpha = 1f;
+            if (panel != null)
+                panel.anchoredPosition = startPos;
+
+            menuGroup.interactable = true;
+            menuGroup.blocksRaycasts = true;
+            onComplete?.Invoke();
         }
 
         /// <summary>
@@ -96,42 +118,57 @@ namespace ProjectName.UI
             if (menuGroup == null)
                 return;
 
-            currentSequence?.Kill();
+            if (currentSequence != null)
+                StopCoroutine(currentSequence);
+
+            currentSequence = StartCoroutine(CloseMenuCoroutine(menuGroup, panel, onComplete));
+        }
+
+        private IEnumerator CloseMenuCoroutine(CanvasGroup menuGroup, RectTransform panel, Action onComplete)
+        {
             menuGroup.interactable = false;
             menuGroup.blocksRaycasts = false;
 
-            currentSequence = DOTween.Sequence();
+            Vector2 startPos = panel != null ? panel.anchoredPosition : Vector2.zero;
 
-            // Fade out
-            currentSequence.Append(menuGroup.DOFade(0f, fadeDuration).SetEase(closeEase));
+            float elapsed = 0f;
+            float duration = Mathf.Max(fadeDuration, slideDuration);
 
-            // Slide down
-            if (panel != null)
+            while (elapsed < duration)
             {
-                currentSequence.Join(
-                    panel.DOAnchorPosY(-slideDistance, slideDuration).SetEase(closeEase)
-                );
-            }
+                elapsed += Time.unscaledDeltaTime;
 
-            // Vignette effect
-            if (vignetteOverlay != null)
-            {
-                currentSequence.Join(
-                    vignetteOverlay.DOFade(0f, fadeDuration).SetEase(closeEase)
-                );
-            }
+                // Fade
+                float fadeT = Mathf.Clamp01(elapsed / fadeDuration);
+                menuGroup.alpha = 1f - EaseInQuart(fadeT);
 
-            currentSequence.OnComplete(() =>
-            {
-                menuGroup.gameObject.SetActive(false);
+                // Slide
+                if (panel != null)
+                {
+                    float slideT = Mathf.Clamp01(elapsed / slideDuration);
+                    float slideEased = EaseInQuart(slideT);
+                    panel.anchoredPosition = new Vector2(startPos.x, Mathf.Lerp(0f, -slideDistance, slideEased));
+                }
+
+                // Vignette
                 if (vignetteOverlay != null)
                 {
-                    vignetteOverlay.gameObject.SetActive(false);
+                    float vignetteT = Mathf.Clamp01(elapsed / fadeDuration);
+                    Color c = vignetteOverlay.color;
+                    c.a = Mathf.Lerp(vignetteIntensity, 0f, EaseInQuart(vignetteT));
+                    vignetteOverlay.color = c;
                 }
-                onComplete?.Invoke();
-            });
 
-            currentSequence.SetUpdate(true); // Ignore time scale
+                yield return null;
+            }
+
+            menuGroup.alpha = 0f;
+            menuGroup.gameObject.SetActive(false);
+
+            if (vignetteOverlay != null)
+                vignetteOverlay.gameObject.SetActive(false);
+
+            onComplete?.Invoke();
         }
 
         /// <summary>
@@ -139,8 +176,14 @@ namespace ProjectName.UI
         /// </summary>
         public void CrossFade(CanvasGroup fromGroup, CanvasGroup toGroup, Action onComplete = null)
         {
-            currentSequence?.Kill();
+            if (currentSequence != null)
+                StopCoroutine(currentSequence);
 
+            currentSequence = StartCoroutine(CrossFadeCoroutine(fromGroup, toGroup, onComplete));
+        }
+
+        private IEnumerator CrossFadeCoroutine(CanvasGroup fromGroup, CanvasGroup toGroup, Action onComplete)
+        {
             if (fromGroup != null)
             {
                 fromGroup.interactable = false;
@@ -155,54 +198,79 @@ namespace ProjectName.UI
                 toGroup.blocksRaycasts = false;
             }
 
-            currentSequence = DOTween.Sequence();
-
+            // Fade out
             if (fromGroup != null)
             {
-                currentSequence.Append(fromGroup.DOFade(0f, fadeDuration).SetEase(closeEase));
+                float elapsed = 0f;
+                while (elapsed < fadeDuration)
+                {
+                    elapsed += Time.unscaledDeltaTime;
+                    float t = Mathf.Clamp01(elapsed / fadeDuration);
+                    fromGroup.alpha = 1f - EaseInQuart(t);
+                    yield return null;
+                }
+                fromGroup.alpha = 0f;
+                fromGroup.gameObject.SetActive(false);
             }
 
+            // Fade in
             if (toGroup != null)
             {
-                currentSequence.Append(toGroup.DOFade(1f, fadeDuration).SetEase(openEase));
+                float elapsed = 0f;
+                while (elapsed < fadeDuration)
+                {
+                    elapsed += Time.unscaledDeltaTime;
+                    float t = Mathf.Clamp01(elapsed / fadeDuration);
+                    toGroup.alpha = EaseOutQuart(t);
+                    yield return null;
+                }
+                toGroup.alpha = 1f;
+                toGroup.interactable = true;
+                toGroup.blocksRaycasts = true;
             }
 
-            currentSequence.OnComplete(() =>
-            {
-                if (fromGroup != null)
-                {
-                    fromGroup.gameObject.SetActive(false);
-                }
-                if (toGroup != null)
-                {
-                    toGroup.interactable = true;
-                    toGroup.blocksRaycasts = true;
-                }
-                onComplete?.Invoke();
-            });
-
-            currentSequence.SetUpdate(true);
+            onComplete?.Invoke();
         }
 
         /// <summary>
         /// Applies a Soul Reaver-style spectral pulse effect to an image.
         /// </summary>
-        public Tween SpectralPulse(Image element, bool loop = true)
+        public Coroutine SpectralPulse(Image element, bool loop = true)
         {
             if (element == null)
                 return null;
 
+            return StartCoroutine(SpectralPulseCoroutine(element, loop));
+        }
+
+        private IEnumerator SpectralPulseCoroutine(Image element, bool loop)
+        {
             Color originalColor = element.color;
 
-            var tween = element.DOColor(spectralGlowColor, spectralPulseSpeed)
-                .SetEase(Ease.InOutSine);
-
-            if (loop)
+            do
             {
-                tween.SetLoops(-1, LoopType.Yoyo);
-            }
+                // Pulse to spectral color
+                float elapsed = 0f;
+                while (elapsed < spectralPulseSpeed)
+                {
+                    elapsed += Time.unscaledDeltaTime;
+                    float t = Mathf.Clamp01(elapsed / spectralPulseSpeed);
+                    t = EaseInOutSine(t);
+                    element.color = Color.Lerp(originalColor, spectralGlowColor, t);
+                    yield return null;
+                }
 
-            return tween;
+                // Pulse back
+                elapsed = 0f;
+                while (elapsed < spectralPulseSpeed)
+                {
+                    elapsed += Time.unscaledDeltaTime;
+                    float t = Mathf.Clamp01(elapsed / spectralPulseSpeed);
+                    t = EaseInOutSine(t);
+                    element.color = Color.Lerp(spectralGlowColor, originalColor, t);
+                    yield return null;
+                }
+            } while (loop);
         }
 
         /// <summary>
@@ -213,7 +281,7 @@ namespace ProjectName.UI
             if (element == null)
                 return;
 
-            element.DOKill();
+            StopAllCoroutines();
             element.color = originalColor;
         }
 
@@ -225,8 +293,28 @@ namespace ProjectName.UI
             if (target == null)
                 return;
 
-            target.DOPunchScale(Vector3.one * intensity, duration, 2, 0.5f)
-                .SetUpdate(true);
+            StartCoroutine(PunchScaleCoroutine(target, intensity, duration));
+        }
+
+        private IEnumerator PunchScaleCoroutine(Transform target, float intensity, float duration)
+        {
+            Vector3 originalScale = target.localScale;
+            float elapsed = 0f;
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float t = elapsed / duration;
+
+                // Damped oscillation
+                float damping = 1f - t;
+                float oscillation = Mathf.Sin(t * Mathf.PI * 4f) * damping;
+
+                target.localScale = originalScale + Vector3.one * (oscillation * intensity);
+                yield return null;
+            }
+
+            target.localScale = originalScale;
         }
 
         /// <summary>
@@ -237,8 +325,28 @@ namespace ProjectName.UI
             if (target == null)
                 return;
 
-            target.DOShakeAnchorPos(duration, intensity, 10, 90f, false, true)
-                .SetUpdate(true);
+            StartCoroutine(ShakePositionCoroutine(target, intensity, duration));
+        }
+
+        private IEnumerator ShakePositionCoroutine(RectTransform target, float intensity, float duration)
+        {
+            Vector2 originalPos = target.anchoredPosition;
+            float elapsed = 0f;
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float t = elapsed / duration;
+                float damping = 1f - t;
+
+                float offsetX = UnityEngine.Random.Range(-1f, 1f) * intensity * damping;
+                float offsetY = UnityEngine.Random.Range(-1f, 1f) * intensity * damping * 0.5f;
+
+                target.anchoredPosition = originalPos + new Vector2(offsetX, offsetY);
+                yield return null;
+            }
+
+            target.anchoredPosition = originalPos;
         }
 
         /// <summary>
@@ -249,13 +357,28 @@ namespace ProjectName.UI
             if (group == null || target == null)
                 return;
 
+            StartCoroutine(PopInCoroutine(group, target, duration));
+        }
+
+        private IEnumerator PopInCoroutine(CanvasGroup group, Transform target, float duration)
+        {
             group.alpha = 0f;
             target.localScale = Vector3.one * 0.8f;
 
-            DOTween.Sequence()
-                .Append(group.DOFade(1f, duration).SetEase(Ease.OutQuad))
-                .Join(target.DOScale(Vector3.one, duration).SetEase(Ease.OutBack))
-                .SetUpdate(true);
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(elapsed / duration);
+
+                group.alpha = EaseOutQuad(t);
+                target.localScale = Vector3.Lerp(Vector3.one * 0.8f, Vector3.one, EaseOutBack(t));
+
+                yield return null;
+            }
+
+            group.alpha = 1f;
+            target.localScale = Vector3.one;
         }
 
         /// <summary>
@@ -266,11 +389,50 @@ namespace ProjectName.UI
             if (group == null || target == null)
                 return;
 
-            DOTween.Sequence()
-                .Append(group.DOFade(0f, duration).SetEase(Ease.InQuad))
-                .Join(target.DOScale(Vector3.one * 0.8f, duration).SetEase(Ease.InBack))
-                .OnComplete(() => onComplete?.Invoke())
-                .SetUpdate(true);
+            StartCoroutine(PopOutCoroutine(group, target, duration, onComplete));
         }
+
+        private IEnumerator PopOutCoroutine(CanvasGroup group, Transform target, float duration, Action onComplete)
+        {
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(elapsed / duration);
+
+                group.alpha = 1f - EaseInQuad(t);
+                target.localScale = Vector3.Lerp(Vector3.one, Vector3.one * 0.8f, EaseInBack(t));
+
+                yield return null;
+            }
+
+            group.alpha = 0f;
+            target.localScale = Vector3.one * 0.8f;
+            onComplete?.Invoke();
+        }
+
+        #region Easing Functions
+
+        private float EaseOutQuart(float t) => 1f - Mathf.Pow(1f - t, 4f);
+        private float EaseInQuart(float t) => t * t * t * t;
+        private float EaseOutQuad(float t) => 1f - (1f - t) * (1f - t);
+        private float EaseInQuad(float t) => t * t;
+        private float EaseInOutSine(float t) => -(Mathf.Cos(Mathf.PI * t) - 1f) / 2f;
+
+        private float EaseOutBack(float t)
+        {
+            const float c1 = 1.70158f;
+            const float c3 = c1 + 1f;
+            return 1f + c3 * Mathf.Pow(t - 1f, 3f) + c1 * Mathf.Pow(t - 1f, 2f);
+        }
+
+        private float EaseInBack(float t)
+        {
+            const float c1 = 1.70158f;
+            const float c3 = c1 + 1f;
+            return c3 * t * t * t - c1 * t * t;
+        }
+
+        #endregion
     }
 }

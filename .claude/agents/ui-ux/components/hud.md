@@ -1,5 +1,7 @@
 # HUD Design
 
+> **Unity 6 2D** - Screen Space Overlay canvas, no camera reference needed.
+
 ## Minimal Gothic HUD (Hollow Knight Inspired)
 
 ```
@@ -16,6 +18,10 @@
 ## Implementation
 
 ```csharp
+using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
+
 public class GothicHUD : MonoBehaviour
 {
     [Header("Health Display - SOTN Style")]
@@ -30,7 +36,7 @@ public class GothicHUD : MonoBehaviour
     [SerializeField] private Gradient soulGradient;
 
     [Header("Currency")]
-    [SerializeField] private TextMeshProUGUI currencyText;
+    [SerializeField] private TMP_Text currencyText;
     [SerializeField] private Image currencyIcon;
 
     [Header("Ability Indicator")]
@@ -39,20 +45,48 @@ public class GothicHUD : MonoBehaviour
 
     public void UpdateHealth(int current, int max)
     {
+        if (healthGems == null) return;
+
         for (int i = 0; i < healthGems.Length; i++)
         {
-            if (i < current) healthGems[i].sprite = filledGem;
-            else if (i < max) healthGems[i].sprite = emptyGem;
-            else healthGems[i].gameObject.SetActive(false);
+            if (healthGems[i] == null) continue;
+
+            if (i < current)
+                healthGems[i].sprite = filledGem;
+            else if (i < max)
+                healthGems[i].sprite = emptyGem;
+            else
+                healthGems[i].gameObject.SetActive(false);
         }
     }
 
     public void UpdateSoulMeter(float normalized)
     {
-        soulMeterFill.fillAmount = normalized;
-        soulMeterFill.color = soulGradient.Evaluate(normalized);
-        float glowAlpha = Mathf.Lerp(0.2f, 0.8f, normalized);
-        soulMeterGlow.color = new Color(1f, 1f, 1f, glowAlpha);
+        normalized = Mathf.Clamp01(normalized);
+
+        if (soulMeterFill != null)
+        {
+            soulMeterFill.fillAmount = normalized;
+            soulMeterFill.color = soulGradient.Evaluate(normalized);
+        }
+
+        if (soulMeterGlow != null)
+        {
+            float glowAlpha = Mathf.Lerp(0.2f, 0.8f, normalized);
+            soulMeterGlow.color = new Color(1f, 1f, 1f, glowAlpha);
+        }
+    }
+
+    public void UpdateCurrency(int amount)
+    {
+        if (currencyText != null)
+            currencyText.text = amount.ToString("N0"); // Formatted with commas
+    }
+
+    public void UpdateAbilityCooldown(float normalizedCooldown)
+    {
+        if (abilityCooldownOverlay != null)
+            abilityCooldownOverlay.fillAmount = normalizedCooldown;
     }
 }
 ```

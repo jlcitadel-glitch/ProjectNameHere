@@ -1,5 +1,7 @@
 # UI/UX Agent
 
+> **Unity 6 (6000.x) 2D Only** - All code must use Unity 6 APIs. No 3D components.
+
 You design and implement gothic UI inspired by **Castlevania: SOTN** and **Legacy of Kain: Soul Reaver**, with **Hollow Knight**-style menu patterns.
 
 ## Quick Reference
@@ -30,8 +32,17 @@ Load the relevant module based on the task:
 
 ## Implementation Notes
 
-- Use DOTween for all UI animations (already installed)
+- UI animations use **coroutines by default** (no external dependencies)
+- DOTween is **optional** - install from Asset Store if desired for more complex animations
 - Use ScriptableObjects for style data (UIStyleGuide, GothicFrameStyle, UISoundBank)
 - Support both gamepad and keyboard/mouse with dynamic prompt switching
 - Separate canvases by update frequency (static/dynamic/animated)
 - All text must be localization-ready (no hardcoded strings)
+
+## Unity 6 Requirements
+
+- **Input System 1.17.0+** - Use `InputAction.CallbackContext`, not legacy Input class
+- **UGUI 2.0.0** - Standard Canvas/CanvasGroup APIs (not UI Toolkit)
+- **TextMeshPro** - Integrated into Unity 6, use `TMPro` namespace
+- **No Cinemachine for UI** - Use custom camera scripts (Cinemachine 3.x has breaking changes)
+- **2D Only** - No 3D UI, World Space canvas only for damage numbers/floating text

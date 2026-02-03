@@ -1,5 +1,21 @@
 # Checklists & References
 
+> **Unity 6 2D** - Verify all code uses Unity 6 APIs before implementation.
+
+## Unity 6 API Checklist
+
+Before implementing any UI code, verify:
+
+- [ ] Using `TMPro` namespace (not legacy Text)
+- [ ] Using Input System 1.17.0 (`InputAction.CallbackContext`, not legacy Input)
+- [ ] Using `Rigidbody2D.linearVelocity` (not deprecated `.velocity`)
+- [ ] Using `InputActionReference` for serialized input actions
+- [ ] Using UGUI 2.0.0 (not UI Toolkit for game UI)
+- [ ] No Cinemachine 2.x APIs (3.x has breaking changes - use custom camera scripts)
+- [ ] Screen Space Overlay for menus/HUD (no camera reference needed for 2D)
+- [ ] `WaitForSecondsRealtime` for paused menu coroutines
+- [ ] DOTween `SetUpdate(true)` for animations during pause
+
 ## Accessibility Checklist
 
 - [ ] Minimum contrast ratio 4.5:1 for body text

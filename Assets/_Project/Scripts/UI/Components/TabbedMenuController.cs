@@ -1,8 +1,8 @@
 using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
-using DG.Tweening;
 
 namespace ProjectName.UI
 {
@@ -28,7 +28,6 @@ namespace ProjectName.UI
 
         [Header("Animation")]
         [SerializeField] private float transitionDuration = 0.2f;
-        [SerializeField] private Ease tabEase = Ease.OutQuad;
 
         [Header("Visual Settings")]
         [Tooltip("Underline or indicator that shows current tab")]
@@ -142,7 +141,7 @@ namespace ProjectName.UI
                 }
                 else
                 {
-                    FadeOutContent(tabContents[currentTabIndex]);
+                    StartCoroutine(FadeOutContent(tabContents[currentTabIndex]));
                 }
             }
 
@@ -164,14 +163,17 @@ namespace ProjectName.UI
                 }
                 else
                 {
-                    FadeInContent(tabContents[currentTabIndex]);
+                    StartCoroutine(FadeInContent(tabContents[currentTabIndex]));
                 }
             }
 
             // Move indicator
             if (tabIndicator != null && tabs[currentTabIndex] != null)
             {
-                MoveIndicator(tabs[currentTabIndex].GetComponent<RectTransform>(), immediate);
+                if (immediate)
+                    MoveIndicatorImmediate(tabs[currentTabIndex].GetComponent<RectTransform>());
+                else
+                    StartCoroutine(MoveIndicatorAnimated(tabs[currentTabIndex].GetComponent<RectTransform>()));
             }
 
             // Play sound
@@ -183,7 +185,7 @@ namespace ProjectName.UI
             OnTabChanged?.Invoke(currentTabIndex);
         }
 
-        private void FadeOutContent(GameObject content)
+        private IEnumerator FadeOutContent(GameObject content)
         {
             CanvasGroup group = content.GetComponent<CanvasGroup>();
             if (group == null)
@@ -191,13 +193,22 @@ namespace ProjectName.UI
                 group = content.AddComponent<CanvasGroup>();
             }
 
-            group.DOFade(0f, transitionDuration / 2f)
-                .SetEase(tabEase)
-                .OnComplete(() => content.SetActive(false))
-                .SetUpdate(true);
+            float duration = transitionDuration / 2f;
+            float elapsed = 0f;
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(elapsed / duration);
+                group.alpha = 1f - EaseOutQuad(t);
+                yield return null;
+            }
+
+            group.alpha = 0f;
+            content.SetActive(false);
         }
 
-        private void FadeInContent(GameObject content)
+        private IEnumerator FadeInContent(GameObject content)
         {
             content.SetActive(true);
 
@@ -208,39 +219,62 @@ namespace ProjectName.UI
             }
 
             group.alpha = 0f;
-            group.DOFade(1f, transitionDuration / 2f)
-                .SetEase(tabEase)
-                .SetUpdate(true);
+            float duration = transitionDuration / 2f;
+            float elapsed = 0f;
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(elapsed / duration);
+                group.alpha = EaseOutQuad(t);
+                yield return null;
+            }
+
+            group.alpha = 1f;
         }
 
-        private void MoveIndicator(RectTransform targetTab, bool immediate)
+        private void MoveIndicatorImmediate(RectTransform targetTab)
         {
             if (tabIndicator == null || targetTab == null)
                 return;
 
             Vector3 targetPosition = targetTab.position;
-            targetPosition.y = tabIndicator.position.y; // Keep same Y
+            targetPosition.y = tabIndicator.position.y;
+            tabIndicator.position = targetPosition;
 
-            if (immediate)
+            Vector2 size = tabIndicator.sizeDelta;
+            size.x = targetTab.sizeDelta.x;
+            tabIndicator.sizeDelta = size;
+        }
+
+        private IEnumerator MoveIndicatorAnimated(RectTransform targetTab)
+        {
+            if (tabIndicator == null || targetTab == null)
+                yield break;
+
+            Vector3 startPosition = tabIndicator.position;
+            Vector3 targetPosition = targetTab.position;
+            targetPosition.y = startPosition.y;
+
+            Vector2 startSize = tabIndicator.sizeDelta;
+            Vector2 targetSize = new Vector2(targetTab.sizeDelta.x, startSize.y);
+
+            float elapsed = 0f;
+
+            while (elapsed < indicatorSpeed)
             {
-                tabIndicator.position = targetPosition;
+                elapsed += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(elapsed / indicatorSpeed);
+                float eased = EaseOutQuad(t);
 
-                // Match width to tab
-                Vector2 size = tabIndicator.sizeDelta;
-                size.x = targetTab.sizeDelta.x;
-                tabIndicator.sizeDelta = size;
-            }
-            else
-            {
-                tabIndicator.DOMove(targetPosition, indicatorSpeed)
-                    .SetEase(Ease.OutQuad)
-                    .SetUpdate(true);
+                tabIndicator.position = Vector3.Lerp(startPosition, targetPosition, eased);
+                tabIndicator.sizeDelta = Vector2.Lerp(startSize, targetSize, eased);
 
-                tabIndicator.DOSizeDelta(
-                    new Vector2(targetTab.sizeDelta.x, tabIndicator.sizeDelta.y),
-                    indicatorSpeed
-                ).SetEase(Ease.OutQuad).SetUpdate(true);
+                yield return null;
             }
+
+            tabIndicator.position = targetPosition;
+            tabIndicator.sizeDelta = targetSize;
         }
 
         /// <summary>
@@ -257,6 +291,8 @@ namespace ProjectName.UI
                 }
             }
         }
+
+        private float EaseOutQuad(float t) => 1f - (1f - t) * (1f - t);
 
 #if UNITY_EDITOR
         private void OnValidate()
@@ -291,6 +327,7 @@ namespace ProjectName.UI
 
         private bool isSelected;
         private Button button;
+        private Coroutine colorTransition;
 
         public event Action OnTabClicked;
 
@@ -310,23 +347,48 @@ namespace ProjectName.UI
         {
             isSelected = selected;
 
+            if (colorTransition != null)
+                StopCoroutine(colorTransition);
+
+            colorTransition = StartCoroutine(AnimateColors(selected));
+        }
+
+        private IEnumerator AnimateColors(bool selected)
+        {
             Color targetBgColor = selected ? selectedColor : normalColor;
             Color targetTextColor = selected ? selectedTextColor : normalTextColor;
 
-            if (background != null)
+            Color startBgColor = background != null ? background.color : normalColor;
+            Color startTextColor = label != null ? label.color : normalTextColor;
+            Color startIconColor = icon != null ? icon.color : normalTextColor;
+
+            float elapsed = 0f;
+
+            while (elapsed < transitionDuration)
             {
-                background.DOColor(targetBgColor, transitionDuration).SetUpdate(true);
+                elapsed += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(elapsed / transitionDuration);
+
+                if (background != null)
+                    background.color = Color.Lerp(startBgColor, targetBgColor, t);
+
+                if (label != null)
+                    label.color = Color.Lerp(startTextColor, targetTextColor, t);
+
+                if (icon != null)
+                    icon.color = Color.Lerp(startIconColor, targetTextColor, t);
+
+                yield return null;
             }
+
+            if (background != null)
+                background.color = targetBgColor;
 
             if (label != null)
-            {
-                label.DOColor(targetTextColor, transitionDuration).SetUpdate(true);
-            }
+                label.color = targetTextColor;
 
             if (icon != null)
-            {
-                icon.DOColor(targetTextColor, transitionDuration).SetUpdate(true);
-            }
+                icon.color = targetTextColor;
         }
     }
 }

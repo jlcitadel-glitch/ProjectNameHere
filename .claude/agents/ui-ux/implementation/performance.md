@@ -1,30 +1,56 @@
 # Performance & Localization
 
+> **Unity 6 2D** - Separate canvases by update frequency, disable raycasts on non-interactive elements.
+
 ## Canvas Batching
 
 ```csharp
+using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
+
 public class UIPerformanceOptimizer : MonoBehaviour
 {
+    [Header("Optimization Settings")]
     [SerializeField] private bool disableRaycastsOnStatic = true;
     [SerializeField] private bool useAtlasedSprites = true;
 
-    // Separate canvases by update frequency
-    [SerializeField] private Canvas staticCanvas;      // Frames, backgrounds
-    [SerializeField] private Canvas dynamicCanvas;     // Health, timers
+    [Header("Canvas References (separate by update frequency)")]
+    [SerializeField] private Canvas staticCanvas;      // Frames, backgrounds (rarely changes)
+    [SerializeField] private Canvas dynamicCanvas;     // Health, timers (changes often)
     [SerializeField] private Canvas animatedCanvas;    // Constantly moving elements
+
+    private void Start()
+    {
+        if (disableRaycastsOnStatic)
+            OptimizeStaticElements();
+    }
 
     private void OptimizeStaticElements()
     {
-        var staticImages = staticCanvas.GetComponentsInChildren<Image>();
+        if (staticCanvas == null) return;
+
+        // Disable raycasts on non-interactive images
+        var staticImages = staticCanvas.GetComponentsInChildren<Image>(true);
         foreach (var img in staticImages)
         {
-            if (!img.GetComponent<Selectable>())
+            // Keep raycasts on Selectables (buttons, etc.)
+            if (img.GetComponent<Selectable>() == null)
                 img.raycastTarget = false;
         }
 
-        var texts = GetComponentsInChildren<TextMeshProUGUI>();
-        foreach (var text in texts)
+        // Text almost never needs raycasts
+        var allTexts = GetComponentsInChildren<TMP_Text>(true);
+        foreach (var text in allTexts)
             text.raycastTarget = false;
+    }
+
+    // Call this in Editor via context menu to preview optimization
+    [ContextMenu("Preview Optimization")]
+    private void PreviewOptimization()
+    {
+        OptimizeStaticElements();
+        Debug.Log("UI optimization applied. Check Frame Debugger for batching.");
     }
 }
 ```
@@ -49,23 +75,58 @@ UI_Gothic_Atlas
 ## Localization Support
 
 ```csharp
+using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
+
 public class LocalizedText : MonoBehaviour
 {
     [SerializeField] private string localizationKey;
-    [SerializeField] private float horizontalBuffer = 1.3f;  // German ~30% longer
+    [Tooltip("German text is ~30% longer than English")]
+    [SerializeField] private float horizontalBuffer = 1.3f;
     [SerializeField] private bool autoResize = true;
+
+    private TMP_Text textComponent;
+    private RectTransform rectTransform;
+
+    private void Awake()
+    {
+        textComponent = GetComponent<TMP_Text>();
+        rectTransform = GetComponent<RectTransform>();
+    }
 
     private void Start()
     {
-        LocalizationManager.OnLanguageChanged += UpdateText;
+        // Subscribe to language change events (implement LocalizationManager as needed)
+        // LocalizationManager.OnLanguageChanged += UpdateText;
         UpdateText();
     }
 
-    private void UpdateText()
+    private void OnDestroy()
     {
-        GetComponent<TextMeshProUGUI>().text = LocalizationManager.GetString(localizationKey);
-        if (autoResize)
-            LayoutRebuilder.ForceRebuildLayoutImmediate(GetComponent<RectTransform>());
+        // LocalizationManager.OnLanguageChanged -= UpdateText;
+    }
+
+    public void UpdateText()
+    {
+        if (textComponent == null) return;
+
+        // Replace with your localization system
+        // textComponent.text = LocalizationManager.GetString(localizationKey);
+        textComponent.text = localizationKey; // Placeholder
+
+        if (autoResize && rectTransform != null)
+            LayoutRebuilder.ForceRebuildLayoutImmediate(rectTransform);
+    }
+
+    // Call when language changes
+    public void SetKey(string newKey)
+    {
+        localizationKey = newKey;
+        UpdateText();
     }
 }
+
+// Note: Unity 6 has built-in Localization package (com.unity.localization)
+// Consider using it instead of a custom solution for production.
 ```

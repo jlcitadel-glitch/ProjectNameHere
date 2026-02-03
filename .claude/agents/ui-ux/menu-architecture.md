@@ -1,5 +1,7 @@
 # Menu Architecture: Metroidvania Patterns
 
+> **Unity 6 2D** - Screen Space Overlay canvases, Input System 1.17.0 for navigation.
+
 ## Screen Flow Map
 
 ```

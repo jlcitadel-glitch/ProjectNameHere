@@ -3,7 +3,6 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
-using DG.Tweening;
 
 namespace ProjectName.UI
 {
@@ -23,7 +22,7 @@ namespace ProjectName.UI
         [Tooltip("Main menu canvas (Screen Space - Overlay)")]
         [SerializeField] private Canvas mainMenuCanvas;
 
-        [Tooltip("In-game HUD canvas (Screen Space - Camera)")]
+        [Tooltip("In-game HUD canvas (Screen Space - Overlay for 2D)")]
         [SerializeField] private Canvas hudCanvas;
 
         [Tooltip("Pause menu canvas (Screen Space - Overlay)")]
@@ -57,7 +56,7 @@ namespace ProjectName.UI
         public event Action OnResume;
         public event Action<bool> OnMenuStateChanged;
 
-        private Sequence currentTransition;
+        private Coroutine currentTransition;
         private float previousTimeScale;
 
         private void Awake()
@@ -75,11 +74,6 @@ namespace ProjectName.UI
             InitializeAudio();
         }
 
-        private void Start()
-        {
-            DOTween.Init();
-        }
-
         private void OnDestroy()
         {
             if (Instance == this)
@@ -87,7 +81,8 @@ namespace ProjectName.UI
                 Instance = null;
             }
 
-            currentTransition?.Kill();
+            if (currentTransition != null)
+                StopCoroutine(currentTransition);
         }
 
         private void InitializeCanvases()
@@ -99,15 +94,10 @@ namespace ProjectName.UI
                 mainMenuCanvas.sortingOrder = 100;
             }
 
-            // HUD - follows camera for post-processing compatibility
+            // HUD - Screen Space Overlay for 2D games
             if (hudCanvas != null)
             {
-                hudCanvas.renderMode = RenderMode.ScreenSpaceCamera;
-                if (Camera.main != null)
-                {
-                    hudCanvas.worldCamera = Camera.main;
-                }
-                hudCanvas.planeDistance = 1f;
+                hudCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
                 hudCanvas.sortingOrder = 10;
             }
 
@@ -213,24 +203,22 @@ namespace ProjectName.UI
             if (canvas == null || group == null)
                 return;
 
-            currentTransition?.Kill();
+            if (currentTransition != null)
+                StopCoroutine(currentTransition);
+
             canvas.gameObject.SetActive(true);
             group.alpha = 0f;
             group.interactable = false;
             group.blocksRaycasts = false;
 
             float duration = styleGuide != null ? styleGuide.transitionDuration : 0.3f;
-            Ease ease = Ease.OutQuart;
 
-            currentTransition = DOTween.Sequence()
-                .Append(group.DOFade(1f, duration).SetEase(ease))
-                .OnComplete(() =>
-                {
-                    group.interactable = true;
-                    group.blocksRaycasts = true;
-                    onComplete?.Invoke();
-                })
-                .SetUpdate(true); // Ignore time scale
+            currentTransition = StartCoroutine(FadeCanvasGroup(group, 0f, 1f, duration, () =>
+            {
+                group.interactable = true;
+                group.blocksRaycasts = true;
+                onComplete?.Invoke();
+            }));
         }
 
         /// <summary>
@@ -241,21 +229,38 @@ namespace ProjectName.UI
             if (canvas == null || group == null)
                 return;
 
-            currentTransition?.Kill();
+            if (currentTransition != null)
+                StopCoroutine(currentTransition);
+
             group.interactable = false;
             group.blocksRaycasts = false;
 
             float duration = styleGuide != null ? styleGuide.transitionDuration : 0.3f;
-            Ease ease = Ease.InQuart;
 
-            currentTransition = DOTween.Sequence()
-                .Append(group.DOFade(0f, duration).SetEase(ease))
-                .OnComplete(() =>
-                {
-                    canvas.gameObject.SetActive(false);
-                    onComplete?.Invoke();
-                })
-                .SetUpdate(true); // Ignore time scale
+            currentTransition = StartCoroutine(FadeCanvasGroup(group, group.alpha, 0f, duration, () =>
+            {
+                canvas.gameObject.SetActive(false);
+                onComplete?.Invoke();
+            }));
+        }
+
+        private IEnumerator FadeCanvasGroup(CanvasGroup group, float from, float to, float duration, Action onComplete)
+        {
+            float elapsed = 0f;
+            group.alpha = from;
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(elapsed / duration);
+                // Ease out quad
+                t = 1f - (1f - t) * (1f - t);
+                group.alpha = Mathf.Lerp(from, to, t);
+                yield return null;
+            }
+
+            group.alpha = to;
+            onComplete?.Invoke();
         }
 
         /// <summary>
@@ -295,7 +300,7 @@ namespace ProjectName.UI
             if (duration < 0f)
                 duration = styleGuide != null ? styleGuide.transitionDuration : 0.3f;
 
-            hudGroup.DOFade(targetAlpha, duration).SetEase(Ease.OutQuad);
+            StartCoroutine(FadeCanvasGroup(hudGroup, hudGroup.alpha, targetAlpha, duration, null));
         }
 
         /// <summary>

@@ -1,5 +1,7 @@
 # Design Philosophy
 
+> **Unity 6 2D** - All UI uses UGUI with TextMeshPro (integrated in Unity 6).
+
 ## Visual Identity: Gothic Elegance
 
 **Castlevania SOTN Influences:**
@@ -38,13 +40,43 @@ Numbers:     Monospace for stats (Fira Code, Source Code Pro)
 Runes/Lore:  Decorative/symbolic (custom glyph font)
 ```
 
-**TextMeshPro Settings:**
+**TextMeshPro Settings (Unity 6 - TMPro namespace):**
 ```csharp
-[Header("Gothic Text Style")]
-[SerializeField] private TMP_FontAsset headerFont;      // Ornate serif
-[SerializeField] private TMP_FontAsset bodyFont;        // Readable serif
-[SerializeField] private float headerSize = 36f;
-[SerializeField] private float bodySize = 24f;
-[SerializeField] private Color textColor = new Color(0.96f, 0.96f, 0.86f); // Bone white
-[SerializeField] private float characterSpacing = 2f;   // Slightly spread for elegance
+using UnityEngine;
+using TMPro;
+
+[CreateAssetMenu(fileName = "TextStyle", menuName = "UI/Gothic Text Style")]
+public class GothicTextStyle : ScriptableObject
+{
+    [Header("Fonts")]
+    [SerializeField] private TMP_FontAsset headerFont;      // Ornate serif (Cinzel)
+    [SerializeField] private TMP_FontAsset bodyFont;        // Readable serif (Crimson Text)
+
+    [Header("Sizes")]
+    [SerializeField] private float headerSize = 36f;
+    [SerializeField] private float bodySize = 24f;
+
+    [Header("Colors")]
+    [SerializeField] private Color textColor = new Color(0.96f, 0.96f, 0.86f); // Bone white
+
+    [Header("Spacing")]
+    [SerializeField] private float characterSpacing = 2f;   // Slightly spread for elegance
+
+    public void ApplyToHeader(TMP_Text text)
+    {
+        if (text == null) return;
+        text.font = headerFont;
+        text.fontSize = headerSize;
+        text.color = textColor;
+        text.characterSpacing = characterSpacing;
+    }
+
+    public void ApplyToBody(TMP_Text text)
+    {
+        if (text == null) return;
+        text.font = bodyFont;
+        text.fontSize = bodySize;
+        text.color = textColor;
+    }
+}
 ```
