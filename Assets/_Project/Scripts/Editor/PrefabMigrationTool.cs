@@ -15,6 +15,7 @@ public class PrefabMigrationTool : EditorWindow
     private bool showPhase2 = true;
     private bool showPhase3 = true;
     private bool showPhase4 = true;
+    private bool showPhase5 = true;
 
     [MenuItem("Tools/Prefab Migration/Open Migration Tool")]
     public static void ShowWindow()
@@ -88,11 +89,111 @@ public class PrefabMigrationTool : EditorWindow
         EditorUtility.DisplayDialog("Phase 4 Complete", $"Created {created} prefab(s).", "OK");
     }
 
+    [MenuItem("Tools/Prefab Migration/Phase 5 - UI System")]
+    public static void MigratePhase5()
+    {
+        if (!EditorUtility.DisplayDialog("Phase 5: UI System",
+            "This will create prefabs for:\n\n" +
+            "Systems:\n- UIManager\n\n" +
+            "Canvases:\n- MainMenuCanvas\n- HUDCanvas\n- PauseCanvas\n- WorldCanvas\n\n" +
+            "Menus:\n- TitleScreen\n- PauseMenu\n- OptionsPanel\n\n" +
+            "Components:\n- GothicFrame\n- GothicButton\n- TabBar\n\n" +
+            "Note: Only existing scene objects will be converted.\n\nProceed?", "Yes", "Cancel"))
+            return;
+
+        // Ensure UI folder structure exists
+        EnsureUIFolderStructure();
+
+        int created = 0;
+
+        // UI Systems (singleton managers)
+        created += CreatePrefabFromSceneObject("UIManager", "Assets/_Project/Prefabs/UI/Systems/UIManager.prefab");
+        created += CreatePrefabFromSceneObject("FocusManager", "Assets/_Project/Prefabs/UI/Systems/FocusManager.prefab");
+
+        // Canvases (separate by function per UI/UX Agent guidelines)
+        created += CreatePrefabFromSceneObject("MainMenuCanvas", "Assets/_Project/Prefabs/UI/Canvases/MainMenuCanvas.prefab");
+        created += CreatePrefabFromSceneObject("HUDCanvas", "Assets/_Project/Prefabs/UI/Canvases/HUDCanvas.prefab");
+        created += CreatePrefabFromSceneObject("PauseCanvas", "Assets/_Project/Prefabs/UI/Canvases/PauseCanvas.prefab");
+        created += CreatePrefabFromSceneObject("WorldCanvas", "Assets/_Project/Prefabs/UI/Canvases/WorldCanvas.prefab");
+
+        // Alternative canvas names (some projects use different naming)
+        created += CreatePrefabFromSceneObject("Main Menu Canvas", "Assets/_Project/Prefabs/UI/Canvases/MainMenuCanvas.prefab");
+        created += CreatePrefabFromSceneObject("HUD Canvas", "Assets/_Project/Prefabs/UI/Canvases/HUDCanvas.prefab");
+        created += CreatePrefabFromSceneObject("Pause Canvas", "Assets/_Project/Prefabs/UI/Canvases/PauseCanvas.prefab");
+        created += CreatePrefabFromSceneObject("World Canvas", "Assets/_Project/Prefabs/UI/Canvases/WorldCanvas.prefab");
+
+        // Menu screens (gothic-themed per UI/UX Agent)
+        created += CreatePrefabFromSceneObject("TitleScreen", "Assets/_Project/Prefabs/UI/Menus/TitleScreen.prefab");
+        created += CreatePrefabFromSceneObject("Title Screen", "Assets/_Project/Prefabs/UI/Menus/TitleScreen.prefab");
+        created += CreatePrefabFromSceneObject("MainMenu", "Assets/_Project/Prefabs/UI/Menus/MainMenu.prefab");
+        created += CreatePrefabFromSceneObject("Main Menu", "Assets/_Project/Prefabs/UI/Menus/MainMenu.prefab");
+        created += CreatePrefabFromSceneObject("PauseMenu", "Assets/_Project/Prefabs/UI/Menus/PauseMenu.prefab");
+        created += CreatePrefabFromSceneObject("Pause Menu", "Assets/_Project/Prefabs/UI/Menus/PauseMenu.prefab");
+        created += CreatePrefabFromSceneObject("OptionsPanel", "Assets/_Project/Prefabs/UI/Menus/OptionsPanel.prefab");
+        created += CreatePrefabFromSceneObject("Options Panel", "Assets/_Project/Prefabs/UI/Menus/OptionsPanel.prefab");
+        created += CreatePrefabFromSceneObject("SettingsMenu", "Assets/_Project/Prefabs/UI/Menus/SettingsMenu.prefab");
+        created += CreatePrefabFromSceneObject("Settings Menu", "Assets/_Project/Prefabs/UI/Menus/SettingsMenu.prefab");
+        created += CreatePrefabFromSceneObject("SaveSlotPanel", "Assets/_Project/Prefabs/UI/Menus/SaveSlotPanel.prefab");
+        created += CreatePrefabFromSceneObject("Save Slot Panel", "Assets/_Project/Prefabs/UI/Menus/SaveSlotPanel.prefab");
+
+        // Reusable UI Components
+        created += CreatePrefabFromSceneObject("GothicFrame", "Assets/_Project/Prefabs/UI/Components/GothicFrame.prefab");
+        created += CreatePrefabFromSceneObject("Gothic Frame", "Assets/_Project/Prefabs/UI/Components/GothicFrame.prefab");
+        created += CreatePrefabFromSceneObject("GothicButton", "Assets/_Project/Prefabs/UI/Components/GothicButton.prefab");
+        created += CreatePrefabFromSceneObject("Gothic Button", "Assets/_Project/Prefabs/UI/Components/GothicButton.prefab");
+        created += CreatePrefabFromSceneObject("TabBar", "Assets/_Project/Prefabs/UI/Components/TabBar.prefab");
+        created += CreatePrefabFromSceneObject("Tab Bar", "Assets/_Project/Prefabs/UI/Components/TabBar.prefab");
+        created += CreatePrefabFromSceneObject("InventoryGrid", "Assets/_Project/Prefabs/UI/Components/InventoryGrid.prefab");
+        created += CreatePrefabFromSceneObject("Inventory Grid", "Assets/_Project/Prefabs/UI/Components/InventoryGrid.prefab");
+
+        // HUD elements
+        created += CreatePrefabFromSceneObject("PlayerHUD", "Assets/_Project/Prefabs/UI/HUD/PlayerHUD.prefab");
+        created += CreatePrefabFromSceneObject("Player HUD", "Assets/_Project/Prefabs/UI/HUD/PlayerHUD.prefab");
+        created += CreatePrefabFromSceneObject("HealthBar", "Assets/_Project/Prefabs/UI/HUD/HealthBar.prefab");
+        created += CreatePrefabFromSceneObject("Health Bar", "Assets/_Project/Prefabs/UI/HUD/HealthBar.prefab");
+        created += CreatePrefabFromSceneObject("SoulMeter", "Assets/_Project/Prefabs/UI/HUD/SoulMeter.prefab");
+        created += CreatePrefabFromSceneObject("Soul Meter", "Assets/_Project/Prefabs/UI/HUD/SoulMeter.prefab");
+        created += CreatePrefabFromSceneObject("AbilityDisplay", "Assets/_Project/Prefabs/UI/HUD/AbilityDisplay.prefab");
+        created += CreatePrefabFromSceneObject("Ability Display", "Assets/_Project/Prefabs/UI/HUD/AbilityDisplay.prefab");
+
+        EditorUtility.DisplayDialog("Phase 5 Complete",
+            $"Created {created} UI prefab(s).\n\n" +
+            "Note: ScriptableObjects (UIStyleGuide, GothicFrameStyle, UISoundBank) " +
+            "should remain as assets, not prefabs.", "OK");
+    }
+
+    private static void EnsureUIFolderStructure()
+    {
+        string[] uiFolders = new string[]
+        {
+            "Assets/_Project/Prefabs/UI/Systems",
+            "Assets/_Project/Prefabs/UI/Canvases",
+            "Assets/_Project/Prefabs/UI/Menus",
+            "Assets/_Project/Prefabs/UI/Components",
+            "Assets/_Project/Prefabs/UI/HUD"
+        };
+
+        foreach (string folder in uiFolders)
+        {
+            if (!Directory.Exists(folder))
+            {
+                Directory.CreateDirectory(folder);
+            }
+        }
+        AssetDatabase.Refresh();
+    }
+
     [MenuItem("Tools/Prefab Migration/Run All Phases")]
     public static void MigrateAll()
     {
         if (!EditorUtility.DisplayDialog("Run All Migration Phases",
-            "This will create ALL prefabs from the current scene.\n\nPhase 1: Player, Camera\nPhase 2: PowerUps\nPhase 3: Parallax, VFX\nPhase 4: Managers\n\nProceed?", "Yes", "Cancel"))
+            "This will create ALL prefabs from the current scene.\n\n" +
+            "Phase 1: Player, Camera\n" +
+            "Phase 2: PowerUps\n" +
+            "Phase 3: Parallax, VFX\n" +
+            "Phase 4: Managers\n" +
+            "Phase 5: UI System\n\n" +
+            "Proceed?", "Yes", "Cancel"))
             return;
 
         int totalCreated = 0;
@@ -118,6 +219,29 @@ public class PrefabMigrationTool : EditorWindow
         // Phase 4
         totalCreated += CreatePrefabFromSceneObject("WindManager", "Assets/_Project/Prefabs/Systems/WindManager.prefab");
         totalCreated += CreatePrefabFromSceneObject("ParallaxManager", "Assets/_Project/Prefabs/Systems/ParallaxManager.prefab");
+
+        // Phase 5 - UI System
+        EnsureUIFolderStructure();
+
+        // UI Systems
+        totalCreated += CreatePrefabFromSceneObject("UIManager", "Assets/_Project/Prefabs/UI/Systems/UIManager.prefab");
+        totalCreated += CreatePrefabFromSceneObject("FocusManager", "Assets/_Project/Prefabs/UI/Systems/FocusManager.prefab");
+
+        // Canvases
+        totalCreated += CreatePrefabFromSceneObject("MainMenuCanvas", "Assets/_Project/Prefabs/UI/Canvases/MainMenuCanvas.prefab");
+        totalCreated += CreatePrefabFromSceneObject("HUDCanvas", "Assets/_Project/Prefabs/UI/Canvases/HUDCanvas.prefab");
+        totalCreated += CreatePrefabFromSceneObject("PauseCanvas", "Assets/_Project/Prefabs/UI/Canvases/PauseCanvas.prefab");
+        totalCreated += CreatePrefabFromSceneObject("WorldCanvas", "Assets/_Project/Prefabs/UI/Canvases/WorldCanvas.prefab");
+
+        // Menus
+        totalCreated += CreatePrefabFromSceneObject("TitleScreen", "Assets/_Project/Prefabs/UI/Menus/TitleScreen.prefab");
+        totalCreated += CreatePrefabFromSceneObject("MainMenu", "Assets/_Project/Prefabs/UI/Menus/MainMenu.prefab");
+        totalCreated += CreatePrefabFromSceneObject("PauseMenu", "Assets/_Project/Prefabs/UI/Menus/PauseMenu.prefab");
+        totalCreated += CreatePrefabFromSceneObject("OptionsPanel", "Assets/_Project/Prefabs/UI/Menus/OptionsPanel.prefab");
+
+        // HUD
+        totalCreated += CreatePrefabFromSceneObject("PlayerHUD", "Assets/_Project/Prefabs/UI/HUD/PlayerHUD.prefab");
+        totalCreated += CreatePrefabFromSceneObject("HealthBar", "Assets/_Project/Prefabs/UI/HUD/HealthBar.prefab");
 
         EditorUtility.DisplayDialog("Migration Complete",
             $"Created {totalCreated} prefab(s).\n\nScene objects have been replaced with prefab instances.\nRemember to save the scene!", "OK");
@@ -307,6 +431,63 @@ public class PrefabMigrationTool : EditorWindow
             EditorGUILayout.LabelField("ParallaxManager", "Assets/_Project/Prefabs/Systems/ParallaxManager.prefab");
             if (GUILayout.Button("Run Phase 4"))
                 MigratePhase4();
+            EditorGUI.indentLevel--;
+        }
+
+        EditorGUILayout.Space();
+
+        // Phase 5 - UI System
+        showPhase5 = EditorGUILayout.Foldout(showPhase5, "Phase 5: UI System (Gothic Theme)", true);
+        if (showPhase5)
+        {
+            EditorGUI.indentLevel++;
+
+            EditorGUILayout.LabelField("Systems:", EditorStyles.boldLabel);
+            EditorGUI.indentLevel++;
+            EditorGUILayout.LabelField("UIManager", "UI/Systems/UIManager.prefab");
+            EditorGUILayout.LabelField("FocusManager", "UI/Systems/FocusManager.prefab");
+            EditorGUI.indentLevel--;
+
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Canvases:", EditorStyles.boldLabel);
+            EditorGUI.indentLevel++;
+            EditorGUILayout.LabelField("MainMenuCanvas", "Screen Space Overlay (sort: 100)");
+            EditorGUILayout.LabelField("HUDCanvas", "Screen Space Overlay (sort: 10)");
+            EditorGUILayout.LabelField("PauseCanvas", "Screen Space Overlay (sort: 200)");
+            EditorGUILayout.LabelField("WorldCanvas", "World Space (damage numbers)");
+            EditorGUI.indentLevel--;
+
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Menus:", EditorStyles.boldLabel);
+            EditorGUI.indentLevel++;
+            EditorGUILayout.LabelField("TitleScreen", "New Game / Continue / Options");
+            EditorGUILayout.LabelField("PauseMenu", "Hollow Knight-style tabs");
+            EditorGUILayout.LabelField("OptionsPanel", "Audio / Video / Controls");
+            EditorGUI.indentLevel--;
+
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Components:", EditorStyles.boldLabel);
+            EditorGUI.indentLevel++;
+            EditorGUILayout.LabelField("GothicFrame", "9-slice ornate border");
+            EditorGUILayout.LabelField("GothicButton", "Styled button with effects");
+            EditorGUILayout.LabelField("TabBar", "LB/RB navigation strip");
+            EditorGUI.indentLevel--;
+
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("HUD:", EditorStyles.boldLabel);
+            EditorGUI.indentLevel++;
+            EditorGUILayout.LabelField("PlayerHUD", "Health, soul, currency");
+            EditorGUILayout.LabelField("HealthBar", "SOTN-style health display");
+            EditorGUI.indentLevel--;
+
+            EditorGUILayout.Space();
+            EditorGUILayout.HelpBox(
+                "Note: ScriptableObjects (UIStyleGuide, GothicFrameStyle, UISoundBank) " +
+                "are data assets, not prefabs. They stay in Assets/_Project/Settings/",
+                MessageType.Info);
+
+            if (GUILayout.Button("Run Phase 5"))
+                MigratePhase5();
             EditorGUI.indentLevel--;
         }
 
