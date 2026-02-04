@@ -87,6 +87,9 @@ namespace ProjectName.UI
 
         private void InitializeCanvases()
         {
+            // Auto-find canvases if not assigned
+            AutoFindCanvases();
+
             // Main menu - always on top
             if (mainMenuCanvas != null)
             {
@@ -114,6 +117,48 @@ namespace ProjectName.UI
             {
                 worldCanvas.renderMode = RenderMode.WorldSpace;
                 worldCanvas.sortingOrder = 5;
+            }
+        }
+
+        private void AutoFindCanvases()
+        {
+            // Find all canvases including inactive ones
+            var allCanvases = Resources.FindObjectsOfTypeAll<Canvas>();
+
+            foreach (var canvas in allCanvases)
+            {
+                // Skip prefabs (only process scene objects)
+                if (canvas.gameObject.scene.name == null) continue;
+
+                if (hudCanvas == null && canvas.name == "HUD_Canvas")
+                {
+                    hudCanvas = canvas;
+                    hudGroup = canvas.GetComponent<CanvasGroup>();
+                    Debug.Log("[UIManager] Auto-found HUD_Canvas");
+                }
+                else if (pauseCanvas == null && canvas.name == "PauseMenu_Canvas")
+                {
+                    pauseCanvas = canvas;
+                    pauseGroup = canvas.GetComponent<CanvasGroup>();
+                    if (pauseGroup == null)
+                    {
+                        pauseGroup = canvas.gameObject.AddComponent<CanvasGroup>();
+                        Debug.Log("[UIManager] Added missing CanvasGroup to PauseMenu_Canvas");
+                    }
+                    Debug.Log("[UIManager] Auto-found PauseMenu_Canvas");
+                }
+                else if (mainMenuCanvas == null && canvas.name == "MainMenu_Canvas")
+                {
+                    mainMenuCanvas = canvas;
+                    mainMenuGroup = canvas.GetComponent<CanvasGroup>();
+                    Debug.Log("[UIManager] Auto-found MainMenu_Canvas");
+                }
+            }
+
+            // Warn if critical canvases are still missing
+            if (pauseCanvas == null)
+            {
+                Debug.LogWarning("[UIManager] PauseMenu_Canvas not found. Pause menu will not work. Run Tools > ProjectName > UI Setup Wizard to create it.");
             }
         }
 
@@ -159,7 +204,12 @@ namespace ProjectName.UI
 
             if (pauseCanvas != null && pauseGroup != null)
             {
+                Debug.Log($"[UIManager] Showing pause canvas. Canvas: {pauseCanvas.name}, Group alpha: {pauseGroup.alpha}");
                 ShowCanvas(pauseCanvas, pauseGroup);
+            }
+            else
+            {
+                Debug.LogWarning($"[UIManager] Cannot show pause menu - pauseCanvas: {(pauseCanvas != null ? "OK" : "NULL")}, pauseGroup: {(pauseGroup != null ? "OK" : "NULL")}");
             }
 
             PlaySound(soundBank?.pause);
@@ -172,8 +222,13 @@ namespace ProjectName.UI
         /// </summary>
         public void Resume()
         {
+            Debug.Log("[UIManager] Resume() called");
+
             if (!IsPaused)
+            {
+                Debug.Log("[UIManager] Not paused, skipping resume");
                 return;
+            }
 
             IsPaused = false;
             IsInMenu = false;
@@ -181,6 +236,7 @@ namespace ProjectName.UI
             if (pauseTimeOnMenu)
             {
                 Time.timeScale = previousTimeScale;
+                Debug.Log($"[UIManager] Time.timeScale restored to {previousTimeScale}");
             }
 
             SwitchToGameplayInput();
@@ -193,6 +249,7 @@ namespace ProjectName.UI
             PlaySound(soundBank?.resume);
             OnResume?.Invoke();
             OnMenuStateChanged?.Invoke(false);
+            Debug.Log("[UIManager] Game resumed");
         }
 
         /// <summary>
@@ -201,12 +258,18 @@ namespace ProjectName.UI
         public void ShowCanvas(Canvas canvas, CanvasGroup group, Action onComplete = null)
         {
             if (canvas == null || group == null)
+            {
+                Debug.LogWarning("[UIManager] ShowCanvas called with null canvas or group");
                 return;
+            }
 
             if (currentTransition != null)
                 StopCoroutine(currentTransition);
 
             canvas.gameObject.SetActive(true);
+            Debug.Log($"[UIManager] Canvas {canvas.name} activated. Starting fade-in.");
+
+            // Set initial state for fade
             group.alpha = 0f;
             group.interactable = false;
             group.blocksRaycasts = false;
@@ -217,6 +280,7 @@ namespace ProjectName.UI
             {
                 group.interactable = true;
                 group.blocksRaycasts = true;
+                Debug.Log($"[UIManager] Canvas {canvas.name} fade-in complete. Alpha: {group.alpha}");
                 onComplete?.Invoke();
             }));
         }

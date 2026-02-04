@@ -18,12 +18,16 @@ public class AdvancedCameraController : MonoBehaviour
     [SerializeField] float fallLookDownSpeed = 2f;
     [SerializeField] float minFallVelocity = -5f; // How fast player must be falling
 
-    [Header("Camera Bounds")]
+    [Header("Camera Bounds (Level Edges)")]
     [SerializeField] bool useBounds = true;
-    [SerializeField] float minY = -100f; // Don't go below this Y position
-    [SerializeField] float maxY = 100f;
+    [Tooltip("Left edge of level (ground sprites)")]
     [SerializeField] float minX = -100f;
+    [Tooltip("Right edge of level (ground sprites)")]
     [SerializeField] float maxX = 100f;
+    [Tooltip("Bottom edge of level (ground sprites)")]
+    [SerializeField] float minY = -100f;
+    [Tooltip("Top edge of level (ground sprites)")]
+    [SerializeField] float maxY = 100f;
 
     [Header("Room Lock (Boss Fights)")]
     [SerializeField] bool isLockedToRoom = false;
@@ -102,9 +106,35 @@ public class AdvancedCameraController : MonoBehaviour
 
     Vector3 ApplyBounds(Vector3 position)
     {
-        // Clamp camera position to bounds
-        position.x = Mathf.Clamp(position.x, minX, maxX);
-        position.y = Mathf.Clamp(position.y, minY, maxY);
+        // Calculate camera's half-extents based on orthographic size
+        float halfHeight = cam.orthographicSize;
+        float halfWidth = halfHeight * cam.aspect;
+
+        // Clamp so the camera view never exceeds level bounds
+        float clampedMinX = minX + halfWidth;
+        float clampedMaxX = maxX - halfWidth;
+        float clampedMinY = minY + halfHeight;
+        float clampedMaxY = maxY - halfHeight;
+
+        // Handle case where level is smaller than camera view
+        if (clampedMinX > clampedMaxX)
+        {
+            position.x = (minX + maxX) / 2f; // Center camera on level
+        }
+        else
+        {
+            position.x = Mathf.Clamp(position.x, clampedMinX, clampedMaxX);
+        }
+
+        if (clampedMinY > clampedMaxY)
+        {
+            position.y = (minY + maxY) / 2f; // Center camera on level
+        }
+        else
+        {
+            position.y = Mathf.Clamp(position.y, clampedMinY, clampedMaxY);
+        }
+
         return position;
     }
 
@@ -136,9 +166,8 @@ public class AdvancedCameraController : MonoBehaviour
     {
         if (!useBounds) return;
 
+        // Draw level bounds (yellow) - the actual edges of your level
         Gizmos.color = Color.yellow;
-
-        // Draw boundary box
         Vector3 bottomLeft = new Vector3(minX, minY, 0);
         Vector3 bottomRight = new Vector3(maxX, minY, 0);
         Vector3 topLeft = new Vector3(minX, maxY, 0);
@@ -148,6 +177,25 @@ public class AdvancedCameraController : MonoBehaviour
         Gizmos.DrawLine(bottomRight, topRight);
         Gizmos.DrawLine(topRight, topLeft);
         Gizmos.DrawLine(topLeft, bottomLeft);
+
+        // Draw camera movement bounds (cyan) - where camera center can move
+        if (cam == null) cam = GetComponent<Camera>();
+        if (cam != null)
+        {
+            float halfHeight = cam.orthographicSize;
+            float halfWidth = halfHeight * cam.aspect;
+
+            Gizmos.color = Color.cyan;
+            Vector3 camBL = new Vector3(minX + halfWidth, minY + halfHeight, 0);
+            Vector3 camBR = new Vector3(maxX - halfWidth, minY + halfHeight, 0);
+            Vector3 camTL = new Vector3(minX + halfWidth, maxY - halfHeight, 0);
+            Vector3 camTR = new Vector3(maxX - halfWidth, maxY - halfHeight, 0);
+
+            Gizmos.DrawLine(camBL, camBR);
+            Gizmos.DrawLine(camBR, camTR);
+            Gizmos.DrawLine(camTR, camTL);
+            Gizmos.DrawLine(camTL, camBL);
+        }
 
         // Draw locked room if active
         if (isLockedToRoom)
