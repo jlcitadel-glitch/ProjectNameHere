@@ -21,14 +21,17 @@ You are the Systems Agent for this Unity 2D Metroidvania project. Your role is t
 ```
 Assets/_Project/Scripts/Systems/
 ├── Core/
-│   └── WindManager.cs               # Global wind for VFX/physics
+│   ├── GameManager.cs              # Game state machine (IMPLEMENTED)
+│   ├── SaveManager.cs              # Save/load system (IMPLEMENTED)
+│   ├── SystemsBootstrap.cs         # Auto-creates managers at runtime
+│   └── WindManager.cs              # Global wind for VFX/physics
+├── Editor/
+│   └── SystemsSetupWizard.cs       # Editor tool for setup
 ├── Input/
 │   └── (InputSystem assets)
 └── (Future)
-    ├── SaveManager.cs
-    ├── GameManager.cs
     ├── AudioManager.cs
-    └── EventManager.cs
+    └── SceneManager.cs
 ```
 
 ---
@@ -130,84 +133,189 @@ private void Awake()
 
 ---
 
-## Proposed Systems
+## Implemented Systems
 
-### GameManager
+### GameManager (IMPLEMENTED)
+
+Central game state manager. Owns game state, time control, and core game flow.
 
 ```csharp
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
 
-    public GameState CurrentState { get; private set; }
-
-    public event System.Action<GameState> OnGameStateChanged;
-
-    public void SetState(GameState state)
+    public enum GameState
     {
-        if (CurrentState == state) return;
-
-        CurrentState = state;
-        OnGameStateChanged?.Invoke(state);
+        MainMenu,
+        Playing,
+        Paused,
+        Cutscene,
+        Loading,
+        GameOver,
+        BossFight
     }
 
-    public void PauseGame() => SetState(GameState.Paused);
-    public void ResumeGame() => SetState(GameState.Playing);
-}
+    // Properties
+    public GameState CurrentState { get; }
+    public GameState PreviousState { get; }
+    public bool IsPaused => CurrentState == GameState.Paused;
+    public bool IsPlaying => CurrentState == GameState.Playing || CurrentState == GameState.BossFight;
+    public bool IsInMenu => CurrentState == GameState.MainMenu || CurrentState == GameState.Paused;
 
-public enum GameState
-{
-    MainMenu,
-    Playing,
-    Paused,
-    Cutscene,
-    Loading,
-    GameOver
+    // Events
+    public event Action<GameState, GameState> OnGameStateChanged;  // (previous, new)
+    public event Action OnPause;   // Convenience event
+    public event Action OnResume;  // Convenience event
+
+    // Core Methods
+    public void SetState(GameState newState);  // Handles Time.timeScale
+    public void Pause();
+    public void Resume();
+    public void TogglePause();
+
+    // State Transitions
+    public void StartPlaying();
+    public void EnterBossFight();
+    public void ExitBossFight();
+    public void GameOver();
+    public void StartCutscene();
+    public void EndCutscene();
+    public void ReturnToMainMenu();
+    public void StartLoading();
+    public void FinishLoading();
+
+    // Time Control
+    public void SetTimeScale(float scale);  // For slow-mo effects
 }
 ```
 
-### SaveManager
+**Time.timeScale behavior by state:**
+| State | Time.timeScale |
+|-------|---------------|
+| Paused, MainMenu, GameOver | 0 |
+| Playing, BossFight | Restored to previous |
+| Cutscene, Loading | 1 |
+
+**Usage:**
+
+```csharp
+// Pause the game
+GameManager.Instance.Pause();
+
+// Subscribe to state changes
+GameManager.Instance.OnGameStateChanged += (prev, curr) => {
+    Debug.Log($"State changed: {prev} -> {curr}");
+};
+
+// Check state
+if (GameManager.Instance.IsPaused) { /* ... */ }
+```
+
+### SaveManager (IMPLEMENTED)
+
+Manages save/load functionality using PlayerPrefs with JSON serialization.
 
 ```csharp
 public class SaveManager : MonoBehaviour
 {
     public static SaveManager Instance { get; private set; }
 
-    private const string SAVE_KEY = "GameSave";
-
-    [System.Serializable]
+    [Serializable]
     public class SaveData
     {
-        public Vector2 playerPosition;
-        public int currentHealth;
-        public List<string> unlockedAbilities;
+        public int saveVersion;
+        public float playerPositionX, playerPositionY;
+        public int currentHealth, maxHealth;
+        public List<string> unlockedAbilities;  // PowerUpType.ToString()
         public List<string> collectedItems;
         public string lastCheckpointId;
         public float playTime;
+        public string saveTimestamp;
     }
 
-    public void Save(SaveData data)
-    {
-        string json = JsonUtility.ToJson(data);
-        PlayerPrefs.SetString(SAVE_KEY, json);
-        PlayerPrefs.Save();
-    }
+    // Properties
+    public SaveData CurrentSave { get; }
+    public bool HasSaveData { get; }
 
-    public SaveData Load()
-    {
-        if (!PlayerPrefs.HasKey(SAVE_KEY))
-            return new SaveData();
+    // Events
+    public event Action OnSaveCompleted;
+    public event Action OnLoadCompleted;
+    public event Action OnSaveDeleted;
 
-        string json = PlayerPrefs.GetString(SAVE_KEY);
-        return JsonUtility.FromJson<SaveData>(json);
-    }
+    // Save Methods
+    public void Save();
+    public void SaveAtCheckpoint(string checkpointId);
 
-    public void DeleteSave()
-    {
-        PlayerPrefs.DeleteKey(SAVE_KEY);
-    }
+    // Load Methods
+    public bool HasSave();
+    public bool Load();
+    public void ApplyLoadedData();  // Call after scene load
+
+    // Delete
+    public void DeleteSave();
+
+    // Utilities
+    public string GetLastCheckpointId();
+    public float GetTotalPlayTime();
+    public void AddCollectedItem(string itemId);
+    public bool HasCollectedItem(string itemId);
+    public static string FormatPlayTime(float seconds);
 }
 ```
+
+**Integration with PowerUpManager:**
+
+SaveManager automatically saves/restores abilities from PowerUpManager:
+
+```csharp
+// Save current progress
+SaveManager.Instance.Save();
+
+// Load and apply to game world
+if (SaveManager.Instance.Load())
+{
+    SaveManager.Instance.ApplyLoadedData();  // Restores position + abilities
+}
+```
+
+### SystemsBootstrap
+
+Auto-creates managers at runtime if missing. Add to any scene as a fallback.
+
+```csharp
+[DefaultExecutionOrder(-1000)]
+public class SystemsBootstrap : MonoBehaviour
+{
+    [SerializeField] bool ensureGameManager = true;
+    [SerializeField] bool ensureSaveManager = true;
+    [SerializeField] GameManager.GameState initialState = GameManager.GameState.Playing;
+}
+```
+
+---
+
+## Setup
+
+### Option 1: Editor Wizard (Recommended)
+
+1. Go to **Tools > ProjectName > Systems Setup Wizard**
+2. Click **Create Managers GameObject**
+3. Save the scene
+
+### Option 2: Right-Click Menu
+
+1. Right-click in Hierarchy
+2. Select **ProjectName > Create Managers**
+
+### Option 3: Runtime Bootstrap
+
+1. Create empty GameObject in scene
+2. Add `SystemsBootstrap` component
+3. Managers auto-created on play
+
+---
+
+## Proposed Systems
 
 ### AudioManager
 

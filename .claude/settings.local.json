@@ -4,7 +4,12 @@
       "Bash(git -C \"M:\\\\Video Game Development\\\\ProjectNameHere\" status)",
       "Bash(dir:*)",
       "Bash(find:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(ls -la \"M:\\\\Video Game Development\\\\ProjectNameHere\\\\Assets\\\\_Project\\\\Scripts\\\\Systems\"\" 2>/dev/null || echo \"Not found as directory \")",
+      "Bash(ls:*)",
+      "Bash(for guid in \"d8fd0d851e821624eaf3a49bcf01e3ce\" \"cf94d16f68f52ee498b5abba09686f4c\" \"d61e7147e4e94534187aba4f316230d0\" \"22339e5020061054d9a6fed08e6549fe\" \"fd48994066d6eb34989d627eb8c3917e\" \"1ba83183cde90e84a9c2666bd31ded3c\")",
+      "Bash(do echo \"=== GUID: $guid ===\")",
+      "Bash(done)"
     ]
   }
 }

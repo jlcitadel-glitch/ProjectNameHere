@@ -44,20 +44,20 @@ namespace ProjectName.UI
         [SerializeField] private string gameplayActionMap = "Player";
         [SerializeField] private string uiActionMap = "UI";
 
-        [Header("Settings")]
-        [SerializeField] private bool pauseTimeOnMenu = true;
-
         public UIStyleGuide StyleGuide => styleGuide;
         public UISoundBank SoundBank => soundBank;
-        public bool IsPaused { get; private set; }
-        public bool IsInMenu { get; private set; }
 
-        public event Action OnPause;
-        public event Action OnResume;
-        public event Action<bool> OnMenuStateChanged;
+        /// <summary>
+        /// Returns true if game is paused. Delegates to GameManager.
+        /// </summary>
+        public bool IsPaused => GameManager.Instance?.IsPaused ?? false;
+
+        /// <summary>
+        /// Returns true if player is in a menu. Delegates to GameManager.
+        /// </summary>
+        public bool IsInMenu => GameManager.Instance?.IsInMenu ?? false;
 
         private Coroutine currentTransition;
-        private float previousTimeScale;
 
         private void Awake()
         {
@@ -74,6 +74,69 @@ namespace ProjectName.UI
             InitializeAudio();
         }
 
+        private void Start()
+        {
+            SubscribeToGameManager();
+        }
+
+        private void SubscribeToGameManager()
+        {
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.OnGameStateChanged += HandleGameStateChanged;
+                Debug.Log("[UIManager] Subscribed to GameManager");
+            }
+            else
+            {
+                Debug.LogWarning("[UIManager] GameManager not found. UI will not respond to game state changes automatically.");
+            }
+        }
+
+        private void HandleGameStateChanged(GameManager.GameState previousState, GameManager.GameState newState)
+        {
+            // Handle pause state
+            if (newState == GameManager.GameState.Paused)
+            {
+                SwitchToUIInput();
+
+                if (pauseCanvas != null && pauseGroup != null)
+                {
+                    Debug.Log($"[UIManager] Showing pause canvas for state: {newState}");
+                    ShowCanvas(pauseCanvas, pauseGroup);
+                }
+
+                PlaySound(soundBank?.pause);
+            }
+            else if (previousState == GameManager.GameState.Paused)
+            {
+                SwitchToGameplayInput();
+
+                if (pauseCanvas != null && pauseGroup != null)
+                {
+                    HideCanvas(pauseCanvas, pauseGroup);
+                }
+
+                PlaySound(soundBank?.resume);
+            }
+
+            // Handle main menu state
+            if (newState == GameManager.GameState.MainMenu)
+            {
+                SwitchToUIInput();
+                if (mainMenuCanvas != null && mainMenuGroup != null)
+                {
+                    ShowCanvas(mainMenuCanvas, mainMenuGroup);
+                }
+            }
+            else if (previousState == GameManager.GameState.MainMenu)
+            {
+                if (mainMenuCanvas != null && mainMenuGroup != null)
+                {
+                    HideCanvas(mainMenuCanvas, mainMenuGroup);
+                }
+            }
+        }
+
         private void OnDestroy()
         {
             if (Instance == this)
@@ -83,6 +146,12 @@ namespace ProjectName.UI
 
             if (currentTransition != null)
                 StopCoroutine(currentTransition);
+
+            // Unsubscribe from GameManager
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.OnGameStateChanged -= HandleGameStateChanged;
+            }
         }
 
         private void InitializeCanvases()
@@ -173,83 +242,50 @@ namespace ProjectName.UI
         }
 
         /// <summary>
-        /// Toggles pause state.
+        /// Toggles pause state. Delegates to GameManager.
         /// </summary>
         public void TogglePause()
         {
-            if (IsPaused)
-                Resume();
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.TogglePause();
+            }
             else
-                Pause();
+            {
+                Debug.LogWarning("[UIManager] GameManager not found. Cannot toggle pause.");
+            }
         }
 
         /// <summary>
-        /// Pauses the game and shows pause menu.
+        /// Pauses the game. Delegates to GameManager.
+        /// UI changes are handled via HandleGameStateChanged.
         /// </summary>
         public void Pause()
         {
-            if (IsPaused)
-                return;
-
-            IsPaused = true;
-            IsInMenu = true;
-
-            if (pauseTimeOnMenu)
+            if (GameManager.Instance != null)
             {
-                previousTimeScale = Time.timeScale;
-                Time.timeScale = 0f;
-            }
-
-            SwitchToUIInput();
-
-            if (pauseCanvas != null && pauseGroup != null)
-            {
-                Debug.Log($"[UIManager] Showing pause canvas. Canvas: {pauseCanvas.name}, Group alpha: {pauseGroup.alpha}");
-                ShowCanvas(pauseCanvas, pauseGroup);
+                GameManager.Instance.Pause();
             }
             else
             {
-                Debug.LogWarning($"[UIManager] Cannot show pause menu - pauseCanvas: {(pauseCanvas != null ? "OK" : "NULL")}, pauseGroup: {(pauseGroup != null ? "OK" : "NULL")}");
+                Debug.LogWarning("[UIManager] GameManager not found. Cannot pause.");
             }
-
-            PlaySound(soundBank?.pause);
-            OnPause?.Invoke();
-            OnMenuStateChanged?.Invoke(true);
         }
 
         /// <summary>
-        /// Resumes the game and hides pause menu.
+        /// Resumes the game. Delegates to GameManager.
+        /// UI changes are handled via HandleGameStateChanged.
         /// </summary>
         public void Resume()
         {
-            Debug.Log("[UIManager] Resume() called");
-
-            if (!IsPaused)
+            if (GameManager.Instance != null)
             {
-                Debug.Log("[UIManager] Not paused, skipping resume");
-                return;
+                GameManager.Instance.Resume();
             }
-
-            IsPaused = false;
-            IsInMenu = false;
-
-            if (pauseTimeOnMenu)
+            else
             {
-                Time.timeScale = previousTimeScale;
-                Debug.Log($"[UIManager] Time.timeScale restored to {previousTimeScale}");
+                Debug.LogWarning("[UIManager] GameManager not found. Cannot resume.");
             }
-
-            SwitchToGameplayInput();
-
-            if (pauseCanvas != null && pauseGroup != null)
-            {
-                HideCanvas(pauseCanvas, pauseGroup);
-            }
-
-            PlaySound(soundBank?.resume);
-            OnResume?.Invoke();
-            OnMenuStateChanged?.Invoke(false);
-            Debug.Log("[UIManager] Game resumed");
         }
 
         /// <summary>

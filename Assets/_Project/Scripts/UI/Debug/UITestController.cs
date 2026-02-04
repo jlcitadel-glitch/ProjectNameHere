@@ -82,8 +82,21 @@ namespace ProjectName.UI
 
         private void TogglePause()
         {
-            // Check if we're currently showing the pause menu (via any method)
-            bool currentlyPaused = (UIManager.Instance != null && UIManager.Instance.IsPaused) || isPausedFallback;
+            // Check if we're currently paused (GameManager is primary source of truth)
+            bool currentlyPaused = false;
+
+            if (GameManager.Instance != null)
+            {
+                currentlyPaused = GameManager.Instance.IsPaused;
+            }
+            else if (UIManager.Instance != null)
+            {
+                currentlyPaused = UIManager.Instance.IsPaused;
+            }
+            else
+            {
+                currentlyPaused = isPausedFallback;
+            }
 
             if (currentlyPaused)
             {
@@ -98,7 +111,11 @@ namespace ProjectName.UI
                 else
                 {
                     // No controller, just resume
-                    if (UIManager.Instance != null)
+                    if (GameManager.Instance != null)
+                    {
+                        GameManager.Instance.Resume();
+                    }
+                    else if (UIManager.Instance != null)
                     {
                         UIManager.Instance.Resume();
                     }
@@ -111,7 +128,11 @@ namespace ProjectName.UI
             else
             {
                 // Pause
-                if (UIManager.Instance != null)
+                if (GameManager.Instance != null)
+                {
+                    GameManager.Instance.TogglePause();
+                }
+                else if (UIManager.Instance != null)
                 {
                     UIManager.Instance.TogglePause();
 
@@ -166,15 +187,21 @@ namespace ProjectName.UI
             if (!showDebugInfo) return;
 
             // Compact debug info panel
-            GUILayout.BeginArea(new Rect(10, 10, 280, 120));
+            GUILayout.BeginArea(new Rect(10, 10, 280, 140));
             GUILayout.BeginVertical("box");
 
             GUILayout.Label("<b>UI Debug</b>");
             GUILayout.Label($"{pauseKey}: Pause | {showHUDKey}/{hideHUDKey}: HUD");
 
-            if (UIManager.Instance != null)
+            if (GameManager.Instance != null)
+            {
+                GUILayout.Label($"GameState: {GameManager.Instance.CurrentState}");
+                GUILayout.Label($"Paused: {GameManager.Instance.IsPaused}");
+            }
+            else if (UIManager.Instance != null)
             {
                 GUILayout.Label($"Paused: {UIManager.Instance.IsPaused}");
+                GUILayout.Label("<color=yellow>GameManager not found</color>");
             }
 
             GUILayout.Label($"Screen: {Screen.width}x{Screen.height}");

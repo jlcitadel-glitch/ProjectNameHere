@@ -140,27 +140,31 @@ namespace ProjectName.UI
 
         private void OnEnable()
         {
-            if (UIManager.Instance != null)
+            // Subscribe to GameManager (primary)
+            if (GameManager.Instance != null)
             {
-                UIManager.Instance.OnPause += OnGamePaused;
-                UIManager.Instance.OnResume += OnGameResumed;
+                GameManager.Instance.OnPause += OnGamePaused;
+                GameManager.Instance.OnResume += OnGameResumed;
 
                 // If we're enabled while the game is already paused, show the main pause menu
-                // This handles the case where the canvas is activated by UIManager.Pause()
-                // after the OnPause event has already been invoked
-                if (UIManager.Instance.IsPaused)
+                if (GameManager.Instance.IsPaused)
                 {
                     ShowMainPause();
                 }
+            }
+            else
+            {
+                Debug.LogWarning("[PauseMenu] GameManager not found. Pause menu may not function correctly.");
             }
         }
 
         private void OnDisable()
         {
-            if (UIManager.Instance != null)
+            // Unsubscribe from GameManager
+            if (GameManager.Instance != null)
             {
-                UIManager.Instance.OnPause -= OnGamePaused;
-                UIManager.Instance.OnResume -= OnGameResumed;
+                GameManager.Instance.OnPause -= OnGamePaused;
+                GameManager.Instance.OnResume -= OnGameResumed;
             }
         }
 
@@ -292,7 +296,14 @@ namespace ProjectName.UI
 
         private void OnResumeClicked()
         {
-            UIManager.Instance?.Resume();
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.Resume();
+            }
+            else
+            {
+                UIManager.Instance?.Resume();
+            }
         }
 
         private void OnOptionsClicked()
@@ -337,7 +348,14 @@ namespace ProjectName.UI
                     CloseOptions();
                     break;
                 case MenuState.MainPause:
-                    UIManager.Instance?.Resume();
+                    if (GameManager.Instance != null)
+                    {
+                        GameManager.Instance.Resume();
+                    }
+                    else
+                    {
+                        UIManager.Instance?.Resume();
+                    }
                     break;
             }
         }
