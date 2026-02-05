@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95023e0438ddd9b4781be108f1846d2a, type: 3}
+  m_Name: Knife_Down
+  m_EditorClassIdentifier: Assembly-CSharp::AttackData
+  attackName: Throw Knife Down
+  direction: 2
+  weaponType: 1
+  baseDamage: 8
+  knockbackForce: 2
+  knockbackDirection: {x: 1, y: 0.5}
+  windUpDuration: 0.1
+  activeDuration: 0.1
+  recoveryDuration: 0.3
+  hitboxSize: {x: 0.3, y: 0.5}
+  hitboxOffset: {x: 0, y: -0.8}
+  targetLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  manaCost: 0
+  comboWindowDuration: 0.3
+  comboNextAttack: {fileID: 0}
+  projectilePrefab: {fileID: 0}
+  projectileSpeed: 18
+  hitboxVFXPrefab: {fileID: 0}
+  impactVFXPrefab: {fileID: 0}
+  animationTrigger: Throw_Down
+  canUseInAir: 1
+  pogoOnDownHit: 0
+  pogoForce: 10
+  allowMovement: 0
+  movementMultiplier: 0.5

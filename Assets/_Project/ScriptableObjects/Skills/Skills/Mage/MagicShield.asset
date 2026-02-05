@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 633dba24c6646aa4cbe1b103bdff7496, type: 3}
+  m_Name: MagicShield
+  m_EditorClassIdentifier: Assembly-CSharp::SkillData
+  skillId: magic_shield
+  skillName: Magic Shield
+  description: Create a shield that absorbs {damage} damage for {duration}s.
+  icon: {fileID: 0}
+  skillType: 3
+  damageType: 1
+  requiredJobId: mage
+  requiredPlayerLevel: 12
+  maxSkillLevel: 15
+  prerequisiteSkills:
+  - {fileID: 11400000, guid: aabbd849ae9bcf146a10ee16708217ab, type: 2}
+  prerequisiteLevels: 05000000
+  spCost: 1
+  baseDamage: 50
+  baseManaCost: 25
+  baseCooldown: 20
+  baseDuration: 8
+  damagePerLevel: 15
+  manaCostPerLevel: 3
+  cooldownReductionPerLevel: 0.5
+  durationPerLevel: 0.3
+  minimumCooldown: 0.5
+  nodePosition: {x: 0.5, y: 1}
+  tier: 1
+  effects: []
+  skillPrefab: {fileID: 0}
+  castSound: {fileID: 0}
+  animationTrigger: 
+  castTime: 0

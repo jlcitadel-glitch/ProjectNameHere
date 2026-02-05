@@ -85,6 +85,29 @@ Adding a new ability:
 - Callbacks via `InputAction.CallbackContext`
 - Double-tap detection window: 0.3s
 
+## Workflow Standards
+
+### RPI Pattern (Research, Plan, Implement)
+1. **Research** - Explore codebase, understand existing patterns before changes
+2. **Plan** - Design approach, identify impacts, get user approval for non-trivial work
+3. **Implement** - Write code following established conventions
+
+### Progressive Disclosure
+- Present essential information first
+- Reveal complexity only when needed
+- Layer responses: summary → specifics → edge cases
+
+### Prefabrication
+- All reusable GameObjects must be prefabs
+- Scene contains prefab instances, not embedded objects
+- Edit in Prefab Mode to avoid scene conflicts
+- See `Assets/_Project/Prefabs/` for structure
+
+### Continuous Integration
+- Verify existing functionality before and after changes
+- Test edge cases (ability combos, state transitions, null refs)
+- Ground detection must exclude triggers (`!collider.isTrigger`)
+
 ## Important Constants
 
 | Constant | Value | Location |

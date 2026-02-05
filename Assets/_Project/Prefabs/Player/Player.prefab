@@ -15,6 +15,11 @@ GameObject:
   - component: {fileID: 1685186845420956159}
   - component: {fileID: 1305642785171897839}
   - component: {fileID: 990385295109094324}
+  - component: {fileID: 8891234567890123456}
+  - component: {fileID: 8891234567890123457}
+  - component: {fileID: 8891234567890123458}
+  - component: {fileID: 8891234567890123459}
+  - component: {fileID: 8891234567890123460}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -207,6 +212,38 @@ MonoBehaviour:
     m_ActionId: b3cfc474-61ab-4416-b6de-b109b0304acb
     m_ActionName: 'Player/Look[/XInputControllerWindows/rightStick,/Mouse/delta]'
   - m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 1305642785171897839}
+        m_TargetAssemblyTypeName: PlayerControllerScript, Assembly-CSharp
+        m_MethodName: Attack
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument:
+          m_BoolArgument: 0
+        m_CallState: 2
+    m_ActionId: 6c2ab1b8-8984-453a-af3d-a3c78ae1679a
+    m_ActionName: 'Player/Attack[/XInputControllerWindows/buttonWest,/Mouse/leftButton,/Keyboard/enter]'
+  - m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 1305642785171897839}
+        m_TargetAssemblyTypeName: PlayerControllerScript, Assembly-CSharp
+        m_MethodName: SwitchWeapon
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument:
+          m_BoolArgument: 0
+        m_CallState: 2
+    m_ActionId: a1b2c3d4-5678-90ab-cdef-0123456789ab
+    m_ActionName: 'Player/SwitchWeapon[/Keyboard/tab,/XInputControllerWindows/rightShoulder]'
+  - m_PersistentCalls:
       m_Calls: []
     m_ActionId: 9dead772-f917-444c-9c57-feabf86e4627
     m_ActionName: 'Player/Fire[/XInputControllerWindows/rightTrigger,/Mouse/leftButton]'
@@ -319,6 +356,101 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &8891234567890123456
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2553238395389881092}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 33a0c0b6bb123014bae80b5ea29e714a, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  maxHealth: 100
+  invulnerabilityDuration: 0.5
+--- !u!114 &8891234567890123457
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2553238395389881092}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35e2953c090c418499e5e3b20d1384ad, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  maxMana: 100
+  regenRate: 5
+  regenDelay: 1
+--- !u!114 &8891234567890123458
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2553238395389881092}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3db2699fb7354b64d80db66e527a2e45, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: ProjectName.UI::ProjectName.UI.PlayerStatBars
+  offset: {x: 0, y: -0.8}
+  barSize: {x: 1.2, y: 0.12}
+  barSpacing: 0.05
+  backgroundPadding: 0.02
+  healthFillColor: {r: 0.545, g: 0, b: 0, a: 1}
+  healthBackgroundColor: {r: 0.2, g: 0.05, b: 0.05, a: 0.8}
+  manaFillColor: {r: 0, g: 0.808, b: 0.82, a: 1}
+  manaBackgroundColor: {r: 0.05, g: 0.1, b: 0.2, a: 0.8}
+  smoothSpeed: 8
+  lowHealthThreshold: 0.25
+  pulseSpeed: 3
+  pulseIntensity: 0.3
+  alwaysVisible: 1
+  hideDelay: 3
+  fadeSpeed: 2
+  sortingLayerName: Default
+  baseSortingOrder: 100
+--- !u!114 &8891234567890123459
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2553238395389881092}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3576fbcd12a4b74d9bae76368535133, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  equippedMelee: {fileID: 11400000, guid: e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0, type: 2}
+  equippedRanged: {fileID: 0}
+  equippedMagic: {fileID: 0}
+  directionThreshold: 0.7
+  attackOrigin: {fileID: 0}
+  hitboxPrefab: {fileID: 0}
+  showDebugGizmos: 1
+--- !u!114 &8891234567890123460
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2553238395389881092}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  maxLevel: 99
+  baseHealth: 100
+  healthPerLevel: 5
+  baseMana: 50
+  manaPerLevel: 3
+  debugLogging: 0
 --- !u!1 &6872185932980887859
 GameObject:
   m_ObjectHideFlags: 0

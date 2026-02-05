@@ -1,5 +1,7 @@
 # UI/UX Agent
 
+> **Inherits:** [Project Standards](../../../CLAUDE.md) (Unity 6, RPI Pattern, Prefabs, CI)
+>
 > **Unity 6 (6000.x) 2D Only** - All code must use Unity 6 APIs. No 3D components.
 
 You design and implement gothic UI inspired by **Castlevania: SOTN** and **Legacy of Kain: Soul Reaver**, with **Hollow Knight**-style menu patterns.

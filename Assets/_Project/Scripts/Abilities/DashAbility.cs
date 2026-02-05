@@ -8,6 +8,9 @@ public class DashAbility : MonoBehaviour
     [SerializeField] float dashCooldown = 1f;
 
     private Rigidbody2D rb;
+    private Animator animator;
+    private static readonly int AnimRoll = Animator.StringToHash("Roll");
+
     private bool isDashing = false;
     private float dashTimeRemaining;
     private float dashCooldownRemaining;
@@ -16,6 +19,7 @@ public class DashAbility : MonoBehaviour
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+        animator = GetComponent<Animator>();
     }
 
     void Update()
@@ -53,6 +57,12 @@ public class DashAbility : MonoBehaviour
 
             // Disable gravity during dash
             rb.gravityScale = 0f;
+
+            // Trigger roll animation
+            if (animator != null)
+            {
+                animator.SetTrigger(AnimRoll);
+            }
         }
     }
 

@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 633dba24c6646aa4cbe1b103bdff7496, type: 3}
+  m_Name: Meteor
+  m_EditorClassIdentifier: Assembly-CSharp::SkillData
+  skillId: meteor
+  skillName: Meteor
+  description: Call down a meteor dealing {damage} fire damage in a large area.
+  icon: {fileID: 0}
+  skillType: 0
+  damageType: 2
+  requiredJobId: mage
+  requiredPlayerLevel: 20
+  maxSkillLevel: 20
+  prerequisiteSkills:
+  - {fileID: 11400000, guid: aabbd849ae9bcf146a10ee16708217ab, type: 2}
+  - {fileID: 11400000, guid: 51908f3d0fd3f4a41970e255cfab48ed, type: 2}
+  prerequisiteLevels: 0a00000005000000
+  spCost: 3
+  baseDamage: 150
+  baseManaCost: 60
+  baseCooldown: 45
+  baseDuration: 0
+  damagePerLevel: 30
+  manaCostPerLevel: 5
+  cooldownReductionPerLevel: 1.5
+  durationPerLevel: 0
+  minimumCooldown: 0.5
+  nodePosition: {x: 0.5, y: 2}
+  tier: 2
+  effects: []
+  skillPrefab: {fileID: 0}
+  castSound: {fileID: 0}
+  animationTrigger: 
+  castTime: 1.5

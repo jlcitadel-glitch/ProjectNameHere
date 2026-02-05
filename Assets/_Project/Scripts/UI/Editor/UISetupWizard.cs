@@ -101,6 +101,11 @@ namespace ProjectName.UI.Editor
                 CreateDisplaySettings();
             }
 
+            if (GUILayout.Button("Create Skill Tree Canvas Only"))
+            {
+                CreateSkillTreeCanvas();
+            }
+
             EditorGUILayout.Space();
             GUILayout.Label("Utilities", EditorStyles.boldLabel);
 
@@ -164,6 +169,7 @@ namespace ProjectName.UI.Editor
             var uiManager = CreateUIManager();
             var hudCanvas = CreateHUDCanvas();
             var pauseCanvas = CreatePauseMenu();
+            CreateSkillTreeCanvas();
             CreateTestController();
 
             // Wire up references
@@ -197,6 +203,7 @@ namespace ProjectName.UI.Editor
             SaveSceneObjectAsPrefab("UIManager", SYSTEMS_PATH);
             SaveSceneObjectAsPrefab("HUD_Canvas", CANVASES_PATH);
             SaveSceneObjectAsPrefab("PauseMenu_Canvas", CANVASES_PATH);
+            SaveSceneObjectAsPrefab("SkillTree_Canvas", CANVASES_PATH);
             SaveSceneObjectAsPrefab("UITestController", DEBUG_PATH);
 
             AssetDatabase.SaveAssets();
@@ -247,6 +254,7 @@ namespace ProjectName.UI.Editor
             InstantiatePrefabIfNotInScene($"{SYSTEMS_PATH}/UIManager.prefab", "UIManager");
             InstantiatePrefabIfNotInScene($"{CANVASES_PATH}/HUD_Canvas.prefab", "HUD_Canvas");
             InstantiatePrefabIfNotInScene($"{CANVASES_PATH}/PauseMenu_Canvas.prefab", "PauseMenu_Canvas");
+            InstantiatePrefabIfNotInScene($"{CANVASES_PATH}/SkillTree_Canvas.prefab", "SkillTree_Canvas");
             InstantiatePrefabIfNotInScene($"{DEBUG_PATH}/UITestController.prefab", "UITestController");
 
             // Ensure EventSystem
@@ -386,28 +394,313 @@ namespace ProjectName.UI.Editor
 
         private static void CreateHUDPlaceholder(Transform parent)
         {
-            // Health placeholder (top-left)
-            var healthGroup = new GameObject("HealthGroup");
-            healthGroup.transform.SetParent(parent, false);
+            // Add GameFrameHUD component to parent's canvas
+            var canvas = parent.GetComponentInParent<Canvas>();
+            GameFrameHUD frameHUD = null;
+            if (canvas != null)
+            {
+                frameHUD = canvas.gameObject.GetComponent<GameFrameHUD>();
+                if (frameHUD == null)
+                    frameHUD = canvas.gameObject.AddComponent<GameFrameHUD>();
+            }
 
-            var healthRect = healthGroup.AddComponent<RectTransform>();
-            healthRect.anchorMin = new Vector2(0, 1);
-            healthRect.anchorMax = new Vector2(0, 1);
-            healthRect.pivot = new Vector2(0, 1);
-            healthRect.anchoredPosition = new Vector2(20, -20);
-            healthRect.sizeDelta = new Vector2(300, 50);
+            // === TOP LEFT GROUP (HP/MP/Level) ===
+            var topLeftGroup = CreateTopLeftGroup(parent);
 
-            var healthText = new GameObject("HealthText");
-            healthText.transform.SetParent(healthGroup.transform, false);
-            var tmp = healthText.AddComponent<TextMeshProUGUI>();
-            tmp.text = "♦♦♦♦♦ Health";
-            tmp.fontSize = 24;
-            tmp.color = new Color(0.545f, 0f, 0f, 1f); // Deep crimson
-            var textRect = healthText.GetComponent<RectTransform>();
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = Vector2.zero;
-            textRect.offsetMax = Vector2.zero;
+            // === BOTTOM BAR (XP/Skills) ===
+            var bottomBar = CreateBottomBar(parent);
+
+            // === TOP RIGHT GROUP (Reserved) ===
+            var topRightGroup = new GameObject("TopRightGroup");
+            topRightGroup.transform.SetParent(parent, false);
+            var topRightRect = topRightGroup.AddComponent<RectTransform>();
+            topRightRect.anchorMin = new Vector2(1, 1);
+            topRightRect.anchorMax = new Vector2(1, 1);
+            topRightRect.pivot = new Vector2(1, 1);
+            topRightRect.anchoredPosition = new Vector2(-20, -20);
+            topRightRect.sizeDelta = new Vector2(200, 100);
+
+            // Wire up GameFrameHUD references
+            if (frameHUD != null)
+            {
+                var so = new SerializedObject(frameHUD);
+                so.FindProperty("topLeftGroup").objectReferenceValue = topLeftGroup.GetComponent<RectTransform>();
+                so.FindProperty("topRightGroup").objectReferenceValue = topRightRect;
+                so.FindProperty("bottomBar").objectReferenceValue = bottomBar.GetComponent<RectTransform>();
+
+                // Wire child components
+                var levelDisplay = topLeftGroup.GetComponentInChildren<LevelDisplay>();
+                if (levelDisplay != null)
+                    so.FindProperty("levelDisplay").objectReferenceValue = levelDisplay;
+
+                var resourceBars = topLeftGroup.GetComponentsInChildren<ResourceBarDisplay>();
+                foreach (var bar in resourceBars)
+                {
+                    if (bar.gameObject.name.Contains("Health"))
+                        so.FindProperty("healthBar").objectReferenceValue = bar;
+                    else if (bar.gameObject.name.Contains("Mana"))
+                        so.FindProperty("manaBar").objectReferenceValue = bar;
+                }
+
+                var expBar = bottomBar.GetComponentInChildren<ExpBarDisplay>();
+                if (expBar != null)
+                    so.FindProperty("expBar").objectReferenceValue = expBar;
+
+                var topLeftFrame = topLeftGroup.transform.Find("FrameBorder")?.GetComponent<Image>();
+                if (topLeftFrame != null)
+                    so.FindProperty("topLeftFrame").objectReferenceValue = topLeftFrame;
+
+                var bottomFrame = bottomBar.transform.Find("FrameBorder")?.GetComponent<Image>();
+                if (bottomFrame != null)
+                    so.FindProperty("bottomFrame").objectReferenceValue = bottomFrame;
+
+                so.ApplyModifiedProperties();
+            }
+        }
+
+        private static GameObject CreateTopLeftGroup(Transform parent)
+        {
+            var topLeftGroup = new GameObject("TopLeftGroup");
+            topLeftGroup.transform.SetParent(parent, false);
+
+            var groupRect = topLeftGroup.AddComponent<RectTransform>();
+            groupRect.anchorMin = new Vector2(0, 1);
+            groupRect.anchorMax = new Vector2(0, 1);
+            groupRect.pivot = new Vector2(0, 1);
+            groupRect.anchoredPosition = new Vector2(20, -20);
+            groupRect.sizeDelta = new Vector2(220, 120);
+
+            // Frame border background
+            var frameBorder = new GameObject("FrameBorder");
+            frameBorder.transform.SetParent(topLeftGroup.transform, false);
+            var frameImage = frameBorder.AddComponent<Image>();
+            frameImage.color = new Color(0.812f, 0.710f, 0.231f, 0.3f); // Aged gold, semi-transparent
+            var frameRect = frameBorder.GetComponent<RectTransform>();
+            frameRect.anchorMin = Vector2.zero;
+            frameRect.anchorMax = Vector2.one;
+            frameRect.offsetMin = Vector2.zero;
+            frameRect.offsetMax = Vector2.zero;
+
+            // Level display
+            var levelGO = new GameObject("LevelDisplay");
+            levelGO.transform.SetParent(topLeftGroup.transform, false);
+            var levelDisplay = levelGO.AddComponent<LevelDisplay>();
+            var levelRect = levelGO.AddComponent<RectTransform>();
+            levelRect.anchorMin = new Vector2(0, 1);
+            levelRect.anchorMax = new Vector2(1, 1);
+            levelRect.pivot = new Vector2(0.5f, 1);
+            levelRect.anchoredPosition = new Vector2(0, -8);
+            levelRect.sizeDelta = new Vector2(0, 30);
+
+            var levelText = new GameObject("LevelText");
+            levelText.transform.SetParent(levelGO.transform, false);
+            var levelTMP = levelText.AddComponent<TextMeshProUGUI>();
+            levelTMP.text = "Lv. 1";
+            levelTMP.fontSize = 22;
+            levelTMP.alignment = TextAlignmentOptions.Left;
+            levelTMP.color = new Color(0.812f, 0.710f, 0.231f, 1f); // Aged gold
+            var levelTextRect = levelText.GetComponent<RectTransform>();
+            levelTextRect.anchorMin = Vector2.zero;
+            levelTextRect.anchorMax = Vector2.one;
+            levelTextRect.offsetMin = new Vector2(12, 0);
+            levelTextRect.offsetMax = Vector2.zero;
+
+            // Wire level text to LevelDisplay
+            var levelSO = new SerializedObject(levelDisplay);
+            levelSO.FindProperty("levelText").objectReferenceValue = levelTMP;
+            levelSO.ApplyModifiedProperties();
+
+            // Health bar
+            var healthBarGroup = CreateResourceBar(topLeftGroup.transform, "HealthBarGroup", -40, ResourceBarDisplay.ResourceType.Health);
+
+            // Mana bar
+            var manaBarGroup = CreateResourceBar(topLeftGroup.transform, "ManaBarGroup", -75, ResourceBarDisplay.ResourceType.Mana);
+
+            return topLeftGroup;
+        }
+
+        private static GameObject CreateResourceBar(Transform parent, string name, float yOffset, ResourceBarDisplay.ResourceType resourceType)
+        {
+            var barGroup = new GameObject(name);
+            barGroup.transform.SetParent(parent, false);
+            var resourceBar = barGroup.AddComponent<ResourceBarDisplay>();
+
+            var groupRect = barGroup.GetComponent<RectTransform>();
+            groupRect.anchorMin = new Vector2(0, 1);
+            groupRect.anchorMax = new Vector2(1, 1);
+            groupRect.pivot = new Vector2(0.5f, 1);
+            groupRect.anchoredPosition = new Vector2(0, yOffset);
+            groupRect.sizeDelta = new Vector2(-24, 28);
+
+            // Background
+            var bg = new GameObject("Background");
+            bg.transform.SetParent(barGroup.transform, false);
+            var bgImage = bg.AddComponent<Image>();
+            bgImage.color = new Color(0.102f, 0.102f, 0.102f, 0.9f); // Charcoal
+            var bgRect = bg.GetComponent<RectTransform>();
+            bgRect.anchorMin = Vector2.zero;
+            bgRect.anchorMax = Vector2.one;
+            bgRect.offsetMin = Vector2.zero;
+            bgRect.offsetMax = Vector2.zero;
+
+            // Fill
+            var fill = new GameObject("Fill");
+            fill.transform.SetParent(barGroup.transform, false);
+            var fillImage = fill.AddComponent<Image>();
+            fillImage.type = Image.Type.Filled;
+            fillImage.fillMethod = Image.FillMethod.Horizontal;
+            fillImage.fillAmount = 1f;
+
+            if (resourceType == ResourceBarDisplay.ResourceType.Health)
+            {
+                fillImage.color = new Color(0.545f, 0f, 0f, 1f); // Deep crimson
+            }
+            else if (resourceType == ResourceBarDisplay.ResourceType.Mana)
+            {
+                fillImage.color = new Color(0f, 0.808f, 0.820f, 1f); // Spectral cyan
+            }
+            else
+            {
+                fillImage.color = new Color(0.812f, 0.710f, 0.231f, 1f); // Aged gold
+            }
+
+            var fillRect = fill.GetComponent<RectTransform>();
+            fillRect.anchorMin = Vector2.zero;
+            fillRect.anchorMax = Vector2.one;
+            fillRect.offsetMin = new Vector2(2, 2);
+            fillRect.offsetMax = new Vector2(-2, -2);
+
+            // Label
+            var label = new GameObject("Label");
+            label.transform.SetParent(barGroup.transform, false);
+            var labelTMP = label.AddComponent<TextMeshProUGUI>();
+            labelTMP.text = "100/100";
+            labelTMP.fontSize = 14;
+            labelTMP.alignment = TextAlignmentOptions.Right;
+            labelTMP.color = new Color(0.961f, 0.961f, 0.863f, 1f); // Bone white
+            var labelRect = label.GetComponent<RectTransform>();
+            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMax = Vector2.one;
+            labelRect.offsetMin = new Vector2(4, 0);
+            labelRect.offsetMax = new Vector2(-8, 0);
+
+            // Wire ResourceBarDisplay
+            var barSO = new SerializedObject(resourceBar);
+            barSO.FindProperty("fillImage").objectReferenceValue = fillImage;
+            barSO.FindProperty("backgroundImage").objectReferenceValue = bgImage;
+            barSO.FindProperty("valueLabel").objectReferenceValue = labelTMP;
+            barSO.FindProperty("resourceType").enumValueIndex = (int)resourceType;
+            barSO.ApplyModifiedProperties();
+
+            return barGroup;
+        }
+
+        private static GameObject CreateBottomBar(Transform parent)
+        {
+            var bottomBar = new GameObject("BottomBar");
+            bottomBar.transform.SetParent(parent, false);
+
+            var barRect = bottomBar.AddComponent<RectTransform>();
+            barRect.anchorMin = new Vector2(0, 0);
+            barRect.anchorMax = new Vector2(1, 0);
+            barRect.pivot = new Vector2(0.5f, 0);
+            barRect.anchoredPosition = new Vector2(0, 20);
+            barRect.sizeDelta = new Vector2(-40, 60);
+
+            // Frame border background
+            var frameBorder = new GameObject("FrameBorder");
+            frameBorder.transform.SetParent(bottomBar.transform, false);
+            var frameImage = frameBorder.AddComponent<Image>();
+            frameImage.color = new Color(0.812f, 0.710f, 0.231f, 0.3f); // Aged gold, semi-transparent
+            var frameRect = frameBorder.GetComponent<RectTransform>();
+            frameRect.anchorMin = Vector2.zero;
+            frameRect.anchorMax = Vector2.one;
+            frameRect.offsetMin = Vector2.zero;
+            frameRect.offsetMax = Vector2.zero;
+
+            // XP Bar
+            var expBarGroup = new GameObject("ExpBarGroup");
+            expBarGroup.transform.SetParent(bottomBar.transform, false);
+            var expBar = expBarGroup.AddComponent<ExpBarDisplay>();
+
+            var expGroupRect = expBarGroup.GetComponent<RectTransform>();
+            expGroupRect.anchorMin = new Vector2(0, 0.5f);
+            expGroupRect.anchorMax = new Vector2(0.5f, 0.5f);
+            expGroupRect.pivot = new Vector2(0, 0.5f);
+            expGroupRect.anchoredPosition = new Vector2(12, 0);
+            expGroupRect.sizeDelta = new Vector2(-24, 24);
+
+            // XP Background
+            var expBg = new GameObject("Background");
+            expBg.transform.SetParent(expBarGroup.transform, false);
+            var expBgImage = expBg.AddComponent<Image>();
+            expBgImage.color = new Color(0.102f, 0.102f, 0.102f, 0.9f);
+            var expBgRect = expBg.GetComponent<RectTransform>();
+            expBgRect.anchorMin = Vector2.zero;
+            expBgRect.anchorMax = Vector2.one;
+            expBgRect.offsetMin = Vector2.zero;
+            expBgRect.offsetMax = Vector2.zero;
+
+            // XP Fill
+            var expFill = new GameObject("Fill");
+            expFill.transform.SetParent(expBarGroup.transform, false);
+            var expFillImage = expFill.AddComponent<Image>();
+            expFillImage.type = Image.Type.Filled;
+            expFillImage.fillMethod = Image.FillMethod.Horizontal;
+            expFillImage.fillAmount = 0f;
+            expFillImage.color = new Color(0.812f, 0.710f, 0.231f, 1f); // Aged gold
+            var expFillRect = expFill.GetComponent<RectTransform>();
+            expFillRect.anchorMin = Vector2.zero;
+            expFillRect.anchorMax = Vector2.one;
+            expFillRect.offsetMin = new Vector2(2, 2);
+            expFillRect.offsetMax = new Vector2(-2, -2);
+
+            // XP Label
+            var expLabel = new GameObject("Label");
+            expLabel.transform.SetParent(expBarGroup.transform, false);
+            var expLabelTMP = expLabel.AddComponent<TextMeshProUGUI>();
+            expLabelTMP.text = "0/100 XP";
+            expLabelTMP.fontSize = 12;
+            expLabelTMP.alignment = TextAlignmentOptions.Center;
+            expLabelTMP.color = new Color(0.961f, 0.961f, 0.863f, 1f);
+            var expLabelRect = expLabel.GetComponent<RectTransform>();
+            expLabelRect.anchorMin = Vector2.zero;
+            expLabelRect.anchorMax = Vector2.one;
+            expLabelRect.offsetMin = Vector2.zero;
+            expLabelRect.offsetMax = Vector2.zero;
+
+            // Wire ExpBarDisplay
+            var expSO = new SerializedObject(expBar);
+            expSO.FindProperty("fillImage").objectReferenceValue = expFillImage;
+            expSO.FindProperty("backgroundImage").objectReferenceValue = expBgImage;
+            expSO.FindProperty("expLabel").objectReferenceValue = expLabelTMP;
+            expSO.ApplyModifiedProperties();
+
+            // Quick Slots placeholder (right side of bottom bar)
+            var quickSlots = new GameObject("QuickSlots");
+            quickSlots.transform.SetParent(bottomBar.transform, false);
+            var quickSlotsRect = quickSlots.AddComponent<RectTransform>();
+            quickSlotsRect.anchorMin = new Vector2(0.5f, 0);
+            quickSlotsRect.anchorMax = new Vector2(1, 1);
+            quickSlotsRect.pivot = new Vector2(1, 0.5f);
+            quickSlotsRect.offsetMin = new Vector2(12, 8);
+            quickSlotsRect.offsetMax = new Vector2(-12, -8);
+
+            // Placeholder text for quick slots
+            var slotsText = new GameObject("PlaceholderText");
+            slotsText.transform.SetParent(quickSlots.transform, false);
+            var slotsTMP = slotsText.AddComponent<TextMeshProUGUI>();
+            slotsTMP.text = "[1] [2] [3] [4] [5] [6]";
+            slotsTMP.fontSize = 16;
+            slotsTMP.alignment = TextAlignmentOptions.Right;
+            slotsTMP.color = new Color(0.6f, 0.6f, 0.6f, 1f);
+            var slotsTextRect = slotsText.GetComponent<RectTransform>();
+            slotsTextRect.anchorMin = Vector2.zero;
+            slotsTextRect.anchorMax = Vector2.one;
+            slotsTextRect.offsetMin = Vector2.zero;
+            slotsTextRect.offsetMax = Vector2.zero;
+
+            return bottomBar;
         }
 
         private static GameObject CreatePauseMenu()
@@ -803,7 +1096,7 @@ namespace ProjectName.UI.Editor
             var labelText = labelGO.AddComponent<TextMeshProUGUI>();
             labelText.text = label;
             labelText.fontSize = 24;
-            labelText.alignment = TextAlignmentOptions.MidlineLeft;
+            labelText.alignment = TextAlignmentOptions.Left;
             labelText.color = new Color(0.961f, 0.961f, 0.863f, 1f);
             var labelRect = labelGO.GetComponent<RectTransform>();
             labelRect.anchorMin = new Vector2(0, 0);
@@ -834,7 +1127,7 @@ namespace ProjectName.UI.Editor
                 var ddLabelText = ddLabel.AddComponent<TextMeshProUGUI>();
                 ddLabelText.text = "Select...";
                 ddLabelText.fontSize = 20;
-                ddLabelText.alignment = TextAlignmentOptions.MidlineLeft;
+                ddLabelText.alignment = TextAlignmentOptions.Left;
                 ddLabelText.color = new Color(0.961f, 0.961f, 0.863f, 1f);
                 var ddLabelRect = ddLabel.GetComponent<RectTransform>();
                 ddLabelRect.anchorMin = Vector2.zero;
@@ -860,7 +1153,7 @@ namespace ProjectName.UI.Editor
                 var viewport = new GameObject("Viewport");
                 viewport.transform.SetParent(template.transform, false);
                 viewport.AddComponent<RectMask2D>();
-                var viewportRect = viewport.AddComponent<RectTransform>();
+                var viewportRect = viewport.GetComponent<RectTransform>(); // RectMask2D auto-added it
                 viewportRect.anchorMin = Vector2.zero;
                 viewportRect.anchorMax = Vector2.one;
                 viewportRect.offsetMin = Vector2.zero;
@@ -888,7 +1181,7 @@ namespace ProjectName.UI.Editor
                 itemLabel.transform.SetParent(item.transform, false);
                 var itemLabelText = itemLabel.AddComponent<TextMeshProUGUI>();
                 itemLabelText.fontSize = 18;
-                itemLabelText.alignment = TextAlignmentOptions.MidlineLeft;
+                itemLabelText.alignment = TextAlignmentOptions.Left;
                 itemLabelText.color = new Color(0.961f, 0.961f, 0.863f, 1f);
                 var itemLabelRect = itemLabel.GetComponent<RectTransform>();
                 itemLabelRect.anchorMin = Vector2.zero;
@@ -973,7 +1266,7 @@ namespace ProjectName.UI.Editor
                 var valueTmp = valueText.AddComponent<TextMeshProUGUI>();
                 valueTmp.text = "100%";
                 valueTmp.fontSize = 20;
-                valueTmp.alignment = TextAlignmentOptions.MidlineRight;
+                valueTmp.alignment = TextAlignmentOptions.Right;
                 valueTmp.color = new Color(0.961f, 0.961f, 0.863f, 1f);
                 var valueRect = valueText.GetComponent<RectTransform>();
                 valueRect.anchorMin = new Vector2(0.87f, 0);
@@ -1090,6 +1383,303 @@ namespace ProjectName.UI.Editor
             return go;
         }
 
+        private static GameObject CreateSkillTreeCanvas()
+        {
+            // Check for existing (including inactive)
+            GameObject existing = FindSceneObject("SkillTree_Canvas");
+            if (existing != null)
+            {
+                Debug.LogWarning("[UISetupWizard] SkillTree_Canvas already exists. Skipping.");
+                return existing;
+            }
+
+            // Try to instantiate from prefab first
+            string prefabPath = $"{CANVASES_PATH}/SkillTree_Canvas.prefab";
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+
+            GameObject go;
+            if (prefab != null)
+            {
+                go = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+                go.name = "SkillTree_Canvas";
+            }
+            else
+            {
+                // Create new
+                go = new GameObject("SkillTree_Canvas");
+
+                var canvas = go.AddComponent<Canvas>();
+                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                canvas.sortingOrder = 150; // Between HUD and Pause
+
+                var scaler = go.AddComponent<CanvasScaler>();
+                scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+                scaler.referenceResolution = new Vector2(1920, 1080);
+                scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+                scaler.matchWidthOrHeight = 0.5f;
+
+                go.AddComponent<GraphicRaycaster>();
+                var canvasGroup = go.AddComponent<CanvasGroup>();
+                canvasGroup.alpha = 0f; // Start hidden
+                canvasGroup.interactable = false;
+                canvasGroup.blocksRaycasts = false;
+
+                // Add SkillTreeController
+                var controller = go.AddComponent<SkillTreeController>();
+
+                // Add SafeArea container for content
+                var safeArea = new GameObject("SafeArea");
+                safeArea.transform.SetParent(go.transform, false);
+                var safeAreaRect = safeArea.AddComponent<RectTransform>();
+                safeAreaRect.anchorMin = Vector2.zero;
+                safeAreaRect.anchorMax = Vector2.one;
+                safeAreaRect.offsetMin = Vector2.zero;
+                safeAreaRect.offsetMax = Vector2.zero;
+                safeArea.AddComponent<SafeAreaHandler>();
+
+                CreateSkillTreeContent(safeArea.transform, controller);
+
+                // Save as prefab
+                EnsureDirectoriesExist();
+                SaveAsPrefab(go, CANVASES_PATH, "SkillTree_Canvas");
+            }
+
+            Undo.RegisterCreatedObjectUndo(go, "Create Skill Tree Canvas");
+            Debug.Log("[UISetupWizard] Created Skill Tree Canvas");
+            return go;
+        }
+
+        private static void CreateSkillTreeContent(Transform parent, SkillTreeController controller)
+        {
+            // Dark overlay background
+            var overlay = new GameObject("Overlay");
+            overlay.transform.SetParent(parent, false);
+            var overlayImage = overlay.AddComponent<Image>();
+            overlayImage.color = new Color(0.051f, 0.051f, 0.051f, 0.9f);
+            overlayImage.raycastTarget = true;
+            var overlayRect = overlay.GetComponent<RectTransform>();
+            overlayRect.anchorMin = Vector2.zero;
+            overlayRect.anchorMax = Vector2.one;
+            overlayRect.offsetMin = Vector2.zero;
+            overlayRect.offsetMax = Vector2.zero;
+
+            // Main panel
+            var mainPanel = new GameObject("SkillTreePanel");
+            mainPanel.transform.SetParent(parent, false);
+            var panelImage = mainPanel.AddComponent<Image>();
+            panelImage.color = new Color(0.102f, 0.102f, 0.102f, 0.98f);
+            var skillTreePanel = mainPanel.AddComponent<SkillTreePanel>();
+
+            var mainPanelRect = mainPanel.GetComponent<RectTransform>();
+            mainPanelRect.anchorMin = new Vector2(0.1f, 0.1f);
+            mainPanelRect.anchorMax = new Vector2(0.9f, 0.9f);
+            mainPanelRect.offsetMin = Vector2.zero;
+            mainPanelRect.offsetMax = Vector2.zero;
+
+            // Header
+            var header = new GameObject("Header");
+            header.transform.SetParent(mainPanel.transform, false);
+            var headerRect = header.AddComponent<RectTransform>();
+            headerRect.anchorMin = new Vector2(0, 1);
+            headerRect.anchorMax = new Vector2(1, 1);
+            headerRect.pivot = new Vector2(0.5f, 1);
+            headerRect.anchoredPosition = Vector2.zero;
+            headerRect.sizeDelta = new Vector2(0, 80);
+
+            var headerBg = header.AddComponent<Image>();
+            headerBg.color = new Color(0.08f, 0.08f, 0.08f, 1f);
+
+            // Title
+            var title = new GameObject("Title");
+            title.transform.SetParent(header.transform, false);
+            var titleText = title.AddComponent<TextMeshProUGUI>();
+            titleText.text = "SKILL TREE";
+            titleText.fontSize = 36;
+            titleText.alignment = TextAlignmentOptions.Left;
+            titleText.color = new Color(0.812f, 0.710f, 0.231f, 1f);
+            var titleRect = title.GetComponent<RectTransform>();
+            titleRect.anchorMin = new Vector2(0, 0);
+            titleRect.anchorMax = new Vector2(0.5f, 1);
+            titleRect.offsetMin = new Vector2(20, 0);
+            titleRect.offsetMax = Vector2.zero;
+
+            // SP Display
+            var spDisplay = new GameObject("SPDisplay");
+            spDisplay.transform.SetParent(header.transform, false);
+            var spText = spDisplay.AddComponent<TextMeshProUGUI>();
+            spText.text = "SP: 0";
+            spText.fontSize = 28;
+            spText.alignment = TextAlignmentOptions.Right;
+            spText.color = new Color(0f, 0.808f, 0.820f, 1f);
+            var spRect = spDisplay.GetComponent<RectTransform>();
+            spRect.anchorMin = new Vector2(0.5f, 0);
+            spRect.anchorMax = new Vector2(1, 1);
+            spRect.offsetMin = Vector2.zero;
+            spRect.offsetMax = new Vector2(-80, 0);
+
+            // Close button
+            var closeBtn = CreateMenuButton(header.transform, "CloseButton", "X", Vector2.zero);
+            var closeBtnRect = closeBtn.GetComponent<RectTransform>();
+            closeBtnRect.anchorMin = new Vector2(1, 0.5f);
+            closeBtnRect.anchorMax = new Vector2(1, 0.5f);
+            closeBtnRect.pivot = new Vector2(1, 0.5f);
+            closeBtnRect.anchoredPosition = new Vector2(-10, 0);
+            closeBtnRect.sizeDelta = new Vector2(50, 50);
+
+            // Scroll area for skill nodes
+            var scrollArea = new GameObject("ScrollArea");
+            scrollArea.transform.SetParent(mainPanel.transform, false);
+            var scrollRect = scrollArea.AddComponent<ScrollRect>();
+            var scrollAreaRect = scrollArea.GetComponent<RectTransform>();
+            scrollAreaRect.anchorMin = new Vector2(0, 0);
+            scrollAreaRect.anchorMax = new Vector2(0.7f, 1);
+            scrollAreaRect.offsetMin = new Vector2(10, 10);
+            scrollAreaRect.offsetMax = new Vector2(0, -90);
+
+            // Viewport
+            var viewport = new GameObject("Viewport");
+            viewport.transform.SetParent(scrollArea.transform, false);
+            viewport.AddComponent<RectMask2D>();
+            var viewportRect = viewport.GetComponent<RectTransform>(); // RectMask2D auto-added it
+            viewportRect.anchorMin = Vector2.zero;
+            viewportRect.anchorMax = Vector2.one;
+            viewportRect.offsetMin = Vector2.zero;
+            viewportRect.offsetMax = Vector2.zero;
+
+            // Content for skill nodes
+            var content = new GameObject("Content");
+            content.transform.SetParent(viewport.transform, false);
+            var contentRect = content.AddComponent<RectTransform>();
+            contentRect.anchorMin = new Vector2(0, 1);
+            contentRect.anchorMax = new Vector2(1, 1);
+            contentRect.pivot = new Vector2(0.5f, 1);
+            contentRect.anchoredPosition = Vector2.zero;
+            contentRect.sizeDelta = new Vector2(0, 800);
+
+            scrollRect.viewport = viewportRect;
+            scrollRect.content = contentRect;
+            scrollRect.horizontal = true;
+            scrollRect.vertical = true;
+            scrollRect.movementType = ScrollRect.MovementType.Clamped;
+
+            // Nodes container
+            var nodesContainer = new GameObject("NodesContainer");
+            nodesContainer.transform.SetParent(content.transform, false);
+            var nodesRect = nodesContainer.AddComponent<RectTransform>();
+            nodesRect.anchorMin = Vector2.zero;
+            nodesRect.anchorMax = Vector2.one;
+            nodesRect.offsetMin = Vector2.zero;
+            nodesRect.offsetMax = Vector2.zero;
+
+            // Connections container
+            var connectionsContainer = new GameObject("ConnectionsContainer");
+            connectionsContainer.transform.SetParent(content.transform, false);
+            var connRect = connectionsContainer.AddComponent<RectTransform>();
+            connRect.anchorMin = Vector2.zero;
+            connRect.anchorMax = Vector2.one;
+            connRect.offsetMin = Vector2.zero;
+            connRect.offsetMax = Vector2.zero;
+            connectionsContainer.transform.SetAsFirstSibling(); // Behind nodes
+
+            // Skill info panel (right side)
+            var infoPanel = new GameObject("SkillInfoPanel");
+            infoPanel.transform.SetParent(mainPanel.transform, false);
+            var infoPanelImage = infoPanel.AddComponent<Image>();
+            infoPanelImage.color = new Color(0.08f, 0.08f, 0.08f, 1f);
+            var infoPanelRect = infoPanel.GetComponent<RectTransform>();
+            infoPanelRect.anchorMin = new Vector2(0.7f, 0);
+            infoPanelRect.anchorMax = new Vector2(1, 1);
+            infoPanelRect.offsetMin = new Vector2(10, 10);
+            infoPanelRect.offsetMax = new Vector2(-10, -90);
+
+            // Skill name
+            var skillName = new GameObject("SkillName");
+            skillName.transform.SetParent(infoPanel.transform, false);
+            var skillNameText = skillName.AddComponent<TextMeshProUGUI>();
+            skillNameText.text = "Select a Skill";
+            skillNameText.fontSize = 28;
+            skillNameText.alignment = TextAlignmentOptions.TopLeft;
+            skillNameText.color = new Color(0.812f, 0.710f, 0.231f, 1f);
+            var skillNameRect = skillName.GetComponent<RectTransform>();
+            skillNameRect.anchorMin = new Vector2(0, 1);
+            skillNameRect.anchorMax = new Vector2(1, 1);
+            skillNameRect.pivot = new Vector2(0.5f, 1);
+            skillNameRect.anchoredPosition = new Vector2(0, -10);
+            skillNameRect.sizeDelta = new Vector2(-20, 40);
+
+            // Skill description
+            var skillDesc = new GameObject("SkillDescription");
+            skillDesc.transform.SetParent(infoPanel.transform, false);
+            var skillDescText = skillDesc.AddComponent<TextMeshProUGUI>();
+            skillDescText.text = "Click on a skill node to view its details.";
+            skillDescText.fontSize = 18;
+            skillDescText.alignment = TextAlignmentOptions.TopLeft;
+            skillDescText.color = new Color(0.831f, 0.769f, 0.659f, 1f);
+            var skillDescRect = skillDesc.GetComponent<RectTransform>();
+            skillDescRect.anchorMin = new Vector2(0, 0.4f);
+            skillDescRect.anchorMax = new Vector2(1, 1);
+            skillDescRect.offsetMin = new Vector2(10, 0);
+            skillDescRect.offsetMax = new Vector2(-10, -60);
+
+            // Learn button
+            var learnBtn = CreateMenuButton(infoPanel.transform, "LearnButton", "Learn", Vector2.zero);
+            var learnBtnRect = learnBtn.GetComponent<RectTransform>();
+            learnBtnRect.anchorMin = new Vector2(0.5f, 0);
+            learnBtnRect.anchorMax = new Vector2(0.5f, 0);
+            learnBtnRect.pivot = new Vector2(0.5f, 0);
+            learnBtnRect.anchoredPosition = new Vector2(0, 20);
+            learnBtnRect.sizeDelta = new Vector2(200, 50);
+
+            infoPanel.SetActive(false); // Hidden until skill selected
+
+            // Placeholder text for empty tree
+            var placeholder = new GameObject("PlaceholderText");
+            placeholder.transform.SetParent(content.transform, false);
+            var placeholderText = placeholder.AddComponent<TextMeshProUGUI>();
+            placeholderText.text = "No skill tree loaded.\nAssign a JobClassData with a SkillTree to the SkillManager.";
+            placeholderText.fontSize = 24;
+            placeholderText.alignment = TextAlignmentOptions.Center;
+            placeholderText.color = new Color(0.5f, 0.5f, 0.5f, 1f);
+            var placeholderRect = placeholder.GetComponent<RectTransform>();
+            placeholderRect.anchorMin = new Vector2(0.5f, 0.5f);
+            placeholderRect.anchorMax = new Vector2(0.5f, 0.5f);
+            placeholderRect.pivot = new Vector2(0.5f, 0.5f);
+            placeholderRect.sizeDelta = new Vector2(600, 200);
+
+            // Wire up SkillTreeController
+            if (controller != null)
+            {
+                var so = new SerializedObject(controller);
+                var canvasProp = so.FindProperty("skillTreeCanvas");
+                var canvasGroupProp = so.FindProperty("skillTreeCanvasGroup");
+                var panelProp = so.FindProperty("skillTreePanel");
+                var closeBtnProp = so.FindProperty("closeButton");
+
+                if (canvasProp != null) canvasProp.objectReferenceValue = controller.GetComponent<Canvas>();
+                if (canvasGroupProp != null) canvasGroupProp.objectReferenceValue = controller.GetComponent<CanvasGroup>();
+                if (panelProp != null) panelProp.objectReferenceValue = skillTreePanel;
+                if (closeBtnProp != null) closeBtnProp.objectReferenceValue = closeBtn.GetComponent<Button>();
+                so.ApplyModifiedProperties();
+            }
+
+            // Wire up SkillTreePanel
+            if (skillTreePanel != null)
+            {
+                var panelSO = new SerializedObject(skillTreePanel);
+                SetPropertyIfExists(panelSO, "scrollRect", scrollRect);
+                SetPropertyIfExists(panelSO, "contentContainer", contentRect);
+                SetPropertyIfExists(panelSO, "nodesContainer", nodesRect);
+                SetPropertyIfExists(panelSO, "connectionsContainer", connRect);
+                SetPropertyIfExists(panelSO, "spDisplayText", spText);
+                SetPropertyIfExists(panelSO, "skillInfoPanel", infoPanel);
+                SetPropertyIfExists(panelSO, "skillNameText", skillNameText);
+                SetPropertyIfExists(panelSO, "skillDescriptionText", skillDescText);
+                SetPropertyIfExists(panelSO, "learnButton", learnBtn.GetComponent<Button>());
+                SetPropertyIfExists(panelSO, "learnButtonText", learnBtn.GetComponentInChildren<TMP_Text>());
+                panelSO.ApplyModifiedProperties();
+            }
+        }
+
         private static void AddAdaptiveScalerToSelection()
         {
             if (Selection.activeGameObject == null)
@@ -1151,6 +1741,15 @@ namespace ProjectName.UI.Editor
 
         #region Utilities
 
+        private static void SetPropertyIfExists(SerializedObject so, string propName, UnityEngine.Object value)
+        {
+            var prop = so.FindProperty(propName);
+            if (prop != null)
+            {
+                prop.objectReferenceValue = value;
+            }
+        }
+
         private static GameObject FindSceneObject(string name)
         {
             var allObjects = Resources.FindObjectsOfTypeAll<GameObject>();
@@ -1172,6 +1771,7 @@ namespace ProjectName.UI.Editor
             {
                 "HUD_Canvas",
                 "PauseMenu_Canvas",
+                "SkillTree_Canvas",
                 "UITestController",
                 "UIManager",
                 "HealthGroup"

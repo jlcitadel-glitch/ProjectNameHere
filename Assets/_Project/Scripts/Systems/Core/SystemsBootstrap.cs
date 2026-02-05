@@ -15,8 +15,8 @@ public class SystemsBootstrap : MonoBehaviour
     [Tooltip("Create SaveManager if not found")]
     [SerializeField] private bool ensureSaveManager = true;
 
-    [Tooltip("Initial game state when GameManager is created")]
-    [SerializeField] private GameManager.GameState initialState = GameManager.GameState.Playing;
+    [Tooltip("Create SkillManager if not found")]
+    [SerializeField] private bool ensureSkillManager = true;
 
     [Header("Debug")]
     [SerializeField] private bool logCreation = true;
@@ -70,6 +70,17 @@ public class SystemsBootstrap : MonoBehaviour
             if (logCreation)
             {
                 Debug.Log("[SystemsBootstrap] Created SaveManager");
+            }
+        }
+
+        // Ensure SkillManager
+        if (ensureSkillManager && SkillManager.Instance == null)
+        {
+            managersGO.AddComponent<SkillManager>();
+
+            if (logCreation)
+            {
+                Debug.Log("[SystemsBootstrap] Created SkillManager");
             }
         }
 

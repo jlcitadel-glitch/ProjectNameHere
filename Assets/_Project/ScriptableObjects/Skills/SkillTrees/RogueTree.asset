@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d87a50995c6f9634ea52ba4accfc634b, type: 3}
+  m_Name: RogueTree
+  m_EditorClassIdentifier: Assembly-CSharp::SkillTreeData
+  treeId: rogue_tree
+  treeName: Rogue Skills
+  nodes:
+  - skill: {fileID: 11400000, guid: 07d88c2ef9f775f41918cd342e953725, type: 2}
+    position: {x: 0, y: 0}
+    childNodeIndices: 02000000
+    row: 0
+    column: 0
+  - skill: {fileID: 11400000, guid: 9ea999b1429052c42b13653e7bf135a0, type: 2}
+    position: {x: 0, y: 0}
+    childNodeIndices: 03000000
+    row: 0
+    column: 1
+  - skill: {fileID: 11400000, guid: 7b38ea316a623e1489ebff101bc1974d, type: 2}
+    position: {x: 0, y: 0}
+    childNodeIndices: 04000000
+    row: 1
+    column: 0
+  - skill: {fileID: 11400000, guid: 33829c9d580c1164ea92fe7a2e2ab775, type: 2}
+    position: {x: 0, y: 0}
+    childNodeIndices: 04000000
+    row: 1
+    column: 1
+  - skill: {fileID: 11400000, guid: e568e48c7161bf24b95276984214ab5f, type: 2}
+    position: {x: 0, y: 0}
+    childNodeIndices: 
+    row: 2
+    column: 0
+  connections:
+  - fromNodeIndex: 0
+    toNodeIndex: 2
+    curvePoints: []
+  - fromNodeIndex: 1
+    toNodeIndex: 3
+    curvePoints: []
+  - fromNodeIndex: 2
+    toNodeIndex: 4
+    curvePoints: []
+  - fromNodeIndex: 3
+    toNodeIndex: 4
+    curvePoints: []
+  horizontalSpacing: 150
+  verticalSpacing: 120
+  treeOffset: {x: 0, y: 0}
+  backgroundImage: {fileID: 0}
+  backgroundColor: {r: 0.1, g: 0.1, b: 0.1, a: 0.9}

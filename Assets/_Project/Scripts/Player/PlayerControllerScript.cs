@@ -27,6 +27,12 @@ public class PlayerControllerScript : MonoBehaviour
     [SerializeField] Transform groundCheck;
     [SerializeField] float groundCheckRadius = 0.2f;
 
+    // Animator
+    private Animator animator;
+    private static readonly int AnimSpeed = Animator.StringToHash("Speed");
+    private static readonly int AnimIsGrounded = Animator.StringToHash("IsGrounded");
+    private static readonly int AnimVelocityY = Animator.StringToHash("VelocityY");
+
     private float horizontal;
     private float coyoteTimeCounter;
     private float jumpBufferCounter;
@@ -35,6 +41,7 @@ public class PlayerControllerScript : MonoBehaviour
     // Ability components
     private DoubleJumpAbility doubleJumpAbility;
     private DashAbility dashAbility;
+    private CombatController combatController;
 
     // Double-tap dash detection
     private float lastTapTime;
@@ -65,6 +72,10 @@ public class PlayerControllerScript : MonoBehaviour
         // Get ability components if they exist
         doubleJumpAbility = GetComponent<DoubleJumpAbility>();
         dashAbility = GetComponent<DashAbility>();
+        combatController = GetComponent<CombatController>();
+
+        // Get animator
+        animator = GetComponent<Animator>();
     }
 
     private void Update()
@@ -74,6 +85,8 @@ public class PlayerControllerScript : MonoBehaviour
             doubleJumpAbility = GetComponent<DoubleJumpAbility>();
         if (dashAbility == null)
             dashAbility = GetComponent<DashAbility>();
+        if (combatController == null)
+            combatController = GetComponent<CombatController>();
 
         bool grounded = IsGrounded();
 
@@ -113,6 +126,19 @@ public class PlayerControllerScript : MonoBehaviour
             doubleJumpAbility.ConsumeJump();
             jumpBufferCounter = 0;
         }
+
+        // Update animator parameters
+        UpdateAnimator();
+    }
+
+    private void UpdateAnimator()
+    {
+        if (animator == null)
+            return;
+
+        animator.SetFloat(AnimSpeed, Mathf.Abs(horizontal));
+        animator.SetBool(AnimIsGrounded, IsGrounded());
+        animator.SetFloat(AnimVelocityY, rb.linearVelocity.y);
     }
 
     private void FixedUpdate()
@@ -123,8 +149,17 @@ public class PlayerControllerScript : MonoBehaviour
             return;
         }
 
-        // Horizontal movement
-        rb.linearVelocity = new Vector2(horizontal * speed, rb.linearVelocity.y);
+        // Skip or modify movement if attacking
+        if (combatController != null && !combatController.CanMove())
+        {
+            // Still apply gravity and clamp fall speed
+            ApplyGravityAndFallSpeed();
+            return;
+        }
+
+        // Horizontal movement (apply combat movement multiplier if attacking)
+        float moveMultiplier = combatController != null ? combatController.GetMovementMultiplier() : 1f;
+        rb.linearVelocity = new Vector2(horizontal * speed * moveMultiplier, rb.linearVelocity.y);
 
         // Flip character based on movement direction
         if (horizontal > 0)
@@ -136,6 +171,11 @@ public class PlayerControllerScript : MonoBehaviour
             transform.localScale = new Vector3(-1, 1, 1);
         }
 
+        ApplyGravityAndFallSpeed();
+    }
+
+    private void ApplyGravityAndFallSpeed()
+    {
         // Faster falling
         if (rb.linearVelocity.y < 0)
         {
@@ -156,6 +196,9 @@ public class PlayerControllerScript : MonoBehaviour
     #region PLAYER_CONTROLS
     public void Move(InputAction.CallbackContext context)
     {
+        // Forward move input to combat controller for direction detection
+        combatController?.OnMove(context);
+
         if (context.performed)
         {
             float newInput = context.ReadValue<Vector2>().x;
@@ -223,6 +266,16 @@ public class PlayerControllerScript : MonoBehaviour
             dashAbility.PerformDash(dashDirection);
         }
     }
+
+    public void Attack(InputAction.CallbackContext context)
+    {
+        combatController?.OnAttack(context);
+    }
+
+    public void SwitchWeapon(InputAction.CallbackContext context)
+    {
+        combatController?.OnWeaponSwitch(context);
+    }
     #endregion
 
     private void PerformJump()
@@ -276,5 +329,18 @@ public class PlayerControllerScript : MonoBehaviour
     {
         doubleJumpAbility = GetComponent<DoubleJumpAbility>();
         dashAbility = GetComponent<DashAbility>();
+        combatController = GetComponent<CombatController>();
+    }
+
+    // Expose grounded state for other systems
+    public bool GetIsGrounded()
+    {
+        return IsGrounded();
+    }
+
+    // Expose animator for other systems
+    public Animator GetAnimator()
+    {
+        return animator;
     }
 }

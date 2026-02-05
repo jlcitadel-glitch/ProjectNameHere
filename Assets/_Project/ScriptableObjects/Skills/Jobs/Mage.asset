@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5af5cbc27ac6ae4da74e08c71b756a0, type: 3}
+  m_Name: Mage
+  m_EditorClassIdentifier: Assembly-CSharp::JobClassData
+  jobId: mage
+  jobName: Mage
+  description: Wielders of arcane power. High MP with devastating magical attacks.
+  jobIcon: {fileID: 0}
+  jobColor: {r: 0.2, g: 0.4, b: 0.9, a: 1}
+  tier: 1
+  parentJob: {fileID: 11400000, guid: bc2173f2e0402ae4584cc0b3f74625e8, type: 2}
+  childJobs: []
+  requiredLevel: 10
+  requiredSkills: []
+  requiredSkillLevels: 
+  advancementQuestId: 
+  skillTree: {fileID: 11400000, guid: a5d3414690357474a9dfd181bfc3f1dd, type: 2}
+  availableSkills:
+  - {fileID: 11400000, guid: aabbd849ae9bcf146a10ee16708217ab, type: 2}
+  - {fileID: 11400000, guid: e8dbd858b30443b4a8c9c1e5f75b19fd, type: 2}
+  - {fileID: 11400000, guid: 51908f3d0fd3f4a41970e255cfab48ed, type: 2}
+  - {fileID: 11400000, guid: 55b3da55d8eb3ec4ea8e8a58760965b7, type: 2}
+  - {fileID: 11400000, guid: ecf3afe18a8c464468a55c9f8854091d, type: 2}
+  spPerLevel: 3
+  bonusSPOnAdvancement: 5
+  maxSPInTree: -1
+  baseHPBonus: 0
+  baseMPBonus: 50
+  attackModifier: 1
+  magicModifier: 1.4
+  defenseModifier: 0.8

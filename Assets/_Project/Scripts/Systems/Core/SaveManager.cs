@@ -10,7 +10,7 @@ public class SaveManager : MonoBehaviour
     public static SaveManager Instance { get; private set; }
 
     private const string SAVE_KEY = "GameSave";
-    private const int CURRENT_SAVE_VERSION = 1;
+    private const int CURRENT_SAVE_VERSION = 2;
 
     public event Action OnSaveCompleted;
     public event Action OnLoadCompleted;
@@ -38,6 +38,9 @@ public class SaveManager : MonoBehaviour
 
         // Play time (in seconds)
         public float playTime;
+
+        // Skill System
+        public SkillSaveData skillData;
 
         // Metadata
         public string saveTimestamp;
@@ -106,6 +109,19 @@ public class SaveManager : MonoBehaviour
             //     data.currentHealth = health.CurrentHealth;
             //     data.maxHealth = health.MaxHealth;
             // }
+
+            // Skill hotbar
+            var skillController = player.GetComponent<PlayerSkillController>();
+            if (skillController != null && data.skillData != null)
+            {
+                data.skillData.hotbarSkillIds = skillController.SaveHotbar();
+            }
+        }
+
+        // Skill system save
+        if (SkillManager.Instance != null)
+        {
+            data.skillData = SkillManager.Instance.CreateSaveData();
         }
 
         // Calculate play time
@@ -259,6 +275,19 @@ public class SaveManager : MonoBehaviour
         //     health.SetHealth(currentSaveData.currentHealth, currentSaveData.maxHealth);
         // }
 
+        // Apply skill system data
+        if (SkillManager.Instance != null && currentSaveData.skillData != null)
+        {
+            SkillManager.Instance.ApplySaveData(currentSaveData.skillData);
+        }
+
+        // Apply skill hotbar
+        var skillController = player.GetComponent<PlayerSkillController>();
+        if (skillController != null && currentSaveData.skillData?.hotbarSkillIds != null)
+        {
+            skillController.LoadHotbar(currentSaveData.skillData.hotbarSkillIds);
+        }
+
         Debug.Log("[SaveManager] Save data applied to game world.");
     }
 
@@ -280,13 +309,20 @@ public class SaveManager : MonoBehaviour
 
     private void MigrateSaveData(SaveData data)
     {
-        // Future migration logic
-        // Example:
-        // if (data.saveVersion < 2)
-        // {
-        //     // Migrate from version 1 to 2
-        //     data.newField = defaultValue;
-        // }
+        // Migration from version 1 to 2: Add skill system data
+        if (data.saveVersion < 2)
+        {
+            data.skillData = new SkillSaveData
+            {
+                currentJobId = "",
+                jobHistoryIds = new List<string>(),
+                availableSP = 0,
+                totalSPEarned = 0,
+                playerLevel = 1,
+                learnedSkills = new List<LearnedSkillData>(),
+                hotbarSkillIds = new string[0]
+            };
+        }
 
         data.saveVersion = CURRENT_SAVE_VERSION;
         Debug.Log($"[SaveManager] Migrated save data to version {CURRENT_SAVE_VERSION}");

@@ -1,5 +1,7 @@
 # Player Agent
 
+> **Inherits:** [Project Standards](../../../CLAUDE.md) (Unity 6, RPI Pattern, Prefabs, CI)
+
 You are the Player Agent for this Unity 2D Metroidvania project. Your role is to implement and maintain player-related systems including movement, input handling, and abilities.
 
 **Unity Version:** 6.0+ (Use modern APIs: `linearVelocity` instead of deprecated `velocity`, `InputSystem` for input)

@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5af5cbc27ac6ae4da74e08c71b756a0, type: 3}
+  m_Name: Rogue
+  m_EditorClassIdentifier: Assembly-CSharp::JobClassData
+  jobId: rogue
+  jobName: Rogue
+  description: Swift and deadly. High critical chance with evasive maneuvers.
+  jobIcon: {fileID: 0}
+  jobColor: {r: 0.6, g: 0.2, b: 0.8, a: 1}
+  tier: 1
+  parentJob: {fileID: 11400000, guid: bc2173f2e0402ae4584cc0b3f74625e8, type: 2}
+  childJobs: []
+  requiredLevel: 10
+  requiredSkills: []
+  requiredSkillLevels: 
+  advancementQuestId: 
+  skillTree: {fileID: 11400000, guid: 0ce917d3aa0134340ace65f18cdaf117, type: 2}
+  availableSkills:
+  - {fileID: 11400000, guid: 07d88c2ef9f775f41918cd342e953725, type: 2}
+  - {fileID: 11400000, guid: 9ea999b1429052c42b13653e7bf135a0, type: 2}
+  - {fileID: 11400000, guid: 7b38ea316a623e1489ebff101bc1974d, type: 2}
+  - {fileID: 11400000, guid: 33829c9d580c1164ea92fe7a2e2ab775, type: 2}
+  - {fileID: 11400000, guid: e568e48c7161bf24b95276984214ab5f, type: 2}
+  spPerLevel: 3
+  bonusSPOnAdvancement: 5
+  maxSPInTree: -1
+  baseHPBonus: 20
+  baseMPBonus: 20
+  attackModifier: 1.1
+  magicModifier: 1
+  defenseModifier: 1

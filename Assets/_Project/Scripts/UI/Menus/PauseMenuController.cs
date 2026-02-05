@@ -29,6 +29,7 @@ namespace ProjectName.UI
 
         private GameObject lastSelected;
         private MenuState currentState = MenuState.Closed;
+        private SkillTreeController skillTreeController;
 
         public enum MenuState
         {
@@ -44,6 +45,9 @@ namespace ProjectName.UI
         {
             AutoFindReferences();
             SetupButtons();
+
+            // Cache skill tree reference to check if it's open
+            skillTreeController = FindAnyObjectByType<SkillTreeController>();
 
             // Ensure correct initial state - options hidden, main panel ready
             if (optionsPanel != null)
@@ -196,6 +200,19 @@ namespace ProjectName.UI
 
         private void OnGamePaused()
         {
+            // Don't show pause menu if skill tree is open (it handles its own pause)
+            // Lazy lookup in case skill tree was created after us
+            if (skillTreeController == null)
+            {
+                skillTreeController = FindAnyObjectByType<SkillTreeController>();
+            }
+
+            if (skillTreeController != null && skillTreeController.IsOpen)
+            {
+                Debug.Log("[PauseMenu] Skipping pause menu - skill tree is open");
+                return;
+            }
+
             ShowMainPause();
         }
 

@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 633dba24c6646aa4cbe1b103bdff7496, type: 3}
+  m_Name: IceBolt
+  m_EditorClassIdentifier: Assembly-CSharp::SkillData
+  skillId: ice_bolt
+  skillName: Ice Bolt
+  description: Fire an ice bolt dealing {damage} ice damage and slowing the target.
+  icon: {fileID: 0}
+  skillType: 0
+  damageType: 3
+  requiredJobId: mage
+  requiredPlayerLevel: 10
+  maxSkillLevel: 20
+  prerequisiteSkills: []
+  prerequisiteLevels: 
+  spCost: 1
+  baseDamage: 30
+  baseManaCost: 10
+  baseCooldown: 3
+  baseDuration: 0
+  damagePerLevel: 8
+  manaCostPerLevel: 1
+  cooldownReductionPerLevel: 0.1
+  durationPerLevel: 0
+  minimumCooldown: 0.5
+  nodePosition: {x: 1, y: 0}
+  tier: 0
+  effects: []
+  skillPrefab: {fileID: 0}
+  castSound: {fileID: 0}
+  animationTrigger: 
+  castTime: 0

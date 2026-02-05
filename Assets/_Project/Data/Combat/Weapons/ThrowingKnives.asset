@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e5db7efaaf16c2345889eea4aa9236a7, type: 3}
+  m_Name: ThrowingKnives
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponData
+  weaponName: Throwing Knives
+  weaponType: 1
+  weaponIcon: {fileID: 0}
+  forwardAttack: {fileID: 11400000, guid: b7211a3ada6738c40847f2eebc44253f, type: 2}
+  upAttack: {fileID: 11400000, guid: b275acfcf2c2ba34d825f40d865fdad8, type: 2}
+  downAttack: {fileID: 11400000, guid: cb7928874e64a8f43bd01d871e51d91f, type: 2}
+  aerialForwardAttack: {fileID: 0}
+  aerialUpAttack: {fileID: 0}
+  aerialDownAttack: {fileID: 0}

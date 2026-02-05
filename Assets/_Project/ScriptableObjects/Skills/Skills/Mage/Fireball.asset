@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 633dba24c6646aa4cbe1b103bdff7496, type: 3}
+  m_Name: Fireball
+  m_EditorClassIdentifier: Assembly-CSharp::SkillData
+  skillId: fireball
+  skillName: Fireball
+  description: Launch a fireball dealing {damage} fire damage.
+  icon: {fileID: 0}
+  skillType: 0
+  damageType: 2
+  requiredJobId: mage
+  requiredPlayerLevel: 10
+  maxSkillLevel: 20
+  prerequisiteSkills: []
+  prerequisiteLevels: 
+  spCost: 1
+  baseDamage: 40
+  baseManaCost: 12
+  baseCooldown: 4
+  baseDuration: 0
+  damagePerLevel: 10
+  manaCostPerLevel: 2
+  cooldownReductionPerLevel: 0.1
+  durationPerLevel: 0
+  minimumCooldown: 0.5
+  nodePosition: {x: 0, y: 0}
+  tier: 0
+  effects: []
+  skillPrefab: {fileID: 0}
+  castSound: {fileID: 0}
+  animationTrigger: 
+  castTime: 0

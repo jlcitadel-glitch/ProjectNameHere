@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f5af5cbc27ac6ae4da74e08c71b756a0, type: 3}
+  m_Name: Beginner
+  m_EditorClassIdentifier: Assembly-CSharp::JobClassData
+  jobId: beginner
+  jobName: Beginner
+  description: The starting class. Learn basic combat skills before choosing your
+    path.
+  jobIcon: {fileID: 0}
+  jobColor: {r: 0.7, g: 0.7, b: 0.7, a: 1}
+  tier: 0
+  parentJob: {fileID: 0}
+  childJobs:
+  - {fileID: 11400000, guid: 33c7d15f4c49bfd48b7a80bba1bc1a39, type: 2}
+  - {fileID: 11400000, guid: f17872cbe63d8c0429d49208541b1e9e, type: 2}
+  - {fileID: 11400000, guid: 7181e6ca14f01a24c8a9a40e4689b5c4, type: 2}
+  requiredLevel: 1
+  requiredSkills: []
+  requiredSkillLevels: 
+  advancementQuestId: 
+  skillTree: {fileID: 11400000, guid: f54f4585e14aa5344a452bc9c503512e, type: 2}
+  availableSkills:
+  - {fileID: 11400000, guid: 367c7f856835cad44a4a46c66aee1973, type: 2}
+  - {fileID: 11400000, guid: 458fd5547c5cd194fb0d8da7ae73f82f, type: 2}
+  - {fileID: 11400000, guid: 5e0e1561ee084a74fa8317ebfd4095c5, type: 2}
+  - {fileID: 11400000, guid: e52598721d9007141a84ff561a21555d, type: 2}
+  spPerLevel: 3
+  bonusSPOnAdvancement: 0
+  maxSPInTree: -1
+  baseHPBonus: 0
+  baseMPBonus: 0
+  attackModifier: 1
+  magicModifier: 1
+  defenseModifier: 1
