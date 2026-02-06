@@ -14,6 +14,7 @@ public class HealthSystem : MonoBehaviour
     private float currentHealth;
     private float invulnerabilityTimer;
     private Animator animator;
+    private bool animationTriggersEnabled = true;
     private static readonly int AnimHurt = Animator.StringToHash("Hurt");
     private static readonly int AnimDie = Animator.StringToHash("Die");
 
@@ -84,8 +85,8 @@ public class HealthSystem : MonoBehaviour
 
         invulnerabilityTimer = invulnerabilityDuration;
 
-        // Trigger hurt animation
-        if (animator != null && currentHealth > 0f)
+        // Trigger hurt animation (disabled for enemies — EnemyController handles it)
+        if (animationTriggersEnabled && animator != null && currentHealth > 0f)
         {
             animator.SetTrigger(AnimHurt);
         }
@@ -95,8 +96,8 @@ public class HealthSystem : MonoBehaviour
 
         if (currentHealth <= 0f)
         {
-            // Trigger death animation
-            if (animator != null)
+            // Trigger death animation (disabled for enemies — EnemyController handles it)
+            if (animationTriggersEnabled && animator != null)
             {
                 animator.SetTrigger(AnimDie);
             }
@@ -188,5 +189,22 @@ public class HealthSystem : MonoBehaviour
     public void GrantInvulnerability(float duration)
     {
         invulnerabilityTimer = Mathf.Max(invulnerabilityTimer, duration);
+    }
+
+    /// <summary>
+    /// Sets the invulnerability duration after taking damage.
+    /// </summary>
+    public void SetInvulnerabilityDuration(float duration)
+    {
+        invulnerabilityDuration = Mathf.Max(0f, duration);
+    }
+
+    /// <summary>
+    /// Disables HealthSystem's built-in animation triggers (Hurt/Die).
+    /// Call this when another component (e.g. EnemyController) handles animations.
+    /// </summary>
+    public void DisableAnimationTriggers()
+    {
+        animationTriggersEnabled = false;
     }
 }

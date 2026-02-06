@@ -52,8 +52,8 @@ public class GameManager : MonoBehaviour
     {
         if (Instance != null && Instance != this)
         {
-            Debug.LogWarning($"[GameManager] Duplicate instance on {gameObject.name}, destroying.");
-            Destroy(gameObject);
+            // Expected on scene reload — DontDestroyOnLoad instance already exists
+            Destroy(this);
             return;
         }
         Instance = this;

@@ -14,6 +14,7 @@ public class EnemyCombat : MonoBehaviour
     [SerializeField] private bool showHitboxGizmos = true;
 
     private EnemyController controller;
+    private BossController bossController;
     private EnemyData enemyData;
     private Animator animator;
 
@@ -37,9 +38,18 @@ public class EnemyCombat : MonoBehaviour
 
     public bool IsAttacking => attackPhase != AttackPhase.None;
 
+    /// <summary>
+    /// Returns the damage multiplier from boss phase, if applicable.
+    /// </summary>
+    public float GetDamageMultiplier()
+    {
+        return bossController != null ? bossController.GetDamageMultiplier() : 1f;
+    }
+
     private void Awake()
     {
         controller = GetComponent<EnemyController>();
+        bossController = GetComponent<BossController>();
         animator = GetComponent<Animator>();
 
         // Auto-create attack origin if not assigned
@@ -182,7 +192,7 @@ public class EnemyCombat : MonoBehaviour
             AudioSource audioSource = GetComponent<AudioSource>();
             if (audioSource != null)
             {
-                audioSource.PlayOneShot(currentAttack.attackSound);
+                SFXManager.PlayOneShot(audioSource, currentAttack.attackSound);
             }
         }
 

@@ -1,4 +1,5 @@
 using UnityEngine;
+using ProjectName.UI;
 
 /// <summary>
 /// Ensures core game systems (GameManager, SaveManager) exist at runtime.
@@ -26,6 +27,9 @@ public class SystemsBootstrap : MonoBehaviour
 
     [Tooltip("Create DisplaySettings if not found")]
     [SerializeField] private bool ensureDisplaySettings = true;
+
+    [Tooltip("Create StatMenu UI if not found")]
+    [SerializeField] private bool ensureStatMenu = true;
 
     [Header("Debug")]
     [SerializeField] private bool logCreation = true;
@@ -123,6 +127,18 @@ public class SystemsBootstrap : MonoBehaviour
             if (logCreation)
             {
                 Debug.Log("[SystemsBootstrap] Created DisplaySettings");
+            }
+        }
+
+        // Ensure StatMenu UI
+        if (ensureStatMenu && FindAnyObjectByType<StatMenuController>() == null)
+        {
+            var statMenu = StatMenuController.CreateRuntimeUI();
+            DontDestroyOnLoad(statMenu.gameObject);
+
+            if (logCreation)
+            {
+                Debug.Log("[SystemsBootstrap] Created StatMenu UI");
             }
         }
 

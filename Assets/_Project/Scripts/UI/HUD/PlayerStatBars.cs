@@ -11,7 +11,7 @@ namespace ProjectName.UI
     public class PlayerStatBars : MonoBehaviour
     {
         [Header("Health Bar Position")]
-        [SerializeField] private Vector2 healthBarOffset = new Vector2(0f, 1.2f);
+        [SerializeField] private Vector2 healthBarOffset = new Vector2(0f, 2.2f);
 
         [Header("Mana Bar Position")]
         [SerializeField] private Vector2 manaBarOffset = new Vector2(0f, -0.8f);

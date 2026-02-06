@@ -93,6 +93,7 @@ namespace ProjectName.UI
             tmp.fontSize = 6;
             tmp.fontStyle = FontStyles.Bold;
             tmp.sortingOrder = 1000;
+            FontManager.EnsureFont(tmp);
 
             damageNumberPrefab.transform.SetParent(transform);
         }

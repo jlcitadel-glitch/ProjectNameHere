@@ -171,6 +171,18 @@ namespace ProjectName.UI
         }
 
         /// <summary>
+        /// Wires internal references for runtime-created displays.
+        /// </summary>
+        public void SetReferences(TMP_Text text)
+        {
+            levelText = text;
+            if (levelText != null)
+            {
+                originalScale = levelText.transform.localScale;
+            }
+        }
+
+        /// <summary>
         /// Manually sets the displayed level.
         /// </summary>
         public void SetLevel(int level)

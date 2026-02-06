@@ -3,8 +3,7 @@ using UnityEngine;
 /// <summary>
 /// Top-level coordinator for the survival arena.
 /// Placed on a trigger zone in the scene. When the player enters,
-/// locks the camera and starts the wave loop. Integrates with SaveManager
-/// to persist wave progress.
+/// starts the wave loop. Integrates with SaveManager to persist wave progress.
 /// </summary>
 [RequireComponent(typeof(BoxCollider2D))]
 public class SurvivalArena : MonoBehaviour

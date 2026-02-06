@@ -15,6 +15,10 @@ public class EnemyController : MonoBehaviour, IDamageable
     [SerializeField] private Animator animator;
     [SerializeField] private AudioSource audioSource;
 
+    [Header("Experience Orbs")]
+    [SerializeField] private GameObject experienceOrbPrefab;
+    [SerializeField] private int orbCount = 3;
+
     [Header("Debug")]
     [SerializeField] private bool debugLogging = false;
 
@@ -23,6 +27,7 @@ public class EnemyController : MonoBehaviour, IDamageable
     private BaseEnemyMovement movement;
     private EnemyCombat combat;
     private EnemySensors sensors;
+    private BossController bossController;
     private Rigidbody2D rb;
     private SpriteRenderer spriteRenderer;
 
@@ -63,14 +68,63 @@ public class EnemyController : MonoBehaviour, IDamageable
         movement = GetComponent<BaseEnemyMovement>();
         combat = GetComponent<EnemyCombat>();
         sensors = GetComponent<EnemySensors>();
+        bossController = GetComponent<BossController>();
         rb = GetComponent<Rigidbody2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
+
+        // Auto-add missing components based on EnemyData configuration
+        if (enemyData != null)
+        {
+            if (movement == null)
+                movement = AddMovementComponent(enemyData.enemyType);
+
+            if (sensors == null)
+            {
+                Debug.LogWarning($"[EnemyController] {gameObject.name}: Missing EnemySensors, adding automatically.");
+                sensors = gameObject.AddComponent<EnemySensors>();
+            }
+
+            if (combat == null && enemyData.attacks != null && enemyData.attacks.Length > 0)
+            {
+                Debug.LogWarning($"[EnemyController] {gameObject.name}: Missing EnemyCombat, adding automatically.");
+                combat = gameObject.AddComponent<EnemyCombat>();
+            }
+        }
+
+        // Safety net: ensure Rigidbody2D is Dynamic so physics (gravity, collisions) work.
+        // BaseEnemyMovement also enforces this, but Stationary enemies have no movement component.
+        if (rb != null && rb.bodyType != RigidbodyType2D.Dynamic)
+        {
+            rb.bodyType = RigidbodyType2D.Dynamic;
+        }
 
         if (animator == null)
             animator = GetComponent<Animator>();
 
         if (audioSource == null)
             audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+            audioSource.playOnAwake = false;
+            audioSource.spatialBlend = 0f;
+        }
+    }
+
+    private BaseEnemyMovement AddMovementComponent(EnemyType type)
+    {
+        switch (type)
+        {
+            case EnemyType.GroundPatrol:
+                Debug.LogWarning($"[EnemyController] {gameObject.name}: Missing GroundPatrolMovement, adding automatically.");
+                return gameObject.AddComponent<GroundPatrolMovement>();
+            case EnemyType.Flying:
+                Debug.LogWarning($"[EnemyController] {gameObject.name}: Missing FlyingMovement, adding automatically.");
+                return gameObject.AddComponent<FlyingMovement>();
+            case EnemyType.Stationary:
+            default:
+                return null;
+        }
     }
 
     private void Start()
@@ -85,13 +139,19 @@ public class EnemyController : MonoBehaviour, IDamageable
         InitializeFromData();
         SubscribeToEvents();
 
-        // Spawn VFX
+        // Spawn VFX and sound
         if (enemyData.spawnVFX != null)
         {
             Instantiate(enemyData.spawnVFX, transform.position, Quaternion.identity);
         }
+        PlaySound(enemyData.spawnSound);
 
-        SetState(EnemyState.Idle);
+        // Force-enter Idle state. Can't use SetState() here because
+        // currentState defaults to Idle, so SetState would skip due to
+        // the duplicate-state check. We need EnterState to fire so
+        // stateTimer is set and movement.Stop() is called.
+        currentState = EnemyState.Idle;
+        EnterState(EnemyState.Idle);
     }
 
     private void OnDestroy()
@@ -103,6 +163,10 @@ public class EnemyController : MonoBehaviour, IDamageable
     {
         // Configure health system
         healthSystem.SetMaxHealth(enemyData.maxHealth, true);
+        healthSystem.SetInvulnerabilityDuration(enemyData.invulnerabilityDuration);
+
+        // Disable HealthSystem's own animation triggers — EnemyController handles those
+        healthSystem.DisableAnimationTriggers();
 
         // Cache which animator parameters exist to avoid errors
         CacheAnimatorParameters();
@@ -393,7 +457,8 @@ public class EnemyController : MonoBehaviour, IDamageable
 
             case EnemyState.Cooldown:
                 movement?.Stop();
-                stateTimer = enemyData.attackCooldown;
+                float cooldownMult = bossController != null ? bossController.GetCooldownMultiplier() : 1f;
+                stateTimer = enemyData.attackCooldown * cooldownMult;
                 break;
 
             case EnemyState.Stunned:
@@ -509,24 +574,14 @@ public class EnemyController : MonoBehaviour, IDamageable
 
     public void TakeDamage(float damage, AttackData attackData = null)
     {
-        // Apply knockback resistance
-        float actualDamage = damage * (1f - enemyData.knockbackResistance);
-
-        // The HealthSystem handles the actual damage
-        // This interface method allows for custom handling
-        if (attackData != null && rb != null)
+        // Deal full damage through HealthSystem (knockback resistance does NOT reduce damage)
+        if (healthSystem != null)
         {
-            // Apply knockback from attack
-            float knockbackMultiplier = 1f - enemyData.knockbackResistance;
-            Vector2 knockDir = attackData.knockbackDirection.normalized;
-
-            // Determine knockback direction based on attacker position
-            // Default: knockback away from attacker
-            if (attackData.knockbackForce > 0f && knockbackMultiplier > 0f)
-            {
-                rb.AddForce(knockDir * attackData.knockbackForce * knockbackMultiplier, ForceMode2D.Impulse);
-            }
+            healthSystem.TakeDamage(damage);
         }
+
+        // Note: knockback is handled by AttackHitbox.ApplyKnockback.
+        // EnemyController does not apply additional knockback to avoid doubling.
     }
 
     #endregion
@@ -538,7 +593,32 @@ public class EnemyController : MonoBehaviour, IDamageable
         if (enemyData.experienceValue <= 0)
             return;
 
-        // Find player's LevelSystem
+        // Spawn XP orbs if prefab assigned
+        if (experienceOrbPrefab != null)
+        {
+            int count = Mathf.Clamp(orbCount, 1, enemyData.experienceValue);
+            int xpPerOrb = enemyData.experienceValue / count;
+            int remainder = enemyData.experienceValue - (xpPerOrb * count);
+
+            for (int i = 0; i < count; i++)
+            {
+                GameObject orbObj = Instantiate(experienceOrbPrefab, transform.position, Quaternion.identity);
+                ExperienceOrb orb = orbObj.GetComponent<ExperienceOrb>();
+                if (orb != null)
+                {
+                    int thisOrbXP = xpPerOrb + (i == 0 ? remainder : 0);
+                    orb.Initialize(thisOrbXP);
+                }
+            }
+
+            if (debugLogging)
+            {
+                Debug.Log($"[EnemyController] Spawned {count} XP orbs totaling {enemyData.experienceValue} XP");
+            }
+            return;
+        }
+
+        // Fallback: direct XP award
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         if (player != null)
         {
@@ -582,7 +662,7 @@ public class EnemyController : MonoBehaviour, IDamageable
         if (clip == null || audioSource == null)
             return;
 
-        audioSource.PlayOneShot(clip);
+        SFXManager.PlayOneShot(audioSource, clip);
     }
 
     /// <summary>

@@ -93,6 +93,15 @@ namespace ProjectName.UI
             // Re-scan for canvases that may exist in the new scene
             AutoFindCanvases();
 
+            // Ensure the GameFrameHUD exists on the HUD canvas for gameplay scenes
+            EnsureGameFrameHUD();
+
+            // Ensure a death screen exists for gameplay scenes
+            EnsureDeathScreen();
+
+            // Ensure the stat menu exists for gameplay scenes
+            EnsureStatMenu();
+
             // Re-setup pause input after scene change in case PlayerInput was recreated
             SetupPauseInput();
         }
@@ -140,7 +149,7 @@ namespace ProjectName.UI
                     Debug.LogWarning("[UIManager] No pause/cancel action found in PlayerInput. Using keyboard fallback.");
                 }
             }
-            else
+            else if (!IsMainMenuScene())
             {
                 Debug.LogWarning("[UIManager] PlayerInput not found. Using keyboard fallback for pause.");
             }
@@ -372,11 +381,73 @@ namespace ProjectName.UI
                 }
             }
 
-            // Warn if critical canvases are still missing
-            if (pauseCanvas == null)
+            // Only warn about missing pause canvas in gameplay scenes, not the main menu
+            if (pauseCanvas == null && !IsMainMenuScene())
             {
                 Debug.LogWarning("[UIManager] PauseMenu_Canvas not found. Pause menu will not work. Run Tools > ProjectName > UI Setup Wizard to create it.");
             }
+        }
+
+        private void EnsureGameFrameHUD()
+        {
+            if (IsMainMenuScene() || hudCanvas == null)
+                return;
+
+            // Remove old TopLeftGroup from previous wizard setup if it exists
+            Transform safeArea = hudCanvas.transform.Find("SafeArea");
+            Transform searchRoot = safeArea != null ? safeArea : hudCanvas.transform;
+            var oldTopLeft = searchRoot.Find("TopLeftGroup");
+            if (oldTopLeft != null)
+                Destroy(oldTopLeft.gameObject);
+
+            var frameHUD = hudCanvas.GetComponent<GameFrameHUD>();
+            if (frameHUD != null)
+            {
+                // Check if the bottom bar content already exists
+                var bottomBar = searchRoot.Find("BottomBar");
+                if (bottomBar != null)
+                    return;
+            }
+
+            GameFrameHUD.CreateRuntimeUI(hudCanvas);
+        }
+
+        private void EnsureDeathScreen()
+        {
+            if (IsMainMenuScene())
+                return;
+
+            // Check if a DeathScreen already exists (including inactive objects)
+            var existing = FindObjectsByType<DeathScreen>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            if (existing.Length > 0)
+                return;
+
+            DeathScreen.CreateRuntimeUI();
+            Debug.Log("[UIManager] Created runtime DeathScreen");
+        }
+
+        private void EnsureStatMenu()
+        {
+            if (IsMainMenuScene())
+                return;
+
+            var existing = FindObjectsByType<StatMenuController>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            if (existing.Length > 0)
+                return;
+
+            StatMenuController.CreateRuntimeUI();
+            Debug.Log("[UIManager] Created runtime StatMenu");
+        }
+
+        private bool IsMainMenuScene()
+        {
+            var state = GameManager.Instance?.CurrentState;
+            if (state == GameManager.GameState.MainMenu)
+                return true;
+
+            // Also check by scene name as fallback (GameManager may not be ready yet)
+            string sceneName = SceneManager.GetActiveScene().name.ToLower();
+            return sceneName.Contains("menu") || sceneName.Contains("title");
         }
 
         private void InitializeAudio()

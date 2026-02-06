@@ -57,14 +57,6 @@ public class AttackHitbox : MonoBehaviour
         if (hitTargets.Contains(other))
             return;
 
-        // Check if target is on valid layer
-        if (attackData.targetLayers != 0)
-        {
-            int otherLayer = 1 << other.gameObject.layer;
-            if ((attackData.targetLayers & otherLayer) == 0)
-                return;
-        }
-
         // Skip triggers
         if (other.isTrigger)
             return;
@@ -72,6 +64,20 @@ public class AttackHitbox : MonoBehaviour
         // Skip self
         if (owner != null && other.transform.IsChildOf(owner.transform))
             return;
+
+        // Check if target is on valid layer.
+        // Fallback: always allow targets with IDamageable (enemies) regardless of layer config.
+        if (attackData.targetLayers != 0)
+        {
+            int otherLayer = 1 << other.gameObject.layer;
+            if ((attackData.targetLayers & otherLayer) == 0)
+            {
+                IDamageable fallbackDamageable = other.GetComponent<IDamageable>()
+                    ?? other.GetComponentInParent<IDamageable>();
+                if (fallbackDamageable == null)
+                    return;
+            }
+        }
 
         // Mark as hit
         hitTargets.Add(other);
@@ -91,26 +97,31 @@ public class AttackHitbox : MonoBehaviour
 
     private void ApplyDamage(Collider2D target)
     {
-        // Try to find HealthSystem on target
-        HealthSystem healthSystem = target.GetComponent<HealthSystem>();
-        if (healthSystem == null)
-        {
-            healthSystem = target.GetComponentInParent<HealthSystem>();
-        }
+        // Calculate final damage with stat multiplier
+        float damageMultiplier = owner != null ? owner.GetDamageMultiplier() : 1f;
+        float finalDamage = attackData.baseDamage * damageMultiplier;
 
-        if (healthSystem != null)
-        {
-            healthSystem.TakeDamage(attackData.baseDamage);
-        }
-
-        // Also try IDamageable interface for flexibility
+        // Prefer IDamageable for custom damage handling (knockback resistance, etc.)
         IDamageable damageable = target.GetComponent<IDamageable>();
         if (damageable == null)
         {
             damageable = target.GetComponentInParent<IDamageable>();
         }
 
-        damageable?.TakeDamage(attackData.baseDamage, attackData);
+        if (damageable != null)
+        {
+            damageable.TakeDamage(finalDamage, attackData);
+            return;
+        }
+
+        // Fallback to direct HealthSystem if no IDamageable
+        HealthSystem healthSystem = target.GetComponent<HealthSystem>();
+        if (healthSystem == null)
+        {
+            healthSystem = target.GetComponentInParent<HealthSystem>();
+        }
+
+        healthSystem?.TakeDamage(finalDamage);
     }
 
     private void ApplyKnockback(Collider2D target)

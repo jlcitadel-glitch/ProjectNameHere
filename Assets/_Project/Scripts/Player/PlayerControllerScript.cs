@@ -27,6 +27,16 @@ public class PlayerControllerScript : MonoBehaviour
     [SerializeField] Transform groundCheck;
     [SerializeField] float groundCheckRadius = 0.2f;
 
+    [Header("Audio")]
+    [SerializeField] private AudioClip jumpSound;
+    [SerializeField] private AudioClip landSound;
+    [SerializeField] private AudioClip footstepSound;
+    [SerializeField] private float footstepInterval = 0.3f;
+
+    // Audio
+    private AudioSource audioSource;
+    private float footstepTimer;
+
     // Animator
     private Animator animator;
     private static readonly int AnimSpeed = Animator.StringToHash("Speed");
@@ -38,10 +48,15 @@ public class PlayerControllerScript : MonoBehaviour
     private float jumpBufferCounter;
     private bool wasGrounded;
 
+    // Health
+    private HealthSystem healthSystem;
+    private bool IsDead => healthSystem != null && healthSystem.IsDead;
+
     // Ability components
     private DoubleJumpAbility doubleJumpAbility;
     private DashAbility dashAbility;
     private CombatController combatController;
+    private StatSystem statSystem;
 
     // Double-tap dash detection
     private float lastTapTime;
@@ -69,17 +84,58 @@ public class PlayerControllerScript : MonoBehaviour
             }
         }
 
+        // Get health system for death checks
+        healthSystem = GetComponent<HealthSystem>();
+        if (healthSystem != null)
+        {
+            healthSystem.OnDeath += HandlePlayerDeath;
+        }
+
         // Get ability components if they exist
         doubleJumpAbility = GetComponent<DoubleJumpAbility>();
         dashAbility = GetComponent<DashAbility>();
         combatController = GetComponent<CombatController>();
+        statSystem = GetComponent<StatSystem>();
 
         // Get animator
         animator = GetComponent<Animator>();
+
+        // Get or create AudioSource for player sounds
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+            audioSource.playOnAwake = false;
+            audioSource.spatialBlend = 0f;
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (healthSystem != null)
+        {
+            healthSystem.OnDeath -= HandlePlayerDeath;
+        }
+    }
+
+    private void HandlePlayerDeath()
+    {
+        horizontal = 0f;
+        jumpBufferCounter = 0f;
+        coyoteTimeCounter = 0f;
+
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector2.zero;
+            rb.gravityScale = 0f;
+        }
     }
 
     private void Update()
     {
+        if (IsDead)
+            return;
+
         // Refresh ability references each frame (only checks if null)
         if (doubleJumpAbility == null)
             doubleJumpAbility = GetComponent<DoubleJumpAbility>();
@@ -87,6 +143,8 @@ public class PlayerControllerScript : MonoBehaviour
             dashAbility = GetComponent<DashAbility>();
         if (combatController == null)
             combatController = GetComponent<CombatController>();
+        if (statSystem == null)
+            statSystem = GetComponent<StatSystem>();
 
         bool grounded = IsGrounded();
 
@@ -100,6 +158,9 @@ public class PlayerControllerScript : MonoBehaviour
             {
                 doubleJumpAbility.ResetJumps();
             }
+
+            // Play landing sound
+            SFXManager.PlayOneShot(audioSource, landSound);
         }
 
         // Only decrement coyote time when in the air
@@ -109,6 +170,21 @@ public class PlayerControllerScript : MonoBehaviour
         }
 
         wasGrounded = grounded;
+
+        // Footstep sounds while moving on ground
+        if (grounded && Mathf.Abs(horizontal) > 0.1f)
+        {
+            footstepTimer -= Time.deltaTime;
+            if (footstepTimer <= 0f)
+            {
+                SFXManager.PlayOneShot(audioSource, footstepSound);
+                footstepTimer = footstepInterval;
+            }
+        }
+        else
+        {
+            footstepTimer = 0f;
+        }
 
         jumpBufferCounter = Mathf.Max(0, jumpBufferCounter - Time.deltaTime);
 
@@ -143,6 +219,9 @@ public class PlayerControllerScript : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (IsDead)
+            return;
+
         // Skip normal movement if dashing
         if (dashAbility != null && dashAbility.IsDashing())
         {
@@ -157,9 +236,10 @@ public class PlayerControllerScript : MonoBehaviour
             return;
         }
 
-        // Horizontal movement (apply combat movement multiplier if attacking)
+        // Horizontal movement (apply combat and stat multipliers)
         float moveMultiplier = combatController != null ? combatController.GetMovementMultiplier() : 1f;
-        rb.linearVelocity = new Vector2(horizontal * speed * moveMultiplier, rb.linearVelocity.y);
+        float agiMultiplier = statSystem != null ? statSystem.SpeedMultiplier : 1f;
+        rb.linearVelocity = new Vector2(horizontal * speed * moveMultiplier * agiMultiplier, rb.linearVelocity.y);
 
         // Flip character based on movement direction
         if (horizontal > 0)
@@ -196,6 +276,8 @@ public class PlayerControllerScript : MonoBehaviour
     #region PLAYER_CONTROLS
     public void Move(InputAction.CallbackContext context)
     {
+        if (IsDead) { horizontal = 0f; return; }
+
         // Forward move input to combat controller for direction detection
         combatController?.OnMove(context);
 
@@ -234,6 +316,8 @@ public class PlayerControllerScript : MonoBehaviour
 
     public void Jump(InputAction.CallbackContext context)
     {
+        if (IsDead) return;
+
         // Jump button pressed
         if (context.performed)
         {
@@ -252,6 +336,8 @@ public class PlayerControllerScript : MonoBehaviour
 
     public void Dash(InputAction.CallbackContext context)
     {
+        if (IsDead) return;
+
         if (context.performed && dashAbility != null)
         {
             // Dash in the direction the player is facing
@@ -269,11 +355,13 @@ public class PlayerControllerScript : MonoBehaviour
 
     public void Attack(InputAction.CallbackContext context)
     {
+        if (IsDead) return;
         combatController?.OnAttack(context);
     }
 
     public void SwitchWeapon(InputAction.CallbackContext context)
     {
+        if (IsDead) return;
         combatController?.OnWeaponSwitch(context);
     }
     #endregion
@@ -281,6 +369,7 @@ public class PlayerControllerScript : MonoBehaviour
     private void PerformJump()
     {
         rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpingPower);
+        SFXManager.PlayOneShot(audioSource, jumpSound);
     }
 
     private bool IsGrounded()
@@ -330,6 +419,7 @@ public class PlayerControllerScript : MonoBehaviour
         doubleJumpAbility = GetComponent<DoubleJumpAbility>();
         dashAbility = GetComponent<DashAbility>();
         combatController = GetComponent<CombatController>();
+        statSystem = GetComponent<StatSystem>();
     }
 
     // Expose grounded state for other systems

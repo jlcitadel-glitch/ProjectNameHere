@@ -16,6 +16,7 @@ public class SaveSlotInfo
     public string checkpointName;
     public int currentWave;
     public int maxWaveReached;
+    public string startingClass;
 
     public SaveSlotInfo()
     {
@@ -28,6 +29,7 @@ public class SaveSlotInfo
         checkpointName = "";
         currentWave = 0;
         maxWaveReached = 0;
+        startingClass = "";
     }
 
     /// <summary>

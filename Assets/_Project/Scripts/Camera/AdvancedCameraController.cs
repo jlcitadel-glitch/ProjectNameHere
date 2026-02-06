@@ -40,6 +40,11 @@ public class AdvancedCameraController : MonoBehaviour
     private Rigidbody2D targetRb;
     private Camera cam;
 
+    // Shake state
+    private float shakeTimer;
+    private float shakeDuration;
+    private float shakeMagnitude;
+
     void Awake()
     {
         cam = GetComponent<Camera>();
@@ -62,6 +67,18 @@ public class AdvancedCameraController : MonoBehaviour
             desiredPosition = lockedRoomCenter;
             desiredPosition.z = offset.z;
             transform.position = Vector3.Lerp(transform.position, desiredPosition, roomLockSpeed * Time.deltaTime);
+
+            // Apply shake even during room lock
+            if (shakeTimer > 0f)
+            {
+                shakeTimer -= Time.deltaTime;
+                float decay = Mathf.Clamp01(shakeTimer / shakeDuration);
+                transform.position += new Vector3(
+                    Random.Range(-1f, 1f) * shakeMagnitude * decay,
+                    Random.Range(-1f, 1f) * shakeMagnitude * decay,
+                    0f
+                );
+            }
             return;
         }
 
@@ -76,6 +93,19 @@ public class AdvancedCameraController : MonoBehaviour
 
         // Smooth movement
         transform.position = Vector3.SmoothDamp(transform.position, desiredPosition, ref currentVelocity, smoothSpeed);
+
+        // Apply shake offset
+        if (shakeTimer > 0f)
+        {
+            shakeTimer -= Time.deltaTime;
+            float decay = Mathf.Clamp01(shakeTimer / shakeDuration);
+            Vector3 shakeOffset = new Vector3(
+                Random.Range(-1f, 1f) * shakeMagnitude * decay,
+                Random.Range(-1f, 1f) * shakeMagnitude * decay,
+                0f
+            );
+            transform.position += shakeOffset;
+        }
     }
 
     Vector3 CalculateDesiredPosition()
@@ -150,6 +180,23 @@ public class AdvancedCameraController : MonoBehaviour
     public void UnlockCamera()
     {
         isLockedToRoom = false;
+    }
+
+    /// <summary>
+    /// Triggers a camera shake effect.
+    /// </summary>
+    public void Shake(float magnitude, float duration)
+    {
+        if (duration <= 0f || magnitude <= 0f)
+            return;
+
+        // Only override if new shake is stronger than remaining shake
+        if (shakeTimer > 0f && shakeMagnitude * (shakeTimer / shakeDuration) > magnitude)
+            return;
+
+        shakeMagnitude = magnitude;
+        shakeDuration = duration;
+        shakeTimer = duration;
     }
 
     // Update bounds dynamically (for progression-based area reveals)

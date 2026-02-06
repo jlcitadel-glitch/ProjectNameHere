@@ -25,6 +25,7 @@ namespace ProjectName.UI
 
         private bool isOpen;
         private PlayerInput playerInput;
+        private int lastToggleFrame = -1;
 
         // Fallback input actions created at runtime
         private InputAction fallbackOpenAction;
@@ -87,9 +88,11 @@ namespace ProjectName.UI
                 openSkillTreeAction.action.Enable();
                 openSkillTreeAction.action.performed += OnOpenSkillTreeInput;
             }
-            else if (fallbackOpenAction != null)
+
+            // Always enable fallback K key — ensures input works even if
+            // the InputActionReference is assigned but its action map is disabled
+            if (fallbackOpenAction != null)
             {
-                // Use fallback K key if no action reference assigned
                 fallbackOpenAction.Enable();
                 fallbackOpenAction.performed += OnOpenSkillTreeInput;
             }
@@ -142,6 +145,9 @@ namespace ProjectName.UI
 
         private void OnOpenSkillTreeInput(InputAction.CallbackContext context)
         {
+            // Prevent double-toggle when both InputActionReference and fallback fire on the same frame
+            if (Time.frameCount == lastToggleFrame) return;
+            lastToggleFrame = Time.frameCount;
             Toggle();
         }
 

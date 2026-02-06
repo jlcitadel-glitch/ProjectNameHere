@@ -121,6 +121,17 @@ public class WaveManager : MonoBehaviour
     {
         currentState = WaveState.Spawning;
 
+        // Check if this is a boss wave
+        bool isBossWave = waveConfig.bossWaveInterval > 0
+            && waveConfig.bossPrefab != null
+            && currentWave % waveConfig.bossWaveInterval == 0;
+
+        if (isBossWave)
+        {
+            SpawnBoss();
+            return;
+        }
+
         totalEnemiesThisWave = WaveScaler.GetEnemyCount(
             currentWave,
             waveConfig.baseEnemyCount,
@@ -133,6 +144,22 @@ public class WaveManager : MonoBehaviour
 
         OnWaveStarted?.Invoke(currentWave);
         activeCoroutine = StartCoroutine(SpawnCoroutine());
+    }
+
+    private void SpawnBoss()
+    {
+        totalEnemiesThisWave = 1;
+        spawnedThisWave = 1;
+
+        if (debugLogging)
+            Debug.Log($"[WaveManager] Wave {currentWave} — BOSS WAVE!");
+
+        OnWaveStarted?.Invoke(currentWave);
+
+        spawnManager.SpawnEnemy(waveConfig.bossPrefab, currentWave, waveConfig);
+
+        currentState = WaveState.Active;
+        activeCoroutine = null;
     }
 
     private IEnumerator SpawnCoroutine()

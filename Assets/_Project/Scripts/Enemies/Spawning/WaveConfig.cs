@@ -42,4 +42,10 @@ public class WaveConfig : ScriptableObject
     public float restDuration = 3f;
     [Tooltip("Seconds between individual enemy spawns within a wave")]
     public float spawnInterval = 0.5f;
+
+    [Header("Boss Waves")]
+    [Tooltip("Spawn a boss every N waves. 0 = no boss waves.")]
+    public int bossWaveInterval = 5;
+    [Tooltip("Boss prefab to spawn on boss waves")]
+    public GameObject bossPrefab;
 }

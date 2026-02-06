@@ -146,6 +146,7 @@ namespace ProjectName.UI
             var tmp = text.AddComponent<TextMeshProUGUI>();
             tmp.fontSize = 20;
             tmp.alignment = TextAlignmentOptions.MidlineLeft;
+            FontManager.EnsureFont(tmp);
             var textRect = text.GetComponent<RectTransform>();
             textRect.anchorMin = Vector2.zero;
             textRect.anchorMax = Vector2.one;
@@ -412,7 +413,7 @@ namespace ProjectName.UI
 
             if (clip != null && audioSource != null)
             {
-                audioSource.PlayOneShot(clip);
+                audioSource.PlayOneShot(clip, SFXManager.GetVolume());
             }
         }
 

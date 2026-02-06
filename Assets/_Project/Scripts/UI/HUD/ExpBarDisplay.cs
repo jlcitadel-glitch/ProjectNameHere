@@ -79,6 +79,9 @@ namespace ProjectName.UI
             }
         }
 
+        private static readonly Color DefaultExpBg = new Color(1f, 1f, 1f, 0.15f);
+        private static readonly Color DefaultExpFill = new Color(0f, 0.808f, 0.820f, 1f);
+
         private void InitializeStyle()
         {
             if (styleGuide == null)
@@ -86,22 +89,21 @@ namespace ProjectName.UI
                 styleGuide = UIManager.Instance?.StyleGuide;
             }
 
-            if (styleGuide != null)
+            // XP bar: faded white background, blue fill
+            if (backgroundImage != null)
             {
-                if (backgroundImage != null)
-                {
-                    backgroundImage.color = styleGuide.charcoal;
-                }
+                backgroundImage.color = DefaultExpBg;
+            }
 
-                if (fillImage != null)
-                {
-                    fillImage.color = styleGuide.agedGold;
-                }
+            if (fillImage != null)
+            {
+                fillImage.color = DefaultExpFill;
+            }
 
-                if (expLabel != null)
-                {
-                    expLabel.color = styleGuide.boneWhite;
-                }
+            if (expLabel != null)
+            {
+                expLabel.color = styleGuide != null ? styleGuide.boneWhite
+                    : new Color(0.961f, 0.961f, 0.863f, 1f);
             }
         }
 
@@ -178,7 +180,7 @@ namespace ProjectName.UI
             if (fillImage == null)
                 yield break;
 
-            Color originalColor = styleGuide != null ? styleGuide.agedGold : fillImage.color;
+            Color originalColor = DefaultExpFill;
             float elapsed = 0f;
 
             while (elapsed < flashDuration)
@@ -199,6 +201,22 @@ namespace ProjectName.UI
 
             fillImage.color = originalColor;
             flashCoroutine = null;
+        }
+
+        /// <summary>
+        /// Wires internal references for runtime-created bars.
+        /// </summary>
+        public void SetReferences(Image fill, Image background, TMP_Text label)
+        {
+            fillImage = fill;
+            backgroundImage = background;
+            expLabel = label;
+
+            if (fillImage != null)
+            {
+                fillImage.type = Image.Type.Filled;
+                fillImage.fillMethod = Image.FillMethod.Horizontal;
+            }
         }
 
         /// <summary>

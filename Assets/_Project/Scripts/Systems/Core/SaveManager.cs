@@ -11,7 +11,7 @@ public class SaveManager : MonoBehaviour
 
     private const string SAVE_KEY_PREFIX = "GameSave_Slot_";
     private const string LEGACY_SAVE_KEY = "GameSave";
-    private const int CURRENT_SAVE_VERSION = 2;
+    private const int CURRENT_SAVE_VERSION = 3;
     private const int MAX_SAVE_SLOTS = 5;
 
     [Header("Settings")]
@@ -57,6 +57,13 @@ public class SaveManager : MonoBehaviour
         // Skill System
         public SkillSaveData skillData;
 
+        // Character creation
+        public string startingClass = "";
+        public int appearanceIndex;
+
+        // Stat system
+        public StatSaveData statData;
+
         // Metadata
         public string saveTimestamp;
 
@@ -76,8 +83,8 @@ public class SaveManager : MonoBehaviour
     {
         if (Instance != null && Instance != this)
         {
-            Debug.LogWarning($"[SaveManager] Duplicate instance on {gameObject.name}, destroying.");
-            Destroy(gameObject);
+            // Expected on scene reload — DontDestroyOnLoad instance already exists
+            Destroy(this);
             return;
         }
         Instance = this;
@@ -150,18 +157,32 @@ public class SaveManager : MonoBehaviour
             //     data.maxHealth = health.MaxHealth;
             // }
 
-            // Skill hotbar
-            var skillController = player.GetComponent<PlayerSkillController>();
-            if (skillController != null && data.skillData != null)
-            {
-                data.skillData.hotbarSkillIds = skillController.SaveHotbar();
-            }
         }
 
         // Skill system save
         if (SkillManager.Instance != null)
         {
             data.skillData = SkillManager.Instance.CreateSaveData();
+        }
+
+        // Skill hotbar (must be after skillData is created)
+        if (player != null && data.skillData != null)
+        {
+            var skillController = player.GetComponent<PlayerSkillController>();
+            if (skillController != null)
+            {
+                data.skillData.hotbarSkillIds = skillController.SaveHotbar();
+            }
+        }
+
+        // Stat system save
+        if (player != null)
+        {
+            var statSystem = player.GetComponent<StatSystem>();
+            if (statSystem != null)
+            {
+                data.statData = statSystem.CreateSaveData();
+            }
         }
 
         // Calculate play time
@@ -233,6 +254,7 @@ public class SaveManager : MonoBehaviour
             info.checkpointName = data.lastCheckpointId ?? "";
             info.currentWave = data.currentWave;
             info.maxWaveReached = data.maxWaveReached;
+            info.startingClass = data.startingClass ?? "";
         }
         catch (Exception e)
         {
@@ -261,6 +283,14 @@ public class SaveManager : MonoBehaviour
     /// </summary>
     public void CreateNewGame(int slotIndex)
     {
+        CreateNewGame(slotIndex, "Hero", "", 0);
+    }
+
+    /// <summary>
+    /// Creates a new game in the specified slot with character creation data.
+    /// </summary>
+    public void CreateNewGame(int slotIndex, string characterName, string startingClass, int appearanceIndex)
+    {
         SetActiveSlot(slotIndex);
 
         // Clear any existing save data for this slot
@@ -270,11 +300,14 @@ public class SaveManager : MonoBehaviour
             PlayerPrefs.DeleteKey(key);
         }
 
-        // Reset current save data
-        currentSaveData = null;
+        // Initialize save data with character creation info
+        currentSaveData = new SaveData();
+        currentSaveData.characterName = !string.IsNullOrEmpty(characterName) ? characterName : "Hero";
+        currentSaveData.startingClass = startingClass ?? "";
+        currentSaveData.appearanceIndex = appearanceIndex;
         sessionStartTime = Time.realtimeSinceStartup;
 
-        Debug.Log($"[SaveManager] New game created in slot {slotIndex}");
+        Debug.Log($"[SaveManager] New game created in slot {slotIndex} - {currentSaveData.characterName} ({currentSaveData.startingClass})");
     }
 
     /// <summary>
@@ -441,6 +474,13 @@ public class SaveManager : MonoBehaviour
             skillController.LoadHotbar(currentSaveData.skillData.hotbarSkillIds);
         }
 
+        // Apply stat system data
+        var statSystem = player.GetComponent<StatSystem>();
+        if (statSystem != null && currentSaveData.statData != null)
+        {
+            statSystem.ApplySaveData(currentSaveData.statData);
+        }
+
         Debug.Log("[SaveManager] Save data applied to game world.");
     }
 
@@ -475,6 +515,14 @@ public class SaveManager : MonoBehaviour
                 learnedSkills = new List<LearnedSkillData>(),
                 hotbarSkillIds = new string[0]
             };
+        }
+
+        // Migration from version 2 to 3: Add character creation and stat system data
+        if (data.saveVersion < 3)
+        {
+            data.startingClass = "";
+            data.appearanceIndex = 0;
+            data.statData = null;
         }
 
         data.saveVersion = CURRENT_SAVE_VERSION;

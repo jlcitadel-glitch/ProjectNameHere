@@ -94,6 +94,10 @@ public class EnemyAttackHitbox : MonoBehaviour
 
     private void ApplyDamage(Collider2D target)
     {
+        // Apply boss phase damage multiplier
+        float damageMultiplier = owner != null ? owner.GetDamageMultiplier() : 1f;
+        float finalDamage = attackData.baseDamage * damageMultiplier;
+
         // Try to find HealthSystem on target
         HealthSystem healthSystem = target.GetComponent<HealthSystem>();
         if (healthSystem == null)
@@ -103,7 +107,7 @@ public class EnemyAttackHitbox : MonoBehaviour
 
         if (healthSystem != null)
         {
-            healthSystem.TakeDamage(attackData.baseDamage);
+            healthSystem.TakeDamage(finalDamage);
         }
     }
 

@@ -25,7 +25,13 @@ public class GroundPatrolMovement : BaseEnemyMovement
 
     public override void Patrol()
     {
-        if (!isPatrolling || !IsGrounded)
+        if (!isPatrolling)
+            return;
+
+        // Only skip patrol if clearly airborne (significant downward velocity).
+        // This prevents patrol from being blocked by imperfect ground detection
+        // while still stopping mid-air movement when actually falling.
+        if (!IsGrounded && rb != null && rb.linearVelocity.y < -1f)
             return;
 
         // Handle idle waiting at turn points
@@ -57,7 +63,8 @@ public class GroundPatrolMovement : BaseEnemyMovement
             Flip();
             isWaiting = true;
             idleTimer = idleWaitTime;
-            Stop();
+            // Zero velocity without resetting isPatrolling — patrol resumes after the wait
+            rb.linearVelocity = new Vector2(0f, rb.linearVelocity.y);
             return;
         }
 
@@ -68,41 +75,44 @@ public class GroundPatrolMovement : BaseEnemyMovement
 
     public override void ChaseTarget(Transform target)
     {
-        if (target == null || !IsGrounded)
+        if (target == null)
             return;
 
         // Determine direction to target
         float directionToTarget = Mathf.Sign(target.position.x - transform.position.x);
 
-        // Check if we can move toward target
-        bool blocked = false;
-
-        // Check wall in direction of target
-        if (turnAtWalls && IsAtWall)
+        // Only check wall/ledge obstacles when grounded (detection requires ground layer)
+        if (IsGrounded)
         {
-            float facingDir = Mathf.Sign(transform.localScale.x);
-            if (Mathf.Sign(directionToTarget) == facingDir)
+            bool blocked = false;
+
+            // Check wall in direction of target
+            if (turnAtWalls && IsAtWall)
             {
-                blocked = true;
+                float facingDir = Mathf.Sign(transform.localScale.x);
+                if (Mathf.Sign(directionToTarget) == facingDir)
+                {
+                    blocked = true;
+                }
             }
-        }
 
-        // Check ledge in direction of target
-        if (turnAtLedges && IsAtLedge)
-        {
-            float facingDir = Mathf.Sign(transform.localScale.x);
-            if (Mathf.Sign(directionToTarget) == facingDir)
+            // Check ledge in direction of target
+            if (turnAtLedges && IsAtLedge)
             {
-                blocked = true;
+                float facingDir = Mathf.Sign(transform.localScale.x);
+                if (Mathf.Sign(directionToTarget) == facingDir)
+                {
+                    blocked = true;
+                }
             }
-        }
 
-        if (blocked)
-        {
-            // Stop at edge, but still face target
-            Stop();
-            controller?.FaceTarget();
-            return;
+            if (blocked)
+            {
+                // Stop at edge, but still face target
+                Stop();
+                controller?.FaceTarget();
+                return;
+            }
         }
 
         // Chase the target

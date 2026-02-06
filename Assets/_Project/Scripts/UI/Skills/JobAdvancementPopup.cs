@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using TMPro;
 
@@ -58,8 +59,8 @@ namespace ProjectName.UI
 
         private void Update()
         {
-            // Handle escape key
-            if (isVisible && Input.GetKeyDown(KeyCode.Escape))
+            // Handle escape/cancel via Input System
+            if (isVisible && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
             {
                 Hide();
             }

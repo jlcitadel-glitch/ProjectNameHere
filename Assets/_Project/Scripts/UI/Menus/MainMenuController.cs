@@ -18,7 +18,9 @@ namespace ProjectName.UI
             SaveSelection,
             Options,
             ConfirmOverwrite,
-            ConfirmDelete
+            ConfirmDelete,
+            CharacterCreation,
+            Credits
         }
 
         [Header("Panels")]
@@ -54,6 +56,14 @@ namespace ProjectName.UI
         [Header("Options Navigation")]
         [SerializeField] private Button optionsBackButton;
 
+        [Header("Credits")]
+        [SerializeField] private Button creditsButton;
+        [SerializeField] private GameObject creditsPanel;
+        [SerializeField] private CreditsController creditsController;
+
+        [Header("Character Creation")]
+        [SerializeField] private CharacterCreationController characterCreation;
+
         [Header("Audio")]
         [SerializeField] private AudioClip menuMusic;
 
@@ -84,9 +94,18 @@ namespace ProjectName.UI
             EnsureGameManager();
             EnsureUIManager();
             EnsureSaveManager();
+            EnsureSceneLoader();
             EnsureDisplaySettings();
             EnsureMusicManager();
+            EnsureCharacterCreation();
             AddButtonSounds();
+
+            // Wire credits back button
+            if (creditsController != null)
+            {
+                creditsController.OnBackPressed += () => ShowMainMenu();
+            }
+
             ShowMainMenu();
 
             // Set game state to MainMenu
@@ -134,6 +153,15 @@ namespace ProjectName.UI
             go.AddComponent<UIManager>();
         }
 
+        private void EnsureSceneLoader()
+        {
+            if (SceneLoader.Instance != null)
+                return;
+
+            var go = new GameObject("SceneLoader");
+            go.AddComponent<SceneLoader>();
+        }
+
         private void EnsureDisplaySettings()
         {
             if (DisplaySettings.Instance != null)
@@ -160,6 +188,21 @@ namespace ProjectName.UI
 
             var go = new GameObject("SaveManager");
             go.AddComponent<SaveManager>();
+        }
+
+        private void EnsureCharacterCreation()
+        {
+            if (characterCreation != null)
+                return;
+
+            var safeArea = transform.Find("SafeArea");
+            Transform uiParent = safeArea != null ? safeArea : transform;
+
+            characterCreation = CharacterCreationController.CreateRuntimeUI(uiParent);
+
+            // Wire events (Awake already ran, but characterCreation was null then)
+            characterCreation.OnCreationComplete += OnCharacterCreationComplete;
+            characterCreation.OnCreationCancelled += OnCharacterCreationCancelled;
         }
 
         private void AutoFindReferences()
@@ -305,6 +348,19 @@ namespace ProjectName.UI
                 if (found != null) optionsBackButton = found.GetComponent<Button>();
             }
 
+            // Find character creation controller
+            if (characterCreation == null)
+            {
+                var found = parent.Find("CharacterCreationPanel");
+                if (found != null)
+                    characterCreation = found.GetComponent<CharacterCreationController>();
+            }
+            // Also check as direct child component if panel name differs
+            if (characterCreation == null)
+            {
+                characterCreation = GetComponentInChildren<CharacterCreationController>(true);
+            }
+
             // Set default first selected
             if (mainMenuFirstSelected == null && startGameButton != null)
                 mainMenuFirstSelected = startGameButton.gameObject;
@@ -341,6 +397,16 @@ namespace ProjectName.UI
 
             if (optionsBackButton != null)
                 optionsBackButton.onClick.AddListener(OnOptionsBackClicked);
+
+            if (creditsButton != null)
+                creditsButton.onClick.AddListener(OnCreditsClicked);
+
+            // Character creation events
+            if (characterCreation != null)
+            {
+                characterCreation.OnCreationComplete += OnCharacterCreationComplete;
+                characterCreation.OnCreationCancelled += OnCharacterCreationCancelled;
+            }
         }
 
         private void SetupSaveSlots()
@@ -380,6 +446,8 @@ namespace ProjectName.UI
             if (optionsPanel != null) optionsPanel.SetActive(false);
             if (overwriteConfirmPanel != null) overwriteConfirmPanel.SetActive(false);
             if (deleteConfirmPanel != null) deleteConfirmPanel.SetActive(false);
+            if (creditsPanel != null) creditsPanel.SetActive(false);
+            if (characterCreation != null) characterCreation.gameObject.SetActive(false);
 
             SetSelected(mainMenuFirstSelected);
         }
@@ -397,6 +465,8 @@ namespace ProjectName.UI
             if (optionsPanel != null) optionsPanel.SetActive(false);
             if (overwriteConfirmPanel != null) overwriteConfirmPanel.SetActive(false);
             if (deleteConfirmPanel != null) deleteConfirmPanel.SetActive(false);
+            if (creditsPanel != null) creditsPanel.SetActive(false);
+            if (characterCreation != null) characterCreation.gameObject.SetActive(false);
 
             RefreshSaveSlots();
 
@@ -415,8 +485,26 @@ namespace ProjectName.UI
             if (optionsPanel != null) optionsPanel.SetActive(true);
             if (overwriteConfirmPanel != null) overwriteConfirmPanel.SetActive(false);
             if (deleteConfirmPanel != null) deleteConfirmPanel.SetActive(false);
+            if (creditsPanel != null) creditsPanel.SetActive(false);
+            if (characterCreation != null) characterCreation.gameObject.SetActive(false);
 
             SetSelected(optionsFirstSelected ?? optionsBackButton?.gameObject);
+        }
+
+        /// <summary>
+        /// Shows the credits panel.
+        /// </summary>
+        public void ShowCredits()
+        {
+            SetState(MainMenuState.Credits);
+
+            if (mainMenuPanel != null) mainMenuPanel.SetActive(false);
+            if (saveSelectionPanel != null) saveSelectionPanel.SetActive(false);
+            if (optionsPanel != null) optionsPanel.SetActive(false);
+            if (overwriteConfirmPanel != null) overwriteConfirmPanel.SetActive(false);
+            if (deleteConfirmPanel != null) deleteConfirmPanel.SetActive(false);
+            if (characterCreation != null) characterCreation.gameObject.SetActive(false);
+            if (creditsPanel != null) creditsPanel.SetActive(true);
         }
 
         /// <summary>
@@ -553,12 +641,55 @@ namespace ProjectName.UI
             UIManager.Instance?.PlayCancelSound();
         }
 
+        private void OnCreditsClicked()
+        {
+            ShowCredits();
+            UIManager.Instance?.PlaySelectSound();
+        }
+
+        private void OnCharacterCreationComplete()
+        {
+            if (characterCreation == null)
+                return;
+
+            int slotIndex = characterCreation.TargetSlotIndex;
+            string charName = characterCreation.CharacterName;
+            string startingClass = characterCreation.SelectedClass != null
+                ? characterCreation.SelectedClass.jobName
+                : "";
+            int appearanceIdx = characterCreation.SelectedAppearanceIndex;
+
+            if (SaveManager.Instance != null)
+            {
+                SaveManager.Instance.CreateNewGame(slotIndex, charName, startingClass, appearanceIdx);
+            }
+
+            StartNewGame(slotIndex);
+        }
+
+        private void OnCharacterCreationCancelled()
+        {
+            ShowSaveSelection();
+        }
+
         private void OnSaveSlotClicked(SaveSlotUI slot)
         {
             if (slot.IsEmpty)
             {
-                // Empty slot: start new game directly
-                StartNewGame(slot.SlotIndex);
+                // Empty slot: show character creation
+                if (characterCreation != null)
+                {
+                    SetState(MainMenuState.CharacterCreation);
+                    if (mainMenuPanel != null) mainMenuPanel.SetActive(false);
+                    if (saveSelectionPanel != null) saveSelectionPanel.SetActive(false);
+                    characterCreation.gameObject.SetActive(true);
+                    characterCreation.ShowNameEntry(slot.SlotIndex);
+                }
+                else
+                {
+                    // Fallback: start new game directly
+                    StartNewGame(slot.SlotIndex);
+                }
             }
             else if (isSelectingSlotForNewGame)
             {
@@ -584,7 +715,23 @@ namespace ProjectName.UI
         {
             if (pendingSlotIndex >= 0)
             {
-                StartNewGame(pendingSlotIndex);
+                isSelectingSlotForNewGame = false;
+
+                if (characterCreation != null)
+                {
+                    // Route through character creation before starting new game
+                    SetState(MainMenuState.CharacterCreation);
+                    if (mainMenuPanel != null) mainMenuPanel.SetActive(false);
+                    if (saveSelectionPanel != null) saveSelectionPanel.SetActive(false);
+                    if (overwriteConfirmPanel != null) overwriteConfirmPanel.SetActive(false);
+                    characterCreation.gameObject.SetActive(true);
+                    characterCreation.ShowNameEntry(pendingSlotIndex);
+                }
+                else
+                {
+                    // Fallback if character creation not available
+                    StartNewGame(pendingSlotIndex);
+                }
             }
             UIManager.Instance?.PlayConfirmSound();
         }
@@ -694,6 +841,12 @@ namespace ProjectName.UI
                 case MainMenuState.ConfirmDelete:
                     OnCancelDeleteClicked();
                     break;
+                case MainMenuState.Credits:
+                    ShowMainMenu();
+                    break;
+                case MainMenuState.CharacterCreation:
+                    ShowSaveSelection();
+                    break;
             }
         }
 
@@ -712,6 +865,13 @@ namespace ProjectName.UI
             if (confirmDeleteButton != null) confirmDeleteButton.onClick.RemoveListener(OnConfirmDeleteClicked);
             if (cancelDeleteButton != null) cancelDeleteButton.onClick.RemoveListener(OnCancelDeleteClicked);
             if (optionsBackButton != null) optionsBackButton.onClick.RemoveListener(OnOptionsBackClicked);
+            if (creditsButton != null) creditsButton.onClick.RemoveListener(OnCreditsClicked);
+
+            if (characterCreation != null)
+            {
+                characterCreation.OnCreationComplete -= OnCharacterCreationComplete;
+                characterCreation.OnCreationCancelled -= OnCharacterCreationCancelled;
+            }
 
             // Cleanup save slot listeners
             if (saveSlots != null)

@@ -73,9 +73,25 @@ public class LevelSystem : MonoBehaviour
         ApplyStatScaling(refill: false);
         OnXPChanged?.Invoke(currentXP, XPForNextLevel);
 
+        // Wire level-up to skill manager SP awards
+        OnLevelUp += HandleLevelUpForSkills;
+
         if (debugLogging)
         {
             LogMilestones();
+        }
+    }
+
+    private void OnDestroy()
+    {
+        OnLevelUp -= HandleLevelUpForSkills;
+    }
+
+    private void HandleLevelUpForSkills(int newLevel)
+    {
+        if (SkillManager.Instance != null)
+        {
+            SkillManager.Instance.SetPlayerLevel(newLevel);
         }
     }
 

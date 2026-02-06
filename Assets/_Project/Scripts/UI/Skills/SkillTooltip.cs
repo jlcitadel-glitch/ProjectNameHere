@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using TMPro;
 
@@ -322,11 +323,15 @@ namespace ProjectName.UI
         {
             if (tooltipRect == null || canvasRect == null) return;
 
-            // Get mouse position
+            // Get mouse position via Input System
+            Vector2 screenPos = Mouse.current != null
+                ? Mouse.current.position.ReadValue()
+                : Vector2.zero;
+
             Vector2 mousePos;
             RectTransformUtility.ScreenPointToLocalPointInRectangle(
                 canvasRect,
-                Input.mousePosition,
+                screenPos,
                 parentCanvas.worldCamera,
                 out mousePos
             );

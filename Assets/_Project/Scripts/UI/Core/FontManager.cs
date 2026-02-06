@@ -166,13 +166,18 @@ namespace ProjectName.UI
         }
 
         /// <summary>
-        /// Applies the default font to a TMP_Text component if it has no font assigned.
+        /// Applies the project's default font to a TMP_Text component if it doesn't
+        /// already have it. Replaces the TMP default font (e.g. LiberationSans) with
+        /// the project font (Cinzel).
         /// </summary>
         public static void EnsureFont(TMP_Text text)
         {
-            if (text != null && text.font == null)
+            if (text == null) return;
+
+            var defaultFont = GetDefaultFont();
+            if (defaultFont != null && text.font != defaultFont)
             {
-                text.font = GetDefaultFont();
+                text.font = defaultFont;
             }
         }
 

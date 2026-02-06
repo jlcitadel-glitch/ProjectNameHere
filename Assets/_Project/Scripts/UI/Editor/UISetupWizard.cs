@@ -415,36 +415,21 @@ namespace ProjectName.UI.Editor
                     frameHUD = canvas.gameObject.AddComponent<GameFrameHUD>();
             }
 
-            // === TOP LEFT GROUP (HP/MP/Level) ===
-            var topLeftGroup = CreateTopLeftGroup(parent);
-
-            // === BOTTOM BAR (XP/Skills) ===
+            // === BOTTOM BAR (Level/HP/MP/XP/Skills — all in one bar) ===
             var bottomBar = CreateBottomBar(parent);
-
-            // === TOP RIGHT GROUP (Reserved) ===
-            var topRightGroup = new GameObject("TopRightGroup");
-            topRightGroup.transform.SetParent(parent, false);
-            var topRightRect = topRightGroup.AddComponent<RectTransform>();
-            topRightRect.anchorMin = new Vector2(1, 1);
-            topRightRect.anchorMax = new Vector2(1, 1);
-            topRightRect.pivot = new Vector2(1, 1);
-            topRightRect.anchoredPosition = new Vector2(-20, -20);
-            topRightRect.sizeDelta = new Vector2(200, 100);
 
             // Wire up GameFrameHUD references
             if (frameHUD != null)
             {
                 var so = new SerializedObject(frameHUD);
-                so.FindProperty("topLeftGroup").objectReferenceValue = topLeftGroup.GetComponent<RectTransform>();
-                so.FindProperty("topRightGroup").objectReferenceValue = topRightRect;
                 so.FindProperty("bottomBar").objectReferenceValue = bottomBar.GetComponent<RectTransform>();
 
-                // Wire child components
-                var levelDisplay = topLeftGroup.GetComponentInChildren<LevelDisplay>();
+                // Wire child components from bottom bar
+                var levelDisplay = bottomBar.GetComponentInChildren<LevelDisplay>();
                 if (levelDisplay != null)
                     so.FindProperty("levelDisplay").objectReferenceValue = levelDisplay;
 
-                var resourceBars = topLeftGroup.GetComponentsInChildren<ResourceBarDisplay>();
+                var resourceBars = bottomBar.GetComponentsInChildren<ResourceBarDisplay>();
                 foreach (var bar in resourceBars)
                 {
                     if (bar.gameObject.name.Contains("Health"))
@@ -457,153 +442,12 @@ namespace ProjectName.UI.Editor
                 if (expBar != null)
                     so.FindProperty("expBar").objectReferenceValue = expBar;
 
-                var topLeftFrame = topLeftGroup.transform.Find("FrameBorder")?.GetComponent<Image>();
-                if (topLeftFrame != null)
-                    so.FindProperty("topLeftFrame").objectReferenceValue = topLeftFrame;
-
                 var bottomFrame = bottomBar.transform.Find("FrameBorder")?.GetComponent<Image>();
                 if (bottomFrame != null)
                     so.FindProperty("bottomFrame").objectReferenceValue = bottomFrame;
 
                 so.ApplyModifiedProperties();
             }
-        }
-
-        private static GameObject CreateTopLeftGroup(Transform parent)
-        {
-            var topLeftGroup = new GameObject("TopLeftGroup");
-            topLeftGroup.transform.SetParent(parent, false);
-
-            var groupRect = topLeftGroup.AddComponent<RectTransform>();
-            groupRect.anchorMin = new Vector2(0, 1);
-            groupRect.anchorMax = new Vector2(0, 1);
-            groupRect.pivot = new Vector2(0, 1);
-            groupRect.anchoredPosition = new Vector2(20, -20);
-            groupRect.sizeDelta = new Vector2(220, 120);
-
-            // Frame border background
-            var frameBorder = new GameObject("FrameBorder");
-            frameBorder.transform.SetParent(topLeftGroup.transform, false);
-            var frameImage = frameBorder.AddComponent<Image>();
-            frameImage.color = new Color(0.812f, 0.710f, 0.231f, 0.3f); // Aged gold, semi-transparent
-            var frameRect = frameBorder.GetComponent<RectTransform>();
-            frameRect.anchorMin = Vector2.zero;
-            frameRect.anchorMax = Vector2.one;
-            frameRect.offsetMin = Vector2.zero;
-            frameRect.offsetMax = Vector2.zero;
-
-            // Level display
-            var levelGO = new GameObject("LevelDisplay");
-            levelGO.transform.SetParent(topLeftGroup.transform, false);
-            var levelDisplay = levelGO.AddComponent<LevelDisplay>();
-            var levelRect = levelGO.AddComponent<RectTransform>();
-            levelRect.anchorMin = new Vector2(0, 1);
-            levelRect.anchorMax = new Vector2(1, 1);
-            levelRect.pivot = new Vector2(0.5f, 1);
-            levelRect.anchoredPosition = new Vector2(0, -8);
-            levelRect.sizeDelta = new Vector2(0, 30);
-
-            var levelText = new GameObject("LevelText");
-            levelText.transform.SetParent(levelGO.transform, false);
-            var levelTMP = levelText.AddComponent<TextMeshProUGUI>();
-            levelTMP.text = "Lv. 1";
-            levelTMP.fontSize = 22;
-            levelTMP.alignment = TextAlignmentOptions.Left;
-            levelTMP.color = new Color(0.812f, 0.710f, 0.231f, 1f); // Aged gold
-            var levelTextRect = levelText.GetComponent<RectTransform>();
-            levelTextRect.anchorMin = Vector2.zero;
-            levelTextRect.anchorMax = Vector2.one;
-            levelTextRect.offsetMin = new Vector2(12, 0);
-            levelTextRect.offsetMax = Vector2.zero;
-
-            // Wire level text to LevelDisplay
-            var levelSO = new SerializedObject(levelDisplay);
-            levelSO.FindProperty("levelText").objectReferenceValue = levelTMP;
-            levelSO.ApplyModifiedProperties();
-
-            // Health bar
-            var healthBarGroup = CreateResourceBar(topLeftGroup.transform, "HealthBarGroup", -40, ResourceBarDisplay.ResourceType.Health);
-
-            // Mana bar
-            var manaBarGroup = CreateResourceBar(topLeftGroup.transform, "ManaBarGroup", -75, ResourceBarDisplay.ResourceType.Mana);
-
-            return topLeftGroup;
-        }
-
-        private static GameObject CreateResourceBar(Transform parent, string name, float yOffset, ResourceBarDisplay.ResourceType resourceType)
-        {
-            var barGroup = new GameObject(name);
-            barGroup.transform.SetParent(parent, false);
-            var resourceBar = barGroup.AddComponent<ResourceBarDisplay>();
-
-            var groupRect = barGroup.GetComponent<RectTransform>();
-            groupRect.anchorMin = new Vector2(0, 1);
-            groupRect.anchorMax = new Vector2(1, 1);
-            groupRect.pivot = new Vector2(0.5f, 1);
-            groupRect.anchoredPosition = new Vector2(0, yOffset);
-            groupRect.sizeDelta = new Vector2(-24, 28);
-
-            // Background
-            var bg = new GameObject("Background");
-            bg.transform.SetParent(barGroup.transform, false);
-            var bgImage = bg.AddComponent<Image>();
-            bgImage.color = new Color(0.102f, 0.102f, 0.102f, 0.9f); // Charcoal
-            var bgRect = bg.GetComponent<RectTransform>();
-            bgRect.anchorMin = Vector2.zero;
-            bgRect.anchorMax = Vector2.one;
-            bgRect.offsetMin = Vector2.zero;
-            bgRect.offsetMax = Vector2.zero;
-
-            // Fill
-            var fill = new GameObject("Fill");
-            fill.transform.SetParent(barGroup.transform, false);
-            var fillImage = fill.AddComponent<Image>();
-            fillImage.type = Image.Type.Filled;
-            fillImage.fillMethod = Image.FillMethod.Horizontal;
-            fillImage.fillAmount = 1f;
-
-            if (resourceType == ResourceBarDisplay.ResourceType.Health)
-            {
-                fillImage.color = new Color(0.545f, 0f, 0f, 1f); // Deep crimson
-            }
-            else if (resourceType == ResourceBarDisplay.ResourceType.Mana)
-            {
-                fillImage.color = new Color(0f, 0.808f, 0.820f, 1f); // Spectral cyan
-            }
-            else
-            {
-                fillImage.color = new Color(0.812f, 0.710f, 0.231f, 1f); // Aged gold
-            }
-
-            var fillRect = fill.GetComponent<RectTransform>();
-            fillRect.anchorMin = Vector2.zero;
-            fillRect.anchorMax = Vector2.one;
-            fillRect.offsetMin = new Vector2(2, 2);
-            fillRect.offsetMax = new Vector2(-2, -2);
-
-            // Label
-            var label = new GameObject("Label");
-            label.transform.SetParent(barGroup.transform, false);
-            var labelTMP = label.AddComponent<TextMeshProUGUI>();
-            labelTMP.text = "100/100";
-            labelTMP.fontSize = 14;
-            labelTMP.alignment = TextAlignmentOptions.Right;
-            labelTMP.color = new Color(0.961f, 0.961f, 0.863f, 1f); // Bone white
-            var labelRect = label.GetComponent<RectTransform>();
-            labelRect.anchorMin = Vector2.zero;
-            labelRect.anchorMax = Vector2.one;
-            labelRect.offsetMin = new Vector2(4, 0);
-            labelRect.offsetMax = new Vector2(-8, 0);
-
-            // Wire ResourceBarDisplay
-            var barSO = new SerializedObject(resourceBar);
-            barSO.FindProperty("fillImage").objectReferenceValue = fillImage;
-            barSO.FindProperty("backgroundImage").objectReferenceValue = bgImage;
-            barSO.FindProperty("valueLabel").objectReferenceValue = labelTMP;
-            barSO.FindProperty("resourceType").enumValueIndex = (int)resourceType;
-            barSO.ApplyModifiedProperties();
-
-            return barGroup;
         }
 
         private static GameObject CreateBottomBar(Transform parent)

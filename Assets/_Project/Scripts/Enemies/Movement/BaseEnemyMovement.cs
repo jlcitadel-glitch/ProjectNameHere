@@ -22,6 +22,7 @@ public abstract class BaseEnemyMovement : MonoBehaviour
 
     protected Rigidbody2D rb;
     protected EnemyController controller;
+    protected BossController bossController;
     protected EnemyData enemyData;
 
     protected bool isPatrolling;
@@ -35,6 +36,39 @@ public abstract class BaseEnemyMovement : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         controller = GetComponent<EnemyController>();
+        bossController = GetComponent<BossController>();
+
+        // Ensure dynamic body type for physics-based movement
+        if (rb != null && rb.bodyType != RigidbodyType2D.Dynamic)
+        {
+            Debug.LogWarning($"[BaseEnemyMovement] {gameObject.name}: Rigidbody2D was {rb.bodyType}, set to Dynamic.");
+            rb.bodyType = RigidbodyType2D.Dynamic;
+        }
+
+        // Ensure gravity is enabled for ground enemies only
+        // Flying enemies intentionally have gravityScale = 0
+        if (rb != null && rb.gravityScale <= 0f && !(this is FlyingMovement))
+        {
+            Debug.LogWarning($"[BaseEnemyMovement] {gameObject.name}: gravityScale was {rb.gravityScale}, set to 1.");
+            rb.gravityScale = 1f;
+        }
+
+        // Clear position-freeze constraints that prevent falling or horizontal movement
+        if (rb != null)
+        {
+            var freezePos = RigidbodyConstraints2D.FreezePositionX | RigidbodyConstraints2D.FreezePositionY;
+            if ((rb.constraints & freezePos) != 0)
+            {
+                Debug.LogWarning($"[BaseEnemyMovement] {gameObject.name}: Rigidbody2D had frozen position axes, cleared for movement.");
+                rb.constraints &= ~freezePos;
+            }
+        }
+
+        // Auto-detect ground layer if not assigned
+        if (groundLayer == 0)
+        {
+            TryAutoDetectGroundLayer();
+        }
 
         // Auto-create check points if not assigned
         SetupCheckPoints();
@@ -46,11 +80,34 @@ public abstract class BaseEnemyMovement : MonoBehaviour
         {
             enemyData = controller.Data;
         }
+
+        // If groundLayer wasn't set on the component (e.g. added via AddComponent at runtime),
+        // read it from the EnemyData ScriptableObject — which IS configured in the Inspector.
+        if (groundLayer == 0 && enemyData != null && enemyData.groundLayer != 0)
+        {
+            groundLayer = enemyData.groundLayer;
+        }
     }
 
     protected virtual void FixedUpdate()
     {
         UpdateDetection();
+    }
+
+    private void TryAutoDetectGroundLayer()
+    {
+        string[] layerNames = { "Ground", "ground", "Terrain", "Platform", "Environment" };
+        foreach (string layerName in layerNames)
+        {
+            int index = LayerMask.NameToLayer(layerName);
+            if (index >= 0)
+            {
+                groundLayer = 1 << index;
+                Debug.LogWarning($"[BaseEnemyMovement] {gameObject.name}: groundLayer was empty, auto-detected '{layerName}' layer.");
+                return;
+            }
+        }
+        Debug.LogError($"[BaseEnemyMovement] {gameObject.name}: groundLayer not assigned and no common ground layer found! Enemy movement will use velocity-based fallback.");
     }
 
     private void SetupCheckPoints()
@@ -110,46 +167,72 @@ public abstract class BaseEnemyMovement : MonoBehaviour
             return;
         }
 
-        Collider2D[] colliders = Physics2D.OverlapCircleAll(
-            groundCheck.position,
-            groundCheckRadius,
-            groundLayer
-        );
-
-        IsGrounded = false;
-        foreach (Collider2D col in colliders)
+        // Primary: layer-based overlap check
+        if (groundLayer != 0)
         {
-            if (col.gameObject != gameObject && !col.isTrigger)
+            Collider2D[] colliders = Physics2D.OverlapCircleAll(
+                groundCheck.position,
+                groundCheckRadius,
+                groundLayer
+            );
+
+            foreach (Collider2D col in colliders)
             {
-                IsGrounded = true;
-                break;
+                if (col.gameObject != gameObject && !col.isTrigger)
+                {
+                    IsGrounded = true;
+                    return;
+                }
             }
         }
+
+        // Secondary: layerless overlap — catches ground on any layer when
+        // groundLayer is misconfigured or auto-detection failed
+        {
+            Collider2D[] colliders = Physics2D.OverlapCircleAll(
+                groundCheck.position,
+                groundCheckRadius
+            );
+
+            foreach (Collider2D col in colliders)
+            {
+                if (col.gameObject != gameObject && !col.isTrigger)
+                {
+                    IsGrounded = true;
+                    return;
+                }
+            }
+        }
+
+        // Last resort: velocity-based detection — if barely moving vertically
+        // with gravity active, the enemy is resting on a surface
+        IsGrounded = rb != null && rb.gravityScale > 0f && Mathf.Abs(rb.linearVelocity.y) < 0.5f;
     }
 
     protected virtual void CheckWall()
     {
-        if (wallCheck == null)
+        if (wallCheck == null || groundLayer == 0)
         {
+            // Can't detect walls without a ground layer — skip to avoid
+            // false positives (e.g. detecting other enemies as walls).
+            // Physics collisions still prevent walking through walls.
             IsAtWall = false;
             return;
         }
 
         Vector2 direction = new Vector2(transform.localScale.x, 0f).normalized;
-        RaycastHit2D hit = Physics2D.Raycast(
-            wallCheck.position,
-            direction,
-            wallCheckDistance,
-            groundLayer
-        );
 
-        IsAtWall = hit.collider != null && !hit.collider.isTrigger;
+        RaycastHit2D hit = Physics2D.Raycast(wallCheck.position, direction, wallCheckDistance, groundLayer);
+
+        IsAtWall = hit.collider != null && hit.collider.gameObject != gameObject && !hit.collider.isTrigger;
     }
 
     protected virtual void CheckLedge()
     {
-        if (ledgeCheck == null)
+        if (ledgeCheck == null || groundLayer == 0)
         {
+            // Can't detect ledges without a ground layer — assume no ledge
+            // to avoid false positives that block all movement
             IsAtLedge = false;
             return;
         }
@@ -206,7 +289,8 @@ public abstract class BaseEnemyMovement : MonoBehaviour
     /// </summary>
     protected virtual void Move(float direction, float speed)
     {
-        rb.linearVelocity = new Vector2(direction * speed, rb.linearVelocity.y);
+        float bossSpeedMult = bossController != null ? bossController.GetSpeedMultiplier() : 1f;
+        rb.linearVelocity = new Vector2(direction * speed * bossSpeedMult, rb.linearVelocity.y);
         controller?.FaceDirection(direction);
     }
 

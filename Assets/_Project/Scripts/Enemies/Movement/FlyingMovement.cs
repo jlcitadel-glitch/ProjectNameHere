@@ -100,8 +100,11 @@ public class FlyingMovement : BaseEnemyMovement
         // Calculate direction
         Vector2 direction = (targetPos - (Vector2)transform.position).normalized;
 
+        // Apply boss phase speed multiplier
+        float bossSpeedMult = bossController != null ? bossController.GetSpeedMultiplier() : 1f;
+
         // Smooth damp toward target velocity
-        Vector2 targetVelocity = direction * speed;
+        Vector2 targetVelocity = direction * speed * bossSpeedMult;
         Vector2 newVelocity = Vector2.SmoothDamp(
             rb.linearVelocity,
             targetVelocity,

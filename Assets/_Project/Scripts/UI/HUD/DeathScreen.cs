@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using TMPro;
 
@@ -301,10 +302,15 @@ namespace ProjectName.UI
         {
             OnQuitRequested?.Invoke();
 
+            Time.timeScale = 1f;
+
             if (GameManager.Instance != null)
             {
                 GameManager.Instance.ReturnToMainMenu();
             }
+
+            // Load main menu scene (index 0 in build settings)
+            SceneManager.LoadScene(0);
         }
 
         private void PlaySound(AudioClip clip)
@@ -332,5 +338,152 @@ namespace ProjectName.UI
                 healthSystem.OnDeath += HandleDeath;
             }
         }
+
+        #region Runtime UI Builder
+
+        // Gothic color palette
+        private static readonly Color PanelBg = new Color(0.08f, 0.02f, 0.02f, 0.9f);
+        private static readonly Color BloodRed = new Color(0.8f, 0.1f, 0.1f, 1f);
+        private static readonly Color FadedText = new Color(0.8f, 0.75f, 0.65f, 1f);
+        private static readonly Color BtnNormal = new Color(0.15f, 0.05f, 0.05f, 1f);
+        private static readonly Color BtnHover = new Color(0.25f, 0.08f, 0.08f, 1f);
+
+        /// <summary>
+        /// Builds the entire death screen UI at runtime. No scene setup required.
+        /// Call from UIManager.EnsureDeathScreen() or similar.
+        /// </summary>
+        public static DeathScreen CreateRuntimeUI()
+        {
+            // --- Canvas ---
+            var canvasGo = new GameObject("DeathScreen_Canvas");
+            var canvas = canvasGo.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 500;
+
+            var scaler = canvasGo.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920, 1080);
+            scaler.matchWidthOrHeight = 0.5f;
+
+            canvasGo.AddComponent<GraphicRaycaster>();
+
+            var cg = canvasGo.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            cg.interactable = false;
+            cg.blocksRaycasts = false;
+
+            // --- Background overlay (full screen dark red) ---
+            var bgGo = MakeUIObject("Background", canvasGo.transform);
+            Stretch(bgGo);
+            var bgImg = bgGo.AddComponent<Image>();
+            bgImg.color = PanelBg;
+
+            // --- Centered content column ---
+            var contentGo = MakeUIObject("Content", canvasGo.transform);
+            var contentRect = contentGo.GetComponent<RectTransform>();
+            contentRect.anchorMin = new Vector2(0.5f, 0.5f);
+            contentRect.anchorMax = new Vector2(0.5f, 0.5f);
+            contentRect.pivot = new Vector2(0.5f, 0.5f);
+            contentRect.sizeDelta = new Vector2(600f, 400f);
+
+            var vlg = contentGo.AddComponent<VerticalLayoutGroup>();
+            vlg.childAlignment = TextAnchor.MiddleCenter;
+            vlg.spacing = 20f;
+            vlg.childControlWidth = true;
+            vlg.childControlHeight = false;
+            vlg.childForceExpandWidth = true;
+            vlg.childForceExpandHeight = false;
+
+            // --- Title ---
+            var titleGo = MakeUIObject("Title", contentGo.transform);
+            var titleTmp = titleGo.AddComponent<TextMeshProUGUI>();
+            titleTmp.text = "YOU DIED";
+            titleTmp.fontSize = 72;
+            titleTmp.color = BloodRed;
+            titleTmp.alignment = TextAlignmentOptions.Center;
+            titleTmp.fontStyle = FontStyles.Bold;
+            var titleLayout = titleGo.AddComponent<LayoutElement>();
+            titleLayout.preferredHeight = 100f;
+
+            // --- Subtitle ---
+            var subGo = MakeUIObject("Subtitle", contentGo.transform);
+            var subTmp = subGo.AddComponent<TextMeshProUGUI>();
+            subTmp.text = "The darkness claims another soul...";
+            subTmp.fontSize = 24;
+            subTmp.color = FadedText;
+            subTmp.alignment = TextAlignmentOptions.Center;
+            subTmp.fontStyle = FontStyles.Italic;
+            var subLayout = subGo.AddComponent<LayoutElement>();
+            subLayout.preferredHeight = 40f;
+
+            // --- Spacer ---
+            var spacerGo = MakeUIObject("Spacer", contentGo.transform);
+            var spacerLayout = spacerGo.AddComponent<LayoutElement>();
+            spacerLayout.preferredHeight = 50f;
+
+            // --- Buttons ---
+            var respawnBtn = MakeButton("Respawn", contentGo.transform);
+            var quitBtn = MakeButton("Quit to Menu", contentGo.transform);
+
+            // --- DeathScreen component (can access private fields from within the class) ---
+            var ds = canvasGo.AddComponent<DeathScreen>();
+            ds.canvasGroup = cg;
+            ds.titleText = titleTmp;
+            ds.subtitleText = subTmp;
+            ds.respawnButton = respawnBtn;
+            ds.quitButton = quitBtn;
+            ds.backgroundOverlay = bgImg;
+
+            return ds;
+        }
+
+        private static GameObject MakeUIObject(string name, Transform parent)
+        {
+            var go = new GameObject(name, typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            return go;
+        }
+
+        private static void Stretch(GameObject go)
+        {
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.sizeDelta = Vector2.zero;
+            rt.anchoredPosition = Vector2.zero;
+        }
+
+        private static Button MakeButton(string label, Transform parent)
+        {
+            var btnGo = MakeUIObject(label.Replace(" ", "") + "Button", parent);
+            var btnLayout = btnGo.AddComponent<LayoutElement>();
+            btnLayout.preferredHeight = 50f;
+            btnLayout.preferredWidth = 300f;
+
+            var btnImg = btnGo.AddComponent<Image>();
+            btnImg.color = BtnNormal;
+
+            var btn = btnGo.AddComponent<Button>();
+            var colors = btn.colors;
+            colors.normalColor = BtnNormal;
+            colors.highlightedColor = BtnHover;
+            colors.pressedColor = BloodRed;
+            colors.selectedColor = BtnHover;
+            btn.colors = colors;
+
+            // Button text
+            var textGo = MakeUIObject("Text", btnGo.transform);
+            Stretch(textGo);
+            var tmp = textGo.AddComponent<TextMeshProUGUI>();
+            tmp.text = label;
+            tmp.fontSize = 28;
+            tmp.color = FadedText;
+            tmp.alignment = TextAlignmentOptions.Center;
+            tmp.fontStyle = FontStyles.Bold;
+
+            return btn;
+        }
+
+        #endregion
     }
 }

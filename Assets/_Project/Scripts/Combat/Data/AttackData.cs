@@ -47,6 +47,12 @@ public class AttackData : ScriptableObject
     public GameObject impactVFXPrefab;
     public string animationTrigger;
 
+    [Header("Audio")]
+    [Tooltip("Sound played when attack starts")]
+    public AudioClip attackSound;
+    [Tooltip("Sound played when attack hits a target")]
+    public AudioClip hitSound;
+
     [Header("Aerial")]
     public bool canUseInAir = true;
     [Tooltip("Bounce upward when hitting enemy with down attack")]

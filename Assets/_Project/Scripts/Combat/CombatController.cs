@@ -46,6 +46,8 @@ public class CombatController : MonoBehaviour
     private Rigidbody2D rb;
     private ManaSystem manaSystem;
     private PlayerControllerScript playerController;
+    private StatSystem statSystem;
+    private AudioSource audioSource;
 
     // Active hitbox reference
     private GameObject activeHitbox;
@@ -67,6 +69,16 @@ public class CombatController : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         manaSystem = GetComponent<ManaSystem>();
         playerController = GetComponent<PlayerControllerScript>();
+        statSystem = GetComponent<StatSystem>();
+
+        // Ensure AudioSource for combat sounds
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+            audioSource.playOnAwake = false;
+            audioSource.spatialBlend = 0f;
+        }
 
         // Auto-find animator if not assigned
         if (animator == null)
@@ -181,6 +193,13 @@ public class CombatController : MonoBehaviour
         stateTimer = currentAttack.activeDuration;
 
         SpawnHitbox();
+
+        // Play attack sound
+        if (currentAttack.attackSound != null)
+        {
+            SFXManager.PlayOneShot(audioSource, currentAttack.attackSound);
+        }
+
         OnAttackStarted?.Invoke(currentAttack);
     }
 
@@ -651,9 +670,23 @@ public class CombatController : MonoBehaviour
     /// <summary>
     /// Called when an attack hits a target.
     /// </summary>
+    /// <summary>
+    /// Returns the damage multiplier from stats.
+    /// </summary>
+    public float GetDamageMultiplier()
+    {
+        return statSystem != null ? statSystem.MeleeDamageMultiplier : 1f;
+    }
+
     public void ReportHit(AttackData attack, Collider2D target)
     {
         OnAttackHit?.Invoke(attack);
+
+        // Play hit sound
+        if (attack.hitSound != null)
+        {
+            SFXManager.PlayOneShot(audioSource, attack.hitSound);
+        }
 
         // Handle pogo bounce for down attacks
         if (attack.pogoOnDownHit && attack.direction == AttackDirection.Down)

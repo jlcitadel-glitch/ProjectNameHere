@@ -293,6 +293,40 @@ namespace ProjectName.UI
         }
 
         /// <summary>
+        /// Wires internal references for runtime-created bars.
+        /// Call before Start() runs or before SetValue/SetValueImmediate.
+        /// </summary>
+        public void SetReferences(Image fill, Image background, TMP_Text label)
+        {
+            fillImage = fill;
+            backgroundImage = background;
+            valueLabel = label;
+
+            if (fillImage != null)
+            {
+                fillImage.type = Image.Type.Filled;
+                fillImage.fillMethod = Image.FillMethod.Horizontal;
+            }
+        }
+
+        /// <summary>
+        /// Configures the bar for runtime creation, preventing InitializeStyle from overriding colors.
+        /// Must be called before Start() runs.
+        /// </summary>
+        public void ConfigureForRuntime(Color fillColor, Color bgColor)
+        {
+            resourceType = ResourceType.Custom;
+            useGradient = false;
+            customFillColor = fillColor;
+            customBackgroundColor = bgColor;
+
+            if (fillImage != null)
+                fillImage.color = fillColor;
+            if (backgroundImage != null)
+                backgroundImage.color = bgColor;
+        }
+
+        /// <summary>
         /// Sets custom colors for the bar.
         /// </summary>
         public void SetCustomColors(Color fill, Color background)

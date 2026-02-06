@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEditor;
 
 /// <summary>
-/// Editor wizard for quickly creating enemy prefabs and data assets.
+/// Editor wizard for creating and repairing enemy prefabs and data assets.
 /// </summary>
 public class EnemySetupWizard : EditorWindow
 {
@@ -31,6 +31,10 @@ public class EnemySetupWizard : EditorWindow
     // References
     private Sprite enemySprite;
 
+    // Repair
+    private GameObject repairPrefab;
+    private Vector2 scrollPosition;
+
     [MenuItem("Tools/Enemy Setup Wizard")]
     public static void ShowWindow()
     {
@@ -39,8 +43,269 @@ public class EnemySetupWizard : EditorWindow
 
     private void OnGUI()
     {
+        scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
+
         GUILayout.Label("Enemy Setup Wizard", EditorStyles.boldLabel);
         EditorGUILayout.Space();
+
+        // === REPAIR SECTION ===
+        DrawRepairSection();
+
+        EditorGUILayout.Space();
+        DrawSeparator();
+        EditorGUILayout.Space();
+
+        // === CREATE SECTION ===
+        DrawCreateSection();
+
+        EditorGUILayout.EndScrollView();
+    }
+
+    #region Repair
+
+    private void DrawRepairSection()
+    {
+        GUILayout.Label("Repair Existing Prefabs", EditorStyles.boldLabel);
+        EditorGUILayout.HelpBox(
+            "Scans enemy prefabs for missing components and adds them without overwriting existing configuration.",
+            MessageType.Info);
+
+        EditorGUILayout.Space();
+
+        // Single prefab repair
+        repairPrefab = (GameObject)EditorGUILayout.ObjectField(
+            "Prefab to Repair", repairPrefab, typeof(GameObject), false);
+
+        EditorGUILayout.BeginHorizontal();
+
+        GUI.enabled = repairPrefab != null;
+        if (GUILayout.Button("Repair Selected Prefab"))
+        {
+            RepairPrefab(repairPrefab);
+        }
+        GUI.enabled = true;
+
+        if (GUILayout.Button("Repair All Enemy Prefabs"))
+        {
+            RepairAllPrefabs();
+        }
+
+        EditorGUILayout.EndHorizontal();
+    }
+
+    private void RepairAllPrefabs()
+    {
+        string[] guids = AssetDatabase.FindAssets("t:Prefab", new[] { "Assets/_Project/Prefabs/Enemies" });
+
+        if (guids.Length == 0)
+        {
+            Debug.LogWarning("[EnemySetupWizard] No prefabs found in Assets/_Project/Prefabs/Enemies/");
+            return;
+        }
+
+        int repairedCount = 0;
+        foreach (string guid in guids)
+        {
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+
+            if (prefab != null && prefab.GetComponent<EnemyController>() != null)
+            {
+                if (RepairPrefab(prefab))
+                    repairedCount++;
+            }
+        }
+
+        Debug.Log($"[EnemySetupWizard] Repair complete. {repairedCount}/{guids.Length} prefabs were modified.");
+    }
+
+    /// <summary>
+    /// Repairs a single enemy prefab by adding any missing required components.
+    /// Returns true if the prefab was modified.
+    /// </summary>
+    private bool RepairPrefab(GameObject prefab)
+    {
+        if (prefab == null)
+            return false;
+
+        string prefabPath = AssetDatabase.GetAssetPath(prefab);
+        if (string.IsNullOrEmpty(prefabPath))
+        {
+            Debug.LogWarning($"[EnemySetupWizard] {prefab.name}: Not a project asset, cannot repair.");
+            return false;
+        }
+
+        // Load the prefab contents for editing
+        GameObject prefabRoot = PrefabUtility.LoadPrefabContents(prefabPath);
+        bool modified = false;
+
+        EnemyController controller = prefabRoot.GetComponent<EnemyController>();
+        if (controller == null)
+        {
+            Debug.LogWarning($"[EnemySetupWizard] {prefab.name}: No EnemyController found, skipping.");
+            PrefabUtility.UnloadPrefabContents(prefabRoot);
+            return false;
+        }
+
+        // Read the EnemyData to determine what type of enemy this is
+        SerializedObject so = new SerializedObject(controller);
+        EnemyData data = so.FindProperty("enemyData").objectReferenceValue as EnemyData;
+
+        if (data == null)
+        {
+            Debug.LogWarning($"[EnemySetupWizard] {prefab.name}: No EnemyData assigned, skipping.");
+            PrefabUtility.UnloadPrefabContents(prefabRoot);
+            return false;
+        }
+
+        EnemyType type = data.enemyType;
+        string report = $"[EnemySetupWizard] Repairing {prefab.name} (type: {type}):\n";
+        int issueCount = 0;
+
+        // --- HealthSystem ---
+        if (prefabRoot.GetComponent<HealthSystem>() == null)
+        {
+            prefabRoot.AddComponent<HealthSystem>();
+            report += "  + Added HealthSystem\n";
+            modified = true;
+            issueCount++;
+        }
+
+        // --- Rigidbody2D ---
+        Rigidbody2D rb = prefabRoot.GetComponent<Rigidbody2D>();
+        if (rb == null && type != EnemyType.Stationary)
+        {
+            rb = prefabRoot.AddComponent<Rigidbody2D>();
+            rb.freezeRotation = true;
+            if (type == EnemyType.Flying)
+                rb.gravityScale = 0f;
+            report += "  + Added Rigidbody2D\n";
+            modified = true;
+            issueCount++;
+        }
+
+        // --- Collider2D ---
+        if (prefabRoot.GetComponent<Collider2D>() == null)
+        {
+            if (type == EnemyType.Flying)
+            {
+                CircleCollider2D col = prefabRoot.AddComponent<CircleCollider2D>();
+                col.radius = 0.5f;
+            }
+            else
+            {
+                BoxCollider2D col = prefabRoot.AddComponent<BoxCollider2D>();
+                col.size = new Vector2(1f, 1f);
+            }
+            report += "  + Added Collider2D\n";
+            modified = true;
+            issueCount++;
+        }
+
+        // --- Movement component (based on EnemyType) ---
+        BaseEnemyMovement existingMovement = prefabRoot.GetComponent<BaseEnemyMovement>();
+        if (existingMovement == null && type != EnemyType.Stationary)
+        {
+            switch (type)
+            {
+                case EnemyType.GroundPatrol:
+                    prefabRoot.AddComponent<GroundPatrolMovement>();
+                    report += "  + Added GroundPatrolMovement\n";
+                    break;
+                case EnemyType.Flying:
+                    prefabRoot.AddComponent<FlyingMovement>();
+                    report += "  + Added FlyingMovement\n";
+                    break;
+            }
+            modified = true;
+            issueCount++;
+        }
+        else if (existingMovement != null)
+        {
+            // Verify the correct movement type is present
+            bool wrongType = false;
+            if (type == EnemyType.GroundPatrol && !(existingMovement is GroundPatrolMovement))
+                wrongType = true;
+            if (type == EnemyType.Flying && !(existingMovement is FlyingMovement))
+                wrongType = true;
+
+            if (wrongType)
+            {
+                report += $"  ! WARNING: Has {existingMovement.GetType().Name} but EnemyData says {type}. " +
+                           "Remove the wrong component manually and re-run repair.\n";
+                issueCount++;
+            }
+        }
+
+        // --- EnemyCombat ---
+        if (prefabRoot.GetComponent<EnemyCombat>() == null)
+        {
+            prefabRoot.AddComponent<EnemyCombat>();
+            report += "  + Added EnemyCombat\n";
+            modified = true;
+            issueCount++;
+        }
+
+        // --- EnemySensors ---
+        if (prefabRoot.GetComponent<EnemySensors>() == null)
+        {
+            prefabRoot.AddComponent<EnemySensors>();
+            report += "  + Added EnemySensors\n";
+            modified = true;
+            issueCount++;
+        }
+
+        // --- AudioSource ---
+        if (prefabRoot.GetComponent<AudioSource>() == null)
+        {
+            AudioSource audio = prefabRoot.AddComponent<AudioSource>();
+            audio.playOnAwake = false;
+            report += "  + Added AudioSource\n";
+            modified = true;
+            issueCount++;
+        }
+
+        // --- Layer and Tag ---
+        if (!prefabRoot.CompareTag("Enemy"))
+        {
+            prefabRoot.tag = "Enemy";
+            report += "  + Set tag to 'Enemy'\n";
+            modified = true;
+            issueCount++;
+        }
+
+        int enemyLayer = LayerMask.NameToLayer("Enemy");
+        if (enemyLayer != -1 && prefabRoot.layer != enemyLayer)
+        {
+            prefabRoot.layer = enemyLayer;
+            report += $"  + Set layer to 'Enemy' ({enemyLayer})\n";
+            modified = true;
+            issueCount++;
+        }
+
+        // Save or discard
+        if (modified)
+        {
+            PrefabUtility.SaveAsPrefabAsset(prefabRoot, prefabPath);
+            Debug.Log(report);
+        }
+        else
+        {
+            report += "  No issues found.";
+            Debug.Log(report);
+        }
+
+        PrefabUtility.UnloadPrefabContents(prefabRoot);
+        return modified;
+    }
+
+    #endregion
+
+    #region Create
+
+    private void DrawCreateSection()
+    {
+        GUILayout.Label("Create New Enemy", EditorStyles.boldLabel);
 
         // Basic Info
         EditorGUILayout.LabelField("Basic Info", EditorStyles.boldLabel);
@@ -255,6 +520,10 @@ public class EnemySetupWizard : EditorWindow
         Debug.Log($"Created Enemy Prefab: {prefabPath}");
     }
 
+    #endregion
+
+    #region Helpers
+
     private void ConfigureEnemyData(EnemyData data)
     {
         data.enemyName = enemyName;
@@ -308,6 +577,15 @@ public class EnemySetupWizard : EditorWindow
             }
         }
     }
+
+    private void DrawSeparator()
+    {
+        Rect rect = EditorGUILayout.GetControlRect(false, 2f);
+        rect.height = 2f;
+        EditorGUI.DrawRect(rect, new Color(0.5f, 0.5f, 0.5f, 0.5f));
+    }
+
+    #endregion
 
     #region Presets
 

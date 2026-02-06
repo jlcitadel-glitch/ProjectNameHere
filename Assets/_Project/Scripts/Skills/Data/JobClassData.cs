@@ -80,6 +80,14 @@ public class JobClassData : ScriptableObject
     [Tooltip("Defense modifier (1.0 = base)")]
     public float defenseModifier = 1f;
 
+    [Header("Auto-Growth Per Level")]
+    [Tooltip("STR gained per level from class growth")]
+    public int strPerLevel = 1;
+    [Tooltip("INT gained per level from class growth")]
+    public int intPerLevel = 1;
+    [Tooltip("AGI gained per level from class growth")]
+    public int agiPerLevel = 1;
+
     /// <summary>
     /// Checks if a player meets the requirements to advance to this job.
     /// </summary>

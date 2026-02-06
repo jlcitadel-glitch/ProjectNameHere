@@ -17,6 +17,8 @@ public class EnemyData : ScriptableObject
     [Header("Movement")]
     public float moveSpeed = 3f;
     public float chaseSpeed = 5f;
+    [Tooltip("Layer used for ground/wall/ledge detection. If unset, auto-detects or uses layerless fallback.")]
+    public LayerMask groundLayer;
 
     [Header("Contact Damage")]
     [Tooltip("Damage dealt when player touches the enemy. Set to 0 for no contact damage.")]
@@ -51,6 +53,7 @@ public class EnemyData : ScriptableObject
     public float dropChance = 0.5f;
 
     [Header("Audio")]
+    public AudioClip spawnSound;
     public AudioClip idleSound;
     public AudioClip alertSound;
     public AudioClip attackSound;

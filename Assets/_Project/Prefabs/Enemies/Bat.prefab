@@ -19,6 +19,7 @@ GameObject:
   - component: {fileID: 114200000000005}
   - component: {fileID: 82200000000000}
   - component: {fileID: 8221211851059799250}
+  - component: {fileID: 2637870920450868811}
   m_Layer: 13
   m_Name: Bat
   m_TagString: Enemy
@@ -178,6 +179,8 @@ MonoBehaviour:
   enemyData: {fileID: 11400000, guid: ee5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b, type: 2}
   animator: {fileID: 8221211851059799250}
   audioSource: {fileID: 82200000000000}
+  experienceOrbPrefab: {fileID: 0}
+  orbCount: 3
   debugLogging: 0
 --- !u!114 &114200000000002
 MonoBehaviour:
@@ -366,3 +369,30 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &2637870920450868811
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2000000000000000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4ff2818a36a7d1b4b98cb0670ac5d051, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FlyingMovement
+  groundCheck: {fileID: 0}
+  groundCheckRadius: 0.2
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  wallCheck: {fileID: 0}
+  wallCheckDistance: 0.5
+  ledgeCheck: {fileID: 0}
+  ledgeCheckDistance: 0.5
+  hoverHeight: 2
+  hoverAmplitude: 0.5
+  hoverFrequency: 1
+  smoothTime: 0.3
+  patrolRadius: 5
+  usePatrolBounds: 1

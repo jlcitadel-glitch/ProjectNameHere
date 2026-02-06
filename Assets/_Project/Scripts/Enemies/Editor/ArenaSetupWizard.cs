@@ -92,21 +92,28 @@ public class ArenaSetupWizard : EditorWindow
         SurvivalArena arena = arenaGO.AddComponent<SurvivalArena>();
 
         // --- Create spawn points as children ---
+        // Distribute along the ground level (bottom edge of arena) so ground
+        // enemies don't spawn mid-air.  Points are spread across the arena width
+        // with a small inset so they aren't right at the walls.
         Transform[] points = new Transform[spawnPointCount];
+        float groundY = -arenaSize.y * 0.5f + 0.5f; // slightly above bottom edge
+        float inset = arenaSize.x * 0.1f;
+        float usableWidth = arenaSize.x - inset * 2f;
+
         for (int i = 0; i < spawnPointCount; i++)
         {
             GameObject sp = new GameObject($"SpawnPoint_{i + 1}");
             sp.transform.SetParent(arenaGO.transform);
 
-            // Distribute around the perimeter
-            float angle = (360f / spawnPointCount) * i * Mathf.Deg2Rad;
-            float rx = (arenaSize.x * 0.4f) * Mathf.Cos(angle);
-            float ry = (arenaSize.y * 0.4f) * Mathf.Sin(angle);
-            sp.transform.localPosition = new Vector3(rx, ry, 0f);
+            // Even distribution along the ground
+            float t = spawnPointCount > 1
+                ? (float)i / (spawnPointCount - 1)
+                : 0.5f;
+            float px = -usableWidth * 0.5f + usableWidth * t;
+            sp.transform.localPosition = new Vector3(px, groundY, 0f);
 
             points[i] = sp.transform;
 
-            // Add a small gizmo icon for visibility
             Undo.RegisterCreatedObjectUndo(sp, "Create Spawn Point");
         }
 
@@ -133,13 +140,27 @@ public class ArenaSetupWizard : EditorWindow
         soArena.FindProperty("spawnManager").objectReferenceValue = spawnMgr;
         soArena.ApplyModifiedProperties();
 
+        // --- Save as prefab ---
+        string prefabDir = "Assets/_Project/Prefabs/Arena";
+        EnsureDirectoryExists(prefabDir);
+        string prefabPath = $"{prefabDir}/SurvivalArena.prefab";
+
+        // If a prefab already exists at this path, generate a unique name
+        if (AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath) != null)
+        {
+            prefabPath = AssetDatabase.GenerateUniqueAssetPath(prefabPath);
+        }
+
+        PrefabUtility.SaveAsPrefabAssetAndConnect(arenaGO, prefabPath, InteractionMode.UserAction);
+        AssetDatabase.SaveAssets();
+
         // Select the new arena
         Selection.activeGameObject = arenaGO;
         EditorGUIUtility.PingObject(arenaGO);
 
         string configStatus = waveConfig != null ? "WaveConfig assigned" : "WARNING: no WaveConfig assigned — drag one in the Inspector";
 
-        Debug.Log($"[ArenaSetupWizard] Arena created at ({arenaCenter.x}, {arenaCenter.y}) with {spawnPointCount} spawn points. {configStatus}.");
+        Debug.Log($"[ArenaSetupWizard] Arena created at ({arenaCenter.x}, {arenaCenter.y}) with {spawnPointCount} spawn points. Prefab saved to {prefabPath}. {configStatus}.");
     }
 
     private void AutoPopulateEnemyPool()
@@ -166,6 +187,25 @@ public class ArenaSetupWizard : EditorWindow
         AssetDatabase.SaveAssets();
 
         Debug.Log($"[ArenaSetupWizard] Added {entries.Count} enemies to WaveConfig pool.");
+    }
+
+    private void EnsureDirectoryExists(string path)
+    {
+        if (!AssetDatabase.IsValidFolder(path))
+        {
+            string[] folders = path.Split('/');
+            string currentPath = folders[0];
+
+            for (int i = 1; i < folders.Length; i++)
+            {
+                string newPath = currentPath + "/" + folders[i];
+                if (!AssetDatabase.IsValidFolder(newPath))
+                {
+                    AssetDatabase.CreateFolder(currentPath, folders[i]);
+                }
+                currentPath = newPath;
+            }
+        }
     }
 
     private void AddEnemyEntry(System.Collections.Generic.List<WaveConfig.EnemySpawnEntry> list, string path, float weight, int minWave)
