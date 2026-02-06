@@ -40,13 +40,14 @@ public class AttackHitbox : MonoBehaviour
         hitboxCollider.size = attackData.hitboxSize;
 
         // Set layer for collision filtering
-        gameObject.layer = LayerMask.NameToLayer("PlayerAttack");
-
-        // If layer doesn't exist, log warning
-        if (gameObject.layer == -1)
+        int attackLayer = LayerMask.NameToLayer("PlayerAttack");
+        if (attackLayer != -1)
+        {
+            gameObject.layer = attackLayer;
+        }
+        else
         {
             Debug.LogWarning("AttackHitbox: 'PlayerAttack' layer not found. Create it in Project Settings > Tags and Layers.");
-            gameObject.layer = 0; // Default layer
         }
     }
 

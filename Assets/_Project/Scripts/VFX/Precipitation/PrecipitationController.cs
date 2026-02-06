@@ -1,6 +1,41 @@
 using UnityEngine;
 
 /// <summary>
+/// Defines how the precipitation spawn bounds are determined.
+/// </summary>
+public enum BoundsMode
+{
+    /// <summary>Spawn area follows the main camera viewport.</summary>
+    FollowCamera,
+    /// <summary>Fixed world-space bounds (use transform position and size).</summary>
+    WorldFixed,
+    /// <summary>Use an attached Collider2D to define bounds.</summary>
+    UseCollider
+}
+
+/// <summary>
+/// Unified configuration for precipitation spawn bounds.
+/// </summary>
+[System.Serializable]
+public class PrecipitationBounds
+{
+    [Tooltip("How spawn bounds are determined")]
+    public BoundsMode mode = BoundsMode.FollowCamera;
+
+    [Tooltip("Size of fixed bounds (only used in WorldFixed mode)")]
+    public Vector2 size = new Vector2(30f, 20f);
+
+    [Tooltip("How far above the visible/bounds area to spawn particles")]
+    public float spawnHeightAbove = 3f;
+
+    [Tooltip("Extra horizontal padding for particles drifting with wind")]
+    public float horizontalPadding = 5f;
+
+    [Tooltip("Optional collider reference (only used in UseCollider mode)")]
+    public Collider2D boundsCollider;
+}
+
+/// <summary>
 /// Controls a ParticleSystem based on a PrecipitationPreset.
 /// Handles world-fixed spawning, wind integration, and runtime preset switching.
 /// </summary>
@@ -15,15 +50,12 @@ public class PrecipitationController : MonoBehaviour
     [Tooltip("Optional: Assign a particle material directly if auto-detection fails")]
     [SerializeField] private Material particleMaterial;
 
-    [Header("Zone Bounds (World-Fixed)")]
-    [Tooltip("Size of the precipitation zone in world units")]
-    [SerializeField] private Vector2 zoneSize = new Vector2(50f, 30f);
+    [Header("Bounds")]
+    [SerializeField] private PrecipitationBounds bounds = new PrecipitationBounds();
 
-    [Tooltip("Use transform position as zone center")]
-    [SerializeField] private bool useTransformAsCenter = true;
-
-    [Tooltip("Custom zone center (if not using transform)")]
-    [SerializeField] private Vector2 customZoneCenter;
+    [Header("GPU Motion")]
+    [Tooltip("Use GPU noise module for drift (better performance). Disable for CPU fallback.")]
+    [SerializeField] private bool useGPUMotion = true;
 
     [Header("State")]
     [SerializeField] private bool isActive = true;
@@ -44,7 +76,12 @@ public class PrecipitationController : MonoBehaviour
     private ParticleSystem.ColorOverLifetimeModule colorModule;
     private ParticleSystem.RotationOverLifetimeModule rotationModule;
     private ParticleSystem.CollisionModule collisionModule;
+    private ParticleSystem.NoiseModule noiseModule;
     private ParticleSystemRenderer psRenderer;
+
+    // Camera reference for FollowCamera mode
+    private Camera mainCamera;
+    private Vector3 lastCameraPosition;
 
     // Runtime state
     private PrecipitationPreset currentPreset;
@@ -53,11 +90,25 @@ public class PrecipitationController : MonoBehaviour
     private float currentEmissionRate;
     private bool isTransitioning;
     private Texture2D defaultTexture;
+    private float windUpdateTimer;
+    private const float WIND_UPDATE_INTERVAL = 0.1f; // Update wind curves every 100ms
 
     // Public properties
     public PrecipitationPreset CurrentPreset => currentPreset;
     public bool IsActive => isActive;
-    public Vector2 ZoneCenter => useTransformAsCenter ? (Vector2)transform.position : customZoneCenter;
+    public PrecipitationBounds Bounds => bounds;
+    public bool UseGPUMotion
+    {
+        get => useGPUMotion;
+        set
+        {
+            useGPUMotion = value;
+            if (currentPreset != null)
+            {
+                ConfigureNoiseModule();
+            }
+        }
+    }
     public float TransitionDuration
     {
         get => transitionDuration;
@@ -77,6 +128,10 @@ public class PrecipitationController : MonoBehaviour
         colorModule = ps.colorOverLifetime;
         rotationModule = ps.rotationOverLifetime;
         collisionModule = ps.collision;
+        noiseModule = ps.noise;
+
+        // Cache camera for FollowCamera mode
+        mainCamera = Camera.main;
 
         // Create default texture for particles without sprites
         CreateDefaultTexture();
@@ -95,7 +150,8 @@ public class PrecipitationController : MonoBehaviour
         // Handle emission transitions
         if (isTransitioning && currentPreset != null)
         {
-            float transitionSpeed = currentPreset.emissionRate / transitionDuration;
+            float emissionRate = currentPreset.GetEffectiveEmissionRate();
+            float transitionSpeed = emissionRate / transitionDuration;
             currentEmissionRate = Mathf.MoveTowards(
                 currentEmissionRate,
                 targetEmissionRate,
@@ -109,13 +165,81 @@ public class PrecipitationController : MonoBehaviour
                 isTransitioning = false;
             }
         }
+
+        // Update shape position for camera-following mode
+        if (bounds.mode == BoundsMode.FollowCamera && mainCamera != null)
+        {
+            UpdateCameraFollowBounds();
+        }
+
+        // Periodic wind update for GPU motion
+        if (useGPUMotion && WindManager.Instance != null)
+        {
+            windUpdateTimer += Time.deltaTime;
+            if (windUpdateTimer >= WIND_UPDATE_INTERVAL)
+            {
+                windUpdateTimer = 0f;
+                UpdateWindVelocityCurves();
+            }
+        }
     }
 
     private void LateUpdate()
     {
         if (!isActive || currentPreset == null) return;
 
-        ApplyWindToParticles();
+        // Only use CPU particle iteration if GPU motion is disabled
+        if (!useGPUMotion)
+        {
+            ApplyWindToParticles();
+        }
+    }
+
+    private void UpdateCameraFollowBounds()
+    {
+        if (mainCamera == null) return;
+
+        Vector3 camPos = mainCamera.transform.position;
+
+        // Only update if camera moved significantly
+        if (Vector3.SqrMagnitude(camPos - lastCameraPosition) < 0.01f) return;
+
+        lastCameraPosition = camPos;
+
+        // Calculate viewport bounds
+        float camHeight = mainCamera.orthographicSize * 2f;
+        float camWidth = camHeight * mainCamera.aspect;
+
+        // Position spawn area above camera viewport
+        Vector3 shapePosition = new Vector3(
+            camPos.x,
+            camPos.y + mainCamera.orthographicSize + bounds.spawnHeightAbove,
+            currentPreset != null ? currentPreset.zOffset : -1f
+        );
+
+        // Update shape position (world space)
+        transform.position = new Vector3(shapePosition.x, shapePosition.y, transform.position.z);
+
+        // Update shape scale to match viewport + padding
+        shapeModule.scale = new Vector3(
+            camWidth + bounds.horizontalPadding * 2f,
+            1f, // Thin spawn line
+            0.1f
+        );
+    }
+
+    private void UpdateWindVelocityCurves()
+    {
+        if (WindManager.Instance == null || currentPreset == null) return;
+
+        Vector2 windVector = WindManager.Instance.CurrentWindVector * currentPreset.windInfluenceMultiplier;
+
+        // Update velocity module with current wind
+        float minFall = -(currentPreset.fallSpeed + currentPreset.fallSpeedVariation);
+        float maxFall = -(currentPreset.fallSpeed - currentPreset.fallSpeedVariation);
+
+        velocityModule.x = new ParticleSystem.MinMaxCurve(windVector.x * 0.8f, windVector.x * 1.2f);
+        velocityModule.y = new ParticleSystem.MinMaxCurve(minFall + windVector.y, maxFall + windVector.y);
     }
 
     /// <summary>
@@ -136,6 +260,7 @@ public class PrecipitationController : MonoBehaviour
         ConfigureEmission(immediate);
         ConfigureShape();
         ConfigureVelocity();
+        ConfigureNoiseModule();
         ConfigureColorOverLifetime();
         ConfigureRotation();
         ConfigureCollision();
@@ -159,7 +284,7 @@ public class PrecipitationController : MonoBehaviour
             currentPreset.lifetime + currentPreset.lifetimeVariation
         );
         mainModule.startColor = currentPreset.tint;
-        mainModule.maxParticles = currentPreset.maxParticles;
+        mainModule.maxParticles = currentPreset.GetEffectiveMaxParticles();
         mainModule.simulationSpace = ParticleSystemSimulationSpace.World;
         mainModule.gravityModifier = 0f; // We handle gravity via velocity
 
@@ -171,7 +296,7 @@ public class PrecipitationController : MonoBehaviour
 
     private void ConfigureEmission(bool immediate)
     {
-        targetEmissionRate = currentPreset.emissionRate;
+        targetEmissionRate = currentPreset.GetEffectiveEmissionRate();
 
         if (immediate)
         {
@@ -190,18 +315,102 @@ public class PrecipitationController : MonoBehaviour
         shapeModule.enabled = true;
         shapeModule.shapeType = ParticleSystemShapeType.Box;
 
-        // Spawn area positioned above zone
+        switch (bounds.mode)
+        {
+            case BoundsMode.FollowCamera:
+                ConfigureShapeForCamera();
+                break;
+
+            case BoundsMode.WorldFixed:
+                ConfigureShapeForWorldFixed();
+                break;
+
+            case BoundsMode.UseCollider:
+                ConfigureShapeForCollider();
+                break;
+        }
+    }
+
+    private void ConfigureShapeForCamera()
+    {
+        if (mainCamera == null)
+        {
+            mainCamera = Camera.main;
+            if (mainCamera == null)
+            {
+                Debug.LogWarning("[PrecipitationController] No main camera found for FollowCamera mode");
+                return;
+            }
+        }
+
+        // Calculate viewport size
+        float camHeight = mainCamera.orthographicSize * 2f;
+        float camWidth = camHeight * mainCamera.aspect;
+
+        // Spawn area spans viewport width + padding, thin height
         Vector3 spawnScale = new Vector3(
-            currentPreset.spawnAreaSize.x,
-            currentPreset.spawnAreaSize.y,
+            camWidth + bounds.horizontalPadding * 2f,
+            1f,
             0.1f
         );
         shapeModule.scale = spawnScale;
 
-        // Position shape at top of zone
+        // Position is handled in UpdateCameraFollowBounds
+        shapeModule.position = Vector3.zero;
+
+        // Force initial camera update
+        lastCameraPosition = Vector3.positiveInfinity;
+        UpdateCameraFollowBounds();
+    }
+
+    private void ConfigureShapeForWorldFixed()
+    {
+        // Spawn area spans the fixed bounds width, thin spawn line at top
+        Vector3 spawnScale = new Vector3(
+            bounds.size.x + bounds.horizontalPadding * 2f,
+            1f,
+            0.1f
+        );
+        shapeModule.scale = spawnScale;
+
+        // Position shape at top of fixed bounds
         Vector3 shapePosition = new Vector3(
-            currentPreset.spawnOffset.x,
-            zoneSize.y / 2f + currentPreset.spawnOffset.y,
+            0f,
+            bounds.size.y / 2f + bounds.spawnHeightAbove,
+            currentPreset.zOffset
+        );
+        shapeModule.position = shapePosition;
+    }
+
+    private void ConfigureShapeForCollider()
+    {
+        Collider2D col = bounds.boundsCollider;
+        if (col == null)
+        {
+            col = GetComponent<Collider2D>();
+        }
+
+        if (col == null)
+        {
+            Debug.LogWarning("[PrecipitationController] UseCollider mode requires a Collider2D");
+            ConfigureShapeForWorldFixed(); // Fallback
+            return;
+        }
+
+        Bounds b = col.bounds;
+
+        // Spawn area spans collider width
+        Vector3 spawnScale = new Vector3(
+            b.size.x + bounds.horizontalPadding * 2f,
+            1f,
+            0.1f
+        );
+        shapeModule.scale = spawnScale;
+
+        // Position shape at top of collider bounds
+        Vector3 shapePosition = new Vector3(
+            b.center.x - transform.position.x,
+            b.max.y - transform.position.y + bounds.spawnHeightAbove,
             currentPreset.zOffset
         );
         shapeModule.position = shapePosition;
@@ -216,10 +425,48 @@ public class PrecipitationController : MonoBehaviour
         float minFall = -(currentPreset.fallSpeed + currentPreset.fallSpeedVariation);
         float maxFall = -(currentPreset.fallSpeed - currentPreset.fallSpeedVariation);
 
+        // Initial wind influence
+        Vector2 windVector = Vector2.zero;
+        if (WindManager.Instance != null)
+        {
+            windVector = WindManager.Instance.CurrentWindVector * currentPreset.windInfluenceMultiplier;
+        }
+
         // All axes must use the same curve mode (TwoConstants)
-        velocityModule.x = new ParticleSystem.MinMaxCurve(0f, 0f);
-        velocityModule.y = new ParticleSystem.MinMaxCurve(minFall, maxFall);
+        velocityModule.x = new ParticleSystem.MinMaxCurve(windVector.x * 0.8f, windVector.x * 1.2f);
+        velocityModule.y = new ParticleSystem.MinMaxCurve(minFall + windVector.y, maxFall + windVector.y);
         velocityModule.z = new ParticleSystem.MinMaxCurve(0f, 0f);
+    }
+
+    private void ConfigureNoiseModule()
+    {
+        noiseModule.enabled = useGPUMotion && currentPreset.driftAmount > 0f;
+
+        if (!noiseModule.enabled) return;
+
+        // GPU-accelerated drift using noise module
+        noiseModule.separateAxes = true;
+        noiseModule.frequency = currentPreset.driftFrequency;
+        noiseModule.scrollSpeed = 0.2f;
+        noiseModule.damping = true;
+        noiseModule.octaveCount = 2;
+
+        // Horizontal drift (X axis) - full drift amount
+        noiseModule.strengthX = new ParticleSystem.MinMaxCurve(currentPreset.driftAmount);
+
+        // Vertical drift (Y axis) - reduced for natural look
+        noiseModule.strengthY = new ParticleSystem.MinMaxCurve(currentPreset.driftAmount * 0.3f);
+
+        // No Z drift for 2D
+        noiseModule.strengthZ = new ParticleSystem.MinMaxCurve(0f);
+
+        // Add turbulence influence
+        if (WindManager.Instance != null)
+        {
+            float turbulence = WindManager.Instance.TurbulenceStrength * currentPreset.turbulenceInfluenceMultiplier;
+            noiseModule.strengthX = new ParticleSystem.MinMaxCurve(currentPreset.driftAmount + turbulence);
+            noiseModule.strengthY = new ParticleSystem.MinMaxCurve((currentPreset.driftAmount + turbulence) * 0.3f);
+        }
     }
 
     private void ConfigureColorOverLifetime()
@@ -261,7 +508,19 @@ public class PrecipitationController : MonoBehaviour
 
     private void ConfigureRenderer()
     {
-        psRenderer.renderMode = ParticleSystemRenderMode.Billboard;
+        // Configure render mode based on precipitation type
+        // Rain uses stretched billboards for motion blur effect
+        if (currentPreset.type == PrecipitationType.Rain)
+        {
+            psRenderer.renderMode = ParticleSystemRenderMode.Stretch;
+            psRenderer.velocityScale = 0.02f; // Stretch based on velocity
+            psRenderer.lengthScale = 1.2f;    // Base stretch length
+            psRenderer.cameraVelocityScale = 0f; // Don't stretch based on camera movement
+        }
+        else
+        {
+            psRenderer.renderMode = ParticleSystemRenderMode.Billboard;
+        }
 
         Material mat;
 
@@ -412,12 +671,12 @@ public class PrecipitationController : MonoBehaviour
 
         if (immediate)
         {
-            emissionModule.rateOverTime = currentPreset != null ? currentPreset.emissionRate : 0f;
+            emissionModule.rateOverTime = currentPreset != null ? currentPreset.GetEffectiveEmissionRate() : 0f;
             currentEmissionRate = emissionModule.rateOverTime.constant;
         }
         else
         {
-            targetEmissionRate = currentPreset != null ? currentPreset.emissionRate : 0f;
+            targetEmissionRate = currentPreset != null ? currentPreset.GetEffectiveEmissionRate() : 0f;
             isTransitioning = true;
         }
 
@@ -463,29 +722,49 @@ public class PrecipitationController : MonoBehaviour
     {
         if (!showZoneBounds) return;
 
-        Vector2 center = ZoneCenter;
+        Vector3 center;
+        Vector3 size;
+
+        switch (bounds.mode)
+        {
+            case BoundsMode.FollowCamera:
+                Camera cam = Camera.main;
+                if (cam == null) return;
+                center = cam.transform.position;
+                float camHeight = cam.orthographicSize * 2f;
+                float camWidth = camHeight * cam.aspect;
+                size = new Vector3(camWidth + bounds.horizontalPadding * 2f, camHeight, 0.1f);
+                break;
+
+            case BoundsMode.WorldFixed:
+                center = transform.position;
+                size = new Vector3(bounds.size.x, bounds.size.y, 0.1f);
+                break;
+
+            case BoundsMode.UseCollider:
+                Collider2D col = bounds.boundsCollider ?? GetComponent<Collider2D>();
+                if (col == null) return;
+                center = col.bounds.center;
+                size = col.bounds.size;
+                break;
+
+            default:
+                return;
+        }
 
         // Draw zone bounds
         Gizmos.color = boundsColor;
-        Gizmos.DrawWireCube(
-            new Vector3(center.x, center.y, 0f),
-            new Vector3(zoneSize.x, zoneSize.y, 0.1f)
-        );
+        Gizmos.DrawWireCube(center, size);
 
         // Draw spawn area
-        if (currentPreset != null)
-        {
-            Gizmos.color = new Color(1f, 0.5f, 0f, 0.5f);
-            Vector3 spawnCenter = new Vector3(
-                center.x + currentPreset.spawnOffset.x,
-                center.y + zoneSize.y / 2f + currentPreset.spawnOffset.y,
-                currentPreset.zOffset
-            );
-            Gizmos.DrawWireCube(
-                spawnCenter,
-                new Vector3(currentPreset.spawnAreaSize.x, currentPreset.spawnAreaSize.y, 0.1f)
-            );
-        }
+        Gizmos.color = new Color(1f, 0.5f, 0f, 0.5f);
+        Vector3 spawnCenter = new Vector3(
+            center.x,
+            center.y + size.y / 2f + bounds.spawnHeightAbove,
+            currentPreset != null ? currentPreset.zOffset : -1f
+        );
+        Vector3 spawnSize = new Vector3(size.x, 1f, 0.1f);
+        Gizmos.DrawWireCube(spawnCenter, spawnSize);
     }
 
     private void OnGUI()

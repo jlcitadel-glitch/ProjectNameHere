@@ -1,4 +1,20 @@
 using UnityEngine;
+using System;
+
+/// <summary>
+/// Type of precipitation, affects rendering and default behaviors.
+/// </summary>
+public enum PrecipitationType
+{
+    Rain,
+    Snow,
+    Ash,
+    Spores,
+    Pollen,
+    Dust,
+    Embers,
+    Custom
+}
 
 /// <summary>
 /// ScriptableObject containing all configuration for a precipitation type.
@@ -7,17 +23,30 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "NewPrecipitationPreset", menuName = "Game/Precipitation Preset")]
 public class PrecipitationPreset : ScriptableObject
 {
-    [Header("Identity")]
+    // ==================== ESSENTIAL SETTINGS ====================
+    // These are always visible in the inspector
+
+    [Header("Essential")]
+    [Tooltip("Type of precipitation (affects rendering mode)")]
+    public PrecipitationType type = PrecipitationType.Rain;
+
     [Tooltip("Display name for debugging and UI")]
     public string displayName = "New Precipitation";
 
-    [Header("Visual")]
+    [Tooltip("Overall intensity (0-1). Controls emission rate and particle count.")]
+    [Range(0f, 1f)]
+    public float intensity = 0.5f;
+
     [Tooltip("Sprite/texture for particles. If null, uses default circle.")]
     public Sprite particleSprite;
 
     [Tooltip("Color tint applied to particles")]
     public Color tint = Color.white;
 
+    // ==================== ADVANCED SETTINGS ====================
+    // These are collapsed by default in the inspector
+
+    [Header("Advanced - Size")]
     [Tooltip("Minimum and maximum particle size")]
     public Vector2 sizeRange = new Vector2(0.05f, 0.15f);
 
@@ -25,8 +54,8 @@ public class PrecipitationPreset : ScriptableObject
     [Range(0f, 1f)]
     public float sizeVariation = 0.3f;
 
-    [Header("Emission")]
-    [Tooltip("Particles emitted per second")]
+    [Header("Advanced - Emission")]
+    [Tooltip("Base particles emitted per second (scaled by intensity)")]
     public float emissionRate = 50f;
 
     [Tooltip("How long each particle lives (seconds)")]
@@ -35,17 +64,19 @@ public class PrecipitationPreset : ScriptableObject
     [Tooltip("Variation in lifetime")]
     public float lifetimeVariation = 0.5f;
 
-    [Tooltip("Maximum particles alive at once")]
+    [Tooltip("Base maximum particles alive at once (scaled by intensity)")]
     public int maxParticles = 500;
 
-    [Header("Spawn Area")]
-    [Tooltip("Size of the spawn area (width, height above camera)")]
+    [Header("Spawn Area (Legacy)")]
+    [Obsolete("Use PrecipitationController.bounds instead")]
+    [Tooltip("Deprecated: Size of the spawn area - use controller bounds")]
     public Vector2 spawnAreaSize = new Vector2(25f, 2f);
 
-    [Tooltip("Offset from zone center (or camera if camera-relative)")]
+    [Obsolete("Use PrecipitationController.bounds instead")]
+    [Tooltip("Deprecated: Offset from zone center - use controller bounds")]
     public Vector2 spawnOffset = new Vector2(0f, 2f);
 
-    [Header("Movement")]
+    [Header("Advanced - Movement")]
     [Tooltip("Base downward fall speed")]
     public float fallSpeed = 5f;
 
@@ -66,14 +97,14 @@ public class PrecipitationPreset : ScriptableObject
     [Range(0f, 2f)]
     public float turbulenceInfluenceMultiplier = 1f;
 
-    [Header("Rotation")]
+    [Header("Advanced - Rotation")]
     [Tooltip("Enable particle rotation over lifetime")]
     public bool enableRotation = false;
 
     [Tooltip("Rotation speed range (degrees per second)")]
     public Vector2 rotationSpeedRange = new Vector2(-45f, 45f);
 
-    [Header("Fade")]
+    [Header("Advanced - Fade")]
     [Tooltip("Fade in at start of lifetime")]
     public bool fadeIn = false;
 
@@ -88,7 +119,7 @@ public class PrecipitationPreset : ScriptableObject
     [Range(0.5f, 1f)]
     public float fadeOutPoint = 0.8f;
 
-    [Header("Rendering")]
+    [Header("Advanced - Rendering")]
     [Tooltip("Sorting layer for particles")]
     public string sortingLayerName = "Default";
 
@@ -98,7 +129,10 @@ public class PrecipitationPreset : ScriptableObject
     [Tooltip("Z position offset (negative = in front of player at Z=0)")]
     public float zOffset = -1f;
 
-    [Header("Collision (Optional)")]
+    // ==================== EXPERT SETTINGS ====================
+    // These are hidden by default, only shown in debug mode
+
+    [Header("Expert - Collision")]
     [Tooltip("Enable collision with world geometry")]
     public bool enableCollision = false;
 
@@ -112,6 +146,47 @@ public class PrecipitationPreset : ScriptableObject
     [Tooltip("Lifetime multiplier after collision (0 = die immediately)")]
     [Range(0f, 1f)]
     public float collisionLifetimeLoss = 0.8f;
+
+    // ==================== INTENSITY CURVES ====================
+    // Define how intensity maps to emission and particles
+
+    /// <summary>
+    /// Minimum emission rate at intensity 0.
+    /// </summary>
+    private const float MIN_EMISSION_MULTIPLIER = 0.1f;
+
+    /// <summary>
+    /// Maximum emission rate at intensity 1.
+    /// </summary>
+    private const float MAX_EMISSION_MULTIPLIER = 2.0f;
+
+    /// <summary>
+    /// Minimum particle count multiplier at intensity 0.
+    /// </summary>
+    private const float MIN_PARTICLES_MULTIPLIER = 0.2f;
+
+    /// <summary>
+    /// Maximum particle count multiplier at intensity 1.
+    /// </summary>
+    private const float MAX_PARTICLES_MULTIPLIER = 2.0f;
+
+    /// <summary>
+    /// Gets the effective emission rate based on intensity.
+    /// </summary>
+    public float GetEffectiveEmissionRate()
+    {
+        float multiplier = Mathf.Lerp(MIN_EMISSION_MULTIPLIER, MAX_EMISSION_MULTIPLIER, intensity);
+        return emissionRate * multiplier;
+    }
+
+    /// <summary>
+    /// Gets the effective max particles based on intensity.
+    /// </summary>
+    public int GetEffectiveMaxParticles()
+    {
+        float multiplier = Mathf.Lerp(MIN_PARTICLES_MULTIPLIER, MAX_PARTICLES_MULTIPLIER, intensity);
+        return Mathf.RoundToInt(maxParticles * multiplier);
+    }
 
     /// <summary>
     /// Creates the alpha gradient for particle color over lifetime.

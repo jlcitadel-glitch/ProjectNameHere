@@ -60,6 +60,12 @@ namespace ProjectName.UI
         private int cachedWindowModeIndex;
         private int cachedAspectRatioIndex;
 
+        private void ApplyDefaultFont(TMP_Text textComponent)
+        {
+            // Use FontManager for consistent font management across the project
+            FontManager.EnsureFont(textComponent);
+        }
+
         private void Awake()
         {
             AutoFindReferences();
@@ -429,6 +435,7 @@ namespace ProjectName.UI
             var placeholder = new GameObject("Placeholder");
             placeholder.transform.SetParent(controlsPanel.transform, false);
             var placeholderText = placeholder.AddComponent<TextMeshProUGUI>();
+            ApplyDefaultFont(placeholderText);
             placeholderText.text = "Control remapping coming soon...";
             placeholderText.fontSize = 24;
             placeholderText.alignment = TextAlignmentOptions.Center;
@@ -455,6 +462,7 @@ namespace ProjectName.UI
             var labelGO = new GameObject("Label");
             labelGO.transform.SetParent(row.transform, false);
             var labelText = labelGO.AddComponent<TextMeshProUGUI>();
+            ApplyDefaultFont(labelText);
             labelText.text = label;
             labelText.fontSize = 24;
             labelText.alignment = TextAlignmentOptions.MidlineLeft;
@@ -497,6 +505,7 @@ namespace ProjectName.UI
             var ddLabel = new GameObject("Label");
             ddLabel.transform.SetParent(dropdownGO.transform, false);
             var ddLabelText = ddLabel.AddComponent<TextMeshProUGUI>();
+            ApplyDefaultFont(ddLabelText);
             ddLabelText.text = "Select...";
             ddLabelText.fontSize = 20;
             ddLabelText.alignment = TextAlignmentOptions.MidlineLeft;
@@ -584,6 +593,7 @@ namespace ProjectName.UI
             var valueText = new GameObject("ValueText");
             valueText.transform.SetParent(parent, false);
             var valueTmp = valueText.AddComponent<TextMeshProUGUI>();
+            ApplyDefaultFont(valueTmp);
             valueTmp.text = "100%";
             valueTmp.fontSize = 20;
             valueTmp.alignment = TextAlignmentOptions.MidlineRight;
@@ -623,6 +633,7 @@ namespace ProjectName.UI
             var textGO = new GameObject("Text");
             textGO.transform.SetParent(buttonGO.transform, false);
             var tmp = textGO.AddComponent<TextMeshProUGUI>();
+            ApplyDefaultFont(tmp);
             tmp.text = "Apply";
             tmp.fontSize = 24;
             tmp.alignment = TextAlignmentOptions.Center;
@@ -750,6 +761,7 @@ namespace ProjectName.UI
             var itemLabel = new GameObject("Item Label");
             itemLabel.transform.SetParent(item.transform, false);
             var itemLabelText = itemLabel.AddComponent<TextMeshProUGUI>();
+            ApplyDefaultFont(itemLabelText);
             itemLabelText.fontSize = 18;
             itemLabelText.alignment = TextAlignmentOptions.MidlineLeft;
             itemLabelText.color = new Color(0.961f, 0.961f, 0.863f, 1f);
@@ -965,6 +977,14 @@ namespace ProjectName.UI
 
         private void RefreshDisplaySettings()
         {
+            // Ensure DisplaySettings exists
+            if (DisplaySettings.Instance == null)
+            {
+                var go = new GameObject("DisplaySettings");
+                go.AddComponent<DisplaySettings>(); // DisplaySettings handles DontDestroyOnLoad in Awake
+                Debug.Log("[OptionsMenu] Created DisplaySettings instance");
+            }
+
             if (DisplaySettings.Instance == null) return;
 
             var ds = DisplaySettings.Instance;
@@ -1077,7 +1097,7 @@ namespace ProjectName.UI
         private void OnMusicVolumeChanged(float value)
         {
             PlayerPrefs.SetFloat("Audio_Music", value);
-            // TODO: Apply to music audio source/mixer
+            MusicManager.Instance?.SetVolume(value);
             UpdateVolumeTexts();
         }
 

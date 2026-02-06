@@ -3,6 +3,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 namespace ProjectName.UI
 {
@@ -44,6 +45,9 @@ namespace ProjectName.UI
         [SerializeField] private string gameplayActionMap = "Player";
         [SerializeField] private string uiActionMap = "UI";
 
+        // Cached input action for pause
+        private InputAction pauseAction;
+
         public UIStyleGuide StyleGuide => styleGuide;
         public UISoundBank SoundBank => soundBank;
 
@@ -72,11 +76,118 @@ namespace ProjectName.UI
 
             InitializeCanvases();
             InitializeAudio();
+
+            // Subscribe to scene loaded to re-find canvases in new scenes
+            SceneManager.sceneLoaded += OnSceneLoaded;
         }
 
         private void Start()
         {
             SubscribeToGameManager();
+            SetupPauseInput();
+        }
+
+        private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            Debug.Log($"[UIManager] Scene loaded: {scene.name}, re-scanning for canvases");
+            // Re-scan for canvases that may exist in the new scene
+            AutoFindCanvases();
+
+            // Re-setup pause input after scene change in case PlayerInput was recreated
+            SetupPauseInput();
+        }
+
+        private void SetupPauseInput()
+        {
+            // Find PlayerInput if not assigned
+            if (playerInput == null)
+            {
+                playerInput = FindAnyObjectByType<PlayerInput>();
+            }
+
+            // Unsubscribe from old action if exists
+            if (pauseAction != null)
+            {
+                pauseAction.performed -= OnPauseInput;
+                pauseAction = null;
+            }
+
+            // Try to get pause action from PlayerInput
+            if (playerInput != null)
+            {
+                // Try Player/Pause action first (should work in gameplay)
+                pauseAction = playerInput.actions.FindAction("Player/Pause");
+                if (pauseAction == null)
+                {
+                    // Try just "Pause" action
+                    pauseAction = playerInput.actions.FindAction("Pause");
+                }
+                if (pauseAction == null)
+                {
+                    // Try UI/Cancel as last resort
+                    pauseAction = playerInput.actions.FindAction("UI/Cancel");
+                }
+
+                if (pauseAction != null)
+                {
+                    pauseAction.performed += OnPauseInput;
+                    // Enable the action independently of action maps so it always works
+                    pauseAction.Enable();
+                    Debug.Log($"[UIManager] Pause input bound to action: {pauseAction.name}");
+                }
+                else
+                {
+                    Debug.LogWarning("[UIManager] No pause/cancel action found in PlayerInput. Using keyboard fallback.");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("[UIManager] PlayerInput not found. Using keyboard fallback for pause.");
+            }
+        }
+
+        /// <summary>
+        /// Ensures pause action stays enabled after action map switches.
+        /// </summary>
+        private void EnsurePauseActionEnabled()
+        {
+            if (pauseAction != null && !pauseAction.enabled)
+            {
+                pauseAction.Enable();
+            }
+        }
+
+        private void OnPauseInput(InputAction.CallbackContext context)
+        {
+            // Only respond if game state allows pausing
+            if (GameManager.Instance != null)
+            {
+                var state = GameManager.Instance.CurrentState;
+                if (state == GameManager.GameState.Playing ||
+                    state == GameManager.GameState.BossFight ||
+                    state == GameManager.GameState.Paused)
+                {
+                    GameManager.Instance.TogglePause();
+                }
+            }
+        }
+
+        private void Update()
+        {
+            // Fallback keyboard input for pause if no InputAction is bound
+            if (pauseAction == null && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+            {
+                if (GameManager.Instance != null)
+                {
+                    var state = GameManager.Instance.CurrentState;
+                    if (state == GameManager.GameState.Playing ||
+                        state == GameManager.GameState.BossFight ||
+                        state == GameManager.GameState.Paused)
+                    {
+                        GameManager.Instance.TogglePause();
+                    }
+                }
+            }
         }
 
         private void SubscribeToGameManager()
@@ -127,12 +238,40 @@ namespace ProjectName.UI
                 {
                     ShowCanvas(mainMenuCanvas, mainMenuGroup);
                 }
+                // Ensure pause menu is hidden when returning to main menu
+                if (pauseCanvas != null)
+                {
+                    pauseCanvas.gameObject.SetActive(false);
+                    if (pauseGroup != null)
+                    {
+                        pauseGroup.alpha = 0f;
+                        pauseGroup.interactable = false;
+                        pauseGroup.blocksRaycasts = false;
+                    }
+                }
             }
             else if (previousState == GameManager.GameState.MainMenu)
             {
                 if (mainMenuCanvas != null && mainMenuGroup != null)
                 {
                     HideCanvas(mainMenuCanvas, mainMenuGroup);
+                }
+            }
+
+            // When transitioning to Playing from Loading, ensure pause menu is hidden
+            // This handles the case where we're entering gameplay from main menu
+            if (newState == GameManager.GameState.Playing && previousState == GameManager.GameState.Loading)
+            {
+                SwitchToGameplayInput();
+                if (pauseCanvas != null)
+                {
+                    pauseCanvas.gameObject.SetActive(false);
+                    if (pauseGroup != null)
+                    {
+                        pauseGroup.alpha = 0f;
+                        pauseGroup.interactable = false;
+                        pauseGroup.blocksRaycasts = false;
+                    }
                 }
             }
         }
@@ -146,6 +285,15 @@ namespace ProjectName.UI
 
             if (currentTransition != null)
                 StopCoroutine(currentTransition);
+
+            // Unsubscribe from scene loaded event
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+
+            // Unsubscribe from pause action
+            if (pauseAction != null)
+            {
+                pauseAction.performed -= OnPauseInput;
+            }
 
             // Unsubscribe from GameManager
             if (GameManager.Instance != null)
@@ -238,6 +386,11 @@ namespace ProjectName.UI
                 uiAudioSource = gameObject.AddComponent<AudioSource>();
                 uiAudioSource.playOnAwake = false;
                 uiAudioSource.spatialBlend = 0f; // 2D sound
+            }
+
+            if (soundBank == null)
+            {
+                soundBank = Resources.Load<UISoundBank>("UISoundBank");
             }
         }
 
@@ -411,6 +564,8 @@ namespace ProjectName.UI
             if (playerInput != null)
             {
                 playerInput.SwitchCurrentActionMap(uiActionMap);
+                // Re-enable pause action after map switch (it may have been disabled)
+                EnsurePauseActionEnabled();
             }
         }
 
@@ -422,6 +577,8 @@ namespace ProjectName.UI
             if (playerInput != null)
             {
                 playerInput.SwitchCurrentActionMap(gameplayActionMap);
+                // Re-enable pause action after map switch (it may have been disabled)
+                EnsurePauseActionEnabled();
             }
         }
 

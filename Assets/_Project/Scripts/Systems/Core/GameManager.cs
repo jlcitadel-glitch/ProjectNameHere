@@ -104,7 +104,6 @@ public class GameManager : MonoBehaviour
         switch (state)
         {
             case GameState.Paused:
-            case GameState.MainMenu:
             case GameState.GameOver:
                 previousTimeScale = Time.timeScale > 0f ? Time.timeScale : 1f;
                 Time.timeScale = 0f;
@@ -115,6 +114,7 @@ public class GameManager : MonoBehaviour
                 Time.timeScale = previousTimeScale > 0f ? previousTimeScale : 1f;
                 break;
 
+            case GameState.MainMenu:
             case GameState.Cutscene:
             case GameState.Loading:
                 Time.timeScale = 1f;

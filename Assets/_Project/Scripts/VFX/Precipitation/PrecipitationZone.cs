@@ -1,18 +1,33 @@
 using UnityEngine;
 
 /// <summary>
+/// Defines how the zone interacts with precipitation controllers.
+/// </summary>
+public enum ZoneControlMode
+{
+    /// <summary>Use a global camera-following controller (shared across zones).</summary>
+    UseGlobalController,
+    /// <summary>Use a local controller specific to this zone.</summary>
+    UseLocalController
+}
+
+/// <summary>
 /// Trigger-based zone that activates/deactivates precipitation when the player enters.
-/// Can optionally spawn its own PrecipitationController or reference an existing one.
+/// Simplified design: references existing controllers rather than creating them dynamically.
 /// </summary>
 [RequireComponent(typeof(Collider2D))]
 public class PrecipitationZone : MonoBehaviour
 {
-    [Header("Precipitation Source")]
-    [Tooltip("Reference an existing controller, or leave null to create one")]
+    [Header("Control Mode")]
+    [Tooltip("How this zone controls precipitation")]
+    [SerializeField] private ZoneControlMode controlMode = ZoneControlMode.UseLocalController;
+
+    [Header("Controller Reference")]
+    [Tooltip("The precipitation controller to activate/deactivate")]
     [SerializeField] private PrecipitationController precipitationController;
 
-    [Tooltip("Preset to use if creating a new controller")]
-    [SerializeField] private PrecipitationPreset preset;
+    [Tooltip("Preset to apply when entering (optional, uses controller's preset if null)")]
+    [SerializeField] private PrecipitationPreset presetOverride;
 
     [Header("Activation")]
     [Tooltip("Tag to detect (usually Player)")]
@@ -21,7 +36,7 @@ public class PrecipitationZone : MonoBehaviour
     [Tooltip("Active when player is inside the zone")]
     [SerializeField] private bool activeWhileInside = true;
 
-    [Tooltip("Start precipitation immediately when scene loads (if player starts inside)")]
+    [Tooltip("Check if player starts inside zone on scene load")]
     [SerializeField] private bool checkOnStart = true;
 
     [Header("Transitions")]
@@ -34,9 +49,21 @@ public class PrecipitationZone : MonoBehaviour
     [Header("Debug")]
     [SerializeField] private bool showDebugLogs = false;
 
+    // Global controller singleton reference
+    private static PrecipitationController globalController;
+
     private Collider2D zoneCollider;
     private bool isPlayerInside;
     private bool isInitialized;
+
+    /// <summary>
+    /// Gets or sets the global precipitation controller (shared by zones using UseGlobalController mode).
+    /// </summary>
+    public static PrecipitationController GlobalController
+    {
+        get => globalController;
+        set => globalController = value;
+    }
 
     private void Awake()
     {
@@ -62,47 +89,49 @@ public class PrecipitationZone : MonoBehaviour
     {
         if (isInitialized) return;
 
-        // If no controller assigned, create one
-        if (precipitationController == null && preset != null)
-        {
-            CreatePrecipitationController();
-        }
+        // Resolve which controller to use based on mode
+        PrecipitationController controller = GetActiveController();
 
-        if (precipitationController != null)
+        if (controller != null)
         {
             // Apply zone's transition duration to controller
-            precipitationController.TransitionDuration = transitionDuration;
+            controller.TransitionDuration = transitionDuration;
 
             // Start disabled, will enable when player enters
-            precipitationController.Disable(immediate: true);
+            controller.Disable(immediate: true);
+        }
+        else if (showDebugLogs)
+        {
+            Debug.LogWarning($"[PrecipitationZone] No controller found for {gameObject.name}. " +
+                "Assign a controller reference or set up a global controller.");
         }
 
         isInitialized = true;
     }
 
-    private void CreatePrecipitationController()
+    /// <summary>
+    /// Gets the active controller based on current control mode.
+    /// </summary>
+    private PrecipitationController GetActiveController()
     {
-        // Create child GameObject with ParticleSystem
-        GameObject precipObj = new GameObject($"Precipitation_{preset.displayName}");
-        precipObj.transform.SetParent(transform);
-        precipObj.transform.localPosition = Vector3.zero;
-
-        // Add ParticleSystem first (required by controller)
-        ParticleSystem ps = precipObj.AddComponent<ParticleSystem>();
-
-        // Stop the default particle system behavior
-        ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-
-        // Add and configure controller
-        precipitationController = precipObj.AddComponent<PrecipitationController>();
-
-        // Apply preset immediately so particle system is configured
-        precipitationController.ApplyPreset(preset, immediate: true);
-
-        if (showDebugLogs)
+        switch (controlMode)
         {
-            Debug.Log($"[PrecipitationZone] Created controller for {preset.displayName}");
+            case ZoneControlMode.UseGlobalController:
+                return globalController ?? precipitationController;
+
+            case ZoneControlMode.UseLocalController:
+            default:
+                return precipitationController;
         }
+    }
+
+    /// <summary>
+    /// Registers a controller as the global controller.
+    /// Call this from a camera-following controller on Awake.
+    /// </summary>
+    public static void RegisterGlobalController(PrecipitationController controller)
+    {
+        globalController = controller;
     }
 
     private void CheckInitialState()
@@ -142,7 +171,8 @@ public class PrecipitationZone : MonoBehaviour
 
     private void OnPlayerEntered()
     {
-        if (precipitationController == null) return;
+        PrecipitationController controller = GetActiveController();
+        if (controller == null) return;
 
         if (showDebugLogs)
         {
@@ -151,23 +181,24 @@ public class PrecipitationZone : MonoBehaviour
 
         if (activeWhileInside)
         {
-            // Apply preset if we have one
-            if (preset != null)
+            // Apply preset override if we have one
+            if (presetOverride != null)
             {
-                precipitationController.ApplyPreset(preset, immediate: !useTransitions);
+                controller.ApplyPreset(presetOverride, immediate: !useTransitions);
             }
 
-            precipitationController.Enable(immediate: !useTransitions);
+            controller.Enable(immediate: !useTransitions);
         }
         else
         {
-            precipitationController.Disable(immediate: !useTransitions);
+            controller.Disable(immediate: !useTransitions);
         }
     }
 
     private void OnPlayerExited()
     {
-        if (precipitationController == null) return;
+        PrecipitationController controller = GetActiveController();
+        if (controller == null) return;
 
         if (showDebugLogs)
         {
@@ -176,11 +207,11 @@ public class PrecipitationZone : MonoBehaviour
 
         if (activeWhileInside)
         {
-            precipitationController.Disable(immediate: !useTransitions);
+            controller.Disable(immediate: !useTransitions);
         }
         else
         {
-            precipitationController.Enable(immediate: !useTransitions);
+            controller.Enable(immediate: !useTransitions);
         }
     }
 
@@ -189,9 +220,10 @@ public class PrecipitationZone : MonoBehaviour
     /// </summary>
     public void Activate(bool immediate = false)
     {
-        if (precipitationController == null) return;
+        PrecipitationController controller = GetActiveController();
+        if (controller == null) return;
 
-        precipitationController.Enable(immediate);
+        controller.Enable(immediate);
     }
 
     /// <summary>
@@ -199,9 +231,10 @@ public class PrecipitationZone : MonoBehaviour
     /// </summary>
     public void Deactivate(bool immediate = false)
     {
-        if (precipitationController == null) return;
+        PrecipitationController controller = GetActiveController();
+        if (controller == null) return;
 
-        precipitationController.Disable(immediate);
+        controller.Disable(immediate);
     }
 
     /// <summary>
@@ -209,10 +242,27 @@ public class PrecipitationZone : MonoBehaviour
     /// </summary>
     public void SwitchPreset(PrecipitationPreset newPreset)
     {
-        if (precipitationController == null || newPreset == null) return;
+        PrecipitationController controller = GetActiveController();
+        if (controller == null || newPreset == null) return;
 
-        preset = newPreset;
-        precipitationController.TransitionToPreset(newPreset);
+        presetOverride = newPreset;
+        controller.TransitionToPreset(newPreset);
+    }
+
+    /// <summary>
+    /// Sets the control mode at runtime.
+    /// </summary>
+    public void SetControlMode(ZoneControlMode mode)
+    {
+        controlMode = mode;
+    }
+
+    /// <summary>
+    /// Assigns a local controller reference.
+    /// </summary>
+    public void SetLocalController(PrecipitationController controller)
+    {
+        precipitationController = controller;
     }
 
     private void OnDrawGizmos()

@@ -105,12 +105,12 @@ namespace ProjectName.UI
             }
         }
 
-        private void HandleXPChanged(int currentXP, int xpForNextLevel)
+        private void HandleXPChanged(long currentXP, long xpForNextLevel)
         {
             UpdateDisplay();
         }
 
-        private void HandleXPGained(int amount, int totalXP)
+        private void HandleXPGained(long amount, long totalXP)
         {
             PlayFlashEffect();
         }
@@ -135,19 +135,13 @@ namespace ProjectName.UI
             // Update label
             if (expLabel != null)
             {
-                if (levelSystem.IsMaxLevel)
-                {
-                    expLabel.text = "MAX LEVEL";
-                }
-                else
-                {
-                    int currentLevelXP = levelSystem.XPForCurrentLevel;
-                    int nextLevelXP = levelSystem.XPForNextLevel;
-                    int xpIntoLevel = levelSystem.CurrentXP - currentLevelXP;
-                    int xpRequired = nextLevelXP - currentLevelXP;
+                long currentLevelXP = levelSystem.XPForCurrentLevel;
+                long nextLevelXP = levelSystem.XPForNextLevel;
+                long xpIntoLevel = levelSystem.CurrentXP - currentLevelXP;
+                long xpRequired = nextLevelXP - currentLevelXP;
 
-                    expLabel.text = string.Format(labelFormat, xpIntoLevel, xpRequired);
-                }
+                // Format with thousand separators for readability
+                expLabel.text = string.Format(labelFormat, LevelSystem.FormatXP(xpIntoLevel), LevelSystem.FormatXP(xpRequired));
             }
         }
 

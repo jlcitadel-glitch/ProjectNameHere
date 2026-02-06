@@ -150,10 +150,17 @@ namespace ProjectName.UI
                 GameManager.Instance.OnPause += OnGamePaused;
                 GameManager.Instance.OnResume += OnGameResumed;
 
-                // If we're enabled while the game is already paused, show the main pause menu
-                if (GameManager.Instance.IsPaused)
+                // Only show pause menu if we're genuinely paused AND not during scene loading
+                // This prevents the pause menu from showing during scene transitions
+                bool isLoading = SceneLoader.Instance != null && SceneLoader.Instance.IsLoading;
+                if (GameManager.Instance.IsPaused && !isLoading)
                 {
                     ShowMainPause();
+                }
+                else
+                {
+                    // Ensure we start closed when scene loads
+                    CloseAll();
                 }
             }
             else
@@ -339,14 +346,32 @@ namespace ProjectName.UI
 
         private void OnQuitClicked()
         {
-            // For now, just quit to desktop
-            // TODO: Add quit confirmation dialog
-            // TODO: Add "Quit to Main Menu" option
+            // Check if main menu scene exists in build
+            if (SceneLoader.SceneExists(SceneLoader.MAIN_MENU_SCENE))
+            {
+                // Save the game before returning to menu
+                if (SaveManager.Instance != null)
+                {
+                    SaveManager.Instance.Save();
+                    Debug.Log("[PauseMenu] Game saved before returning to menu");
+                }
+
+                // Return to main menu
+                if (GameManager.Instance != null)
+                {
+                    GameManager.Instance.Resume(); // Restore time scale before transitioning
+                }
+                SceneLoader.LoadMainMenu();
+            }
+            else
+            {
+                // No main menu, quit to desktop
 #if UNITY_EDITOR
-            UnityEditor.EditorApplication.isPlaying = false;
+                UnityEditor.EditorApplication.isPlaying = false;
 #else
-            Application.Quit();
+                Application.Quit();
 #endif
+            }
         }
 
         #endregion

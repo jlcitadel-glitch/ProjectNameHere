@@ -12,13 +12,16 @@ public class PowerUpPickup : MonoBehaviour
     [SerializeField] PowerUpType powerUpType;
     [SerializeField] bool destroyOnPickup = true;
 
+    [Header("Debug")]
+    [SerializeField] bool logDebug = false;
+
     void OnTriggerEnter2D(Collider2D other)
     {
-        Debug.Log($"Trigger detected! Object: {other.gameObject.name}, Tag: {other.tag}");
+        if (logDebug) Debug.Log($"Trigger detected! Object: {other.gameObject.name}, Tag: {other.tag}");
 
         if (other.CompareTag("Player"))
         {
-            Debug.Log("Player detected! Granting power-up...");
+            if (logDebug) Debug.Log("Player detected! Granting power-up...");
             GrantPowerUp(other.gameObject);
 
             if (destroyOnPickup)
@@ -28,7 +31,7 @@ public class PowerUpPickup : MonoBehaviour
         }
         else
         {
-            Debug.Log($"Not player. Expected 'Player' tag but got '{other.tag}'");
+            if (logDebug) Debug.Log($"Not player. Expected 'Player' tag but got '{other.tag}'");
         }
     }
 
@@ -51,7 +54,7 @@ public class PowerUpPickup : MonoBehaviour
                 {
                     player.AddComponent<DoubleJumpAbility>();
                     player.GetComponent<PlayerControllerScript>().RefreshAbilities();
-                    Debug.Log("Double Jump Unlocked!");
+                    if (logDebug) Debug.Log("Double Jump Unlocked!");
                 }
                 break;
 
@@ -60,7 +63,7 @@ public class PowerUpPickup : MonoBehaviour
                 {
                     player.AddComponent<DashAbility>();
                     player.GetComponent<PlayerControllerScript>().RefreshAbilities();
-                    Debug.Log("Dash Unlocked!");
+                    if (logDebug) Debug.Log("Dash Unlocked!");
                 }
                 break;
         }

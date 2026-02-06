@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a6c7379cef35f944ca79fed37457bc3c, type: 3}
+  m_Name: SurvivalWaveConfig
+  m_EditorClassIdentifier: Assembly-CSharp::WaveConfig
+  enemyPool:
+  - prefab: {fileID: 1000000000000000, guid: 11223344556677889900aabbccddeeff, type: 3}
+    spawnWeight: 1
+    minWaveToAppear: 1
+  - prefab: {fileID: 2000000000000000, guid: 22334455667788990011aabbccddeeff, type: 3}
+    spawnWeight: 0.8
+    minWaveToAppear: 3
+  - prefab: {fileID: 3000000000000000, guid: 33445566778899001122aabbccddeeff, type: 3}
+    spawnWeight: 0.6
+    minWaveToAppear: 5
+  baseEnemyCount: 3
+  enemiesPerWaveIncrease: 2
+  maxEnemiesAlive: 15
+  healthScalePerWave: 0.15
+  damageScalePerWave: 0.1
+  speedScalePerWave: 0.05
+  restDuration: 3
+  spawnInterval: 0.5

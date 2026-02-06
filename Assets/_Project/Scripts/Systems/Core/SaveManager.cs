@@ -9,12 +9,20 @@ public class SaveManager : MonoBehaviour
 {
     public static SaveManager Instance { get; private set; }
 
-    private const string SAVE_KEY = "GameSave";
+    private const string SAVE_KEY_PREFIX = "GameSave_Slot_";
+    private const string LEGACY_SAVE_KEY = "GameSave";
     private const int CURRENT_SAVE_VERSION = 2;
+    private const int MAX_SAVE_SLOTS = 5;
+
+    [Header("Settings")]
+    [SerializeField] private int activeSlotIndex = 0;
+
+    public int ActiveSlotIndex => activeSlotIndex;
 
     public event Action OnSaveCompleted;
     public event Action OnLoadCompleted;
     public event Action OnSaveDeleted;
+    public event Action<int> OnSlotChanged;
 
     [Serializable]
     public class SaveData
@@ -27,6 +35,9 @@ public class SaveManager : MonoBehaviour
         public int currentHealth;
         public int maxHealth;
 
+        // Character info
+        public string characterName = "Hero";
+
         // Abilities (stored as strings for flexibility)
         public List<string> unlockedAbilities = new List<string>();
 
@@ -35,6 +46,10 @@ public class SaveManager : MonoBehaviour
 
         // Checkpoint
         public string lastCheckpointId = "";
+
+        // Wave/Progress state
+        public int currentWave;
+        public int maxWaveReached;
 
         // Play time (in seconds)
         public float playTime;
@@ -69,6 +84,31 @@ public class SaveManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
 
         sessionStartTime = Time.realtimeSinceStartup;
+        MigrateLegacySave();
+    }
+
+    /// <summary>
+    /// Migrates old single-slot save to new multi-slot system (slot 0).
+    /// </summary>
+    private void MigrateLegacySave()
+    {
+        // Check if legacy save exists and new slot 0 doesn't
+        if (PlayerPrefs.HasKey(LEGACY_SAVE_KEY) && !PlayerPrefs.HasKey(GetSlotKey(0)))
+        {
+            string legacyJson = PlayerPrefs.GetString(LEGACY_SAVE_KEY);
+            PlayerPrefs.SetString(GetSlotKey(0), legacyJson);
+            PlayerPrefs.DeleteKey(LEGACY_SAVE_KEY);
+            PlayerPrefs.Save();
+            Debug.Log("[SaveManager] Migrated legacy save to slot 0");
+        }
+    }
+
+    /// <summary>
+    /// Gets the PlayerPrefs key for a specific slot.
+    /// </summary>
+    private string GetSlotKey(int slotIndex)
+    {
+        return SAVE_KEY_PREFIX + slotIndex;
     }
 
     private void OnDestroy()
@@ -140,22 +180,135 @@ public class SaveManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Saves the current game state.
+    /// Sets the active save slot for subsequent save/load operations.
+    /// </summary>
+    public void SetActiveSlot(int slotIndex)
+    {
+        if (slotIndex < 0 || slotIndex >= MAX_SAVE_SLOTS)
+        {
+            Debug.LogWarning($"[SaveManager] Invalid slot index: {slotIndex}. Must be 0-{MAX_SAVE_SLOTS - 1}");
+            return;
+        }
+
+        if (activeSlotIndex != slotIndex)
+        {
+            activeSlotIndex = slotIndex;
+            OnSlotChanged?.Invoke(activeSlotIndex);
+            Debug.Log($"[SaveManager] Active slot changed to: {slotIndex}");
+        }
+    }
+
+    /// <summary>
+    /// Checks if a specific slot has save data.
+    /// </summary>
+    public bool HasSaveInSlot(int slotIndex)
+    {
+        return PlayerPrefs.HasKey(GetSlotKey(slotIndex));
+    }
+
+    /// <summary>
+    /// Gets metadata for a specific save slot without loading full data.
+    /// </summary>
+    public SaveSlotInfo GetSlotInfo(int slotIndex)
+    {
+        var info = new SaveSlotInfo { slotIndex = slotIndex };
+
+        string key = GetSlotKey(slotIndex);
+        if (!PlayerPrefs.HasKey(key))
+        {
+            info.isEmpty = true;
+            return info;
+        }
+
+        try
+        {
+            string json = PlayerPrefs.GetString(key);
+            SaveData data = JsonUtility.FromJson<SaveData>(json);
+
+            info.isEmpty = false;
+            info.characterName = !string.IsNullOrEmpty(data.characterName) ? data.characterName : "Hero";
+            info.playerLevel = data.skillData?.playerLevel ?? 1;
+            info.playTimeSeconds = data.playTime;
+            info.lastSavedTimestamp = data.saveTimestamp;
+            info.checkpointName = data.lastCheckpointId ?? "";
+            info.currentWave = data.currentWave;
+            info.maxWaveReached = data.maxWaveReached;
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[SaveManager] Failed to parse slot {slotIndex}: {e.Message}");
+            info.isEmpty = true;
+        }
+
+        return info;
+    }
+
+    /// <summary>
+    /// Gets metadata for all save slots.
+    /// </summary>
+    public SaveSlotInfo[] GetAllSlotInfo()
+    {
+        var slots = new SaveSlotInfo[MAX_SAVE_SLOTS];
+        for (int i = 0; i < MAX_SAVE_SLOTS; i++)
+        {
+            slots[i] = GetSlotInfo(i);
+        }
+        return slots;
+    }
+
+    /// <summary>
+    /// Creates a new game in the specified slot.
+    /// </summary>
+    public void CreateNewGame(int slotIndex)
+    {
+        SetActiveSlot(slotIndex);
+
+        // Clear any existing save data for this slot
+        string key = GetSlotKey(slotIndex);
+        if (PlayerPrefs.HasKey(key))
+        {
+            PlayerPrefs.DeleteKey(key);
+        }
+
+        // Reset current save data
+        currentSaveData = null;
+        sessionStartTime = Time.realtimeSinceStartup;
+
+        Debug.Log($"[SaveManager] New game created in slot {slotIndex}");
+    }
+
+    /// <summary>
+    /// Deletes save data from a specific slot.
+    /// </summary>
+    public void DeleteSlot(int slotIndex)
+    {
+        string key = GetSlotKey(slotIndex);
+        if (PlayerPrefs.HasKey(key))
+        {
+            PlayerPrefs.DeleteKey(key);
+            PlayerPrefs.Save();
+            Debug.Log($"[SaveManager] Deleted save in slot {slotIndex}");
+            OnSaveDeleted?.Invoke();
+        }
+    }
+
+    /// <summary>
+    /// Saves the current game state to the active slot.
     /// </summary>
     public void Save()
     {
         currentSaveData = CreateSaveData();
 
         string json = JsonUtility.ToJson(currentSaveData, true);
-        PlayerPrefs.SetString(SAVE_KEY, json);
+        PlayerPrefs.SetString(GetSlotKey(activeSlotIndex), json);
         PlayerPrefs.Save();
 
-        Debug.Log($"[SaveManager] Game saved. Play time: {FormatPlayTime(currentSaveData.playTime)}");
+        Debug.Log($"[SaveManager] Game saved to slot {activeSlotIndex}. Play time: {FormatPlayTime(currentSaveData.playTime)}");
         OnSaveCompleted?.Invoke();
     }
 
     /// <summary>
-    /// Saves to a specific checkpoint.
+    /// Saves to a specific checkpoint in the active slot.
     /// </summary>
     public void SaveAtCheckpoint(string checkpointId)
     {
@@ -163,33 +316,33 @@ public class SaveManager : MonoBehaviour
         currentSaveData.lastCheckpointId = checkpointId;
 
         string json = JsonUtility.ToJson(currentSaveData, true);
-        PlayerPrefs.SetString(SAVE_KEY, json);
+        PlayerPrefs.SetString(GetSlotKey(activeSlotIndex), json);
         PlayerPrefs.Save();
 
-        Debug.Log($"[SaveManager] Saved at checkpoint: {checkpointId}");
+        Debug.Log($"[SaveManager] Saved at checkpoint: {checkpointId} in slot {activeSlotIndex}");
         OnSaveCompleted?.Invoke();
     }
 
     /// <summary>
-    /// Checks if a save file exists.
+    /// Checks if the active slot has save data.
     /// </summary>
     public bool HasSave()
     {
-        return PlayerPrefs.HasKey(SAVE_KEY);
+        return HasSaveInSlot(activeSlotIndex);
     }
 
     /// <summary>
-    /// Loads save data from storage.
+    /// Loads save data from the active slot.
     /// </summary>
     public bool Load()
     {
         if (!HasSave())
         {
-            Debug.Log("[SaveManager] No save data found.");
+            Debug.Log($"[SaveManager] No save data found in slot {activeSlotIndex}.");
             return false;
         }
 
-        string json = PlayerPrefs.GetString(SAVE_KEY);
+        string json = PlayerPrefs.GetString(GetSlotKey(activeSlotIndex));
         currentSaveData = JsonUtility.FromJson<SaveData>(json);
 
         if (currentSaveData.saveVersion < CURRENT_SAVE_VERSION)
@@ -199,7 +352,7 @@ public class SaveManager : MonoBehaviour
 
         sessionStartTime = Time.realtimeSinceStartup;
 
-        Debug.Log($"[SaveManager] Save loaded. Play time: {FormatPlayTime(currentSaveData.playTime)}");
+        Debug.Log($"[SaveManager] Save loaded from slot {activeSlotIndex}. Play time: {FormatPlayTime(currentSaveData.playTime)}");
         OnLoadCompleted?.Invoke();
         return true;
     }
@@ -292,17 +445,17 @@ public class SaveManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Deletes the save file.
+    /// Deletes save data from the active slot.
     /// </summary>
     public void DeleteSave()
     {
         if (HasSave())
         {
-            PlayerPrefs.DeleteKey(SAVE_KEY);
+            PlayerPrefs.DeleteKey(GetSlotKey(activeSlotIndex));
             PlayerPrefs.Save();
             currentSaveData = null;
             sessionStartTime = Time.realtimeSinceStartup;
-            Debug.Log("[SaveManager] Save data deleted.");
+            Debug.Log($"[SaveManager] Save data deleted from slot {activeSlotIndex}.");
             OnSaveDeleted?.Invoke();
         }
     }

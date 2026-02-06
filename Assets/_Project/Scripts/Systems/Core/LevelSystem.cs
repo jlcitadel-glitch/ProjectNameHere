@@ -1,16 +1,14 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// RuneScape-style leveling system with logarithmic XP scaling.
-/// XP required increases exponentially toward max level 99.
-/// Leveling up increases base health and mana by fixed intervals.
+/// Infinite leveling system with RuneScape-inspired exponential XP scaling.
+/// XP required increases exponentially with no practical cap.
+/// Stats scale forever - high level players are genuinely stronger.
 /// </summary>
 public class LevelSystem : MonoBehaviour
 {
-    [Header("Level Settings")]
-    [SerializeField] private int maxLevel = 99;
-
     [Header("Stat Scaling")]
     [SerializeField] private float baseHealth = 100f;
     [SerializeField] private float healthPerLevel = 5f;
@@ -21,19 +19,17 @@ public class LevelSystem : MonoBehaviour
     [SerializeField] private bool debugLogging = false;
 
     private int currentLevel = 1;
-    private int currentXP = 0;
-    private int[] xpTable;
+    private long currentXP = 0;
+    private Dictionary<int, long> xpCache = new Dictionary<int, long>();
 
     private HealthSystem healthSystem;
     private ManaSystem manaSystem;
 
     public int CurrentLevel => currentLevel;
-    public int CurrentXP => currentXP;
-    public int MaxLevel => maxLevel;
-    public int XPForCurrentLevel => GetXPForLevel(currentLevel);
-    public int XPForNextLevel => currentLevel < maxLevel ? GetXPForLevel(currentLevel + 1) : GetXPForLevel(maxLevel);
-    public int XPToNextLevel => currentLevel < maxLevel ? XPForNextLevel - currentXP : 0;
-    public bool IsMaxLevel => currentLevel >= maxLevel;
+    public long CurrentXP => currentXP;
+    public long XPForCurrentLevel => GetXPForLevel(currentLevel);
+    public long XPForNextLevel => GetXPForLevel(currentLevel + 1);
+    public long XPToNextLevel => XPForNextLevel - currentXP;
 
     /// <summary>
     /// Returns progress toward next level as 0-1 float.
@@ -42,22 +38,19 @@ public class LevelSystem : MonoBehaviour
     {
         get
         {
-            if (currentLevel >= maxLevel)
-                return 1f;
+            long currentLevelXP = GetXPForLevel(currentLevel);
+            long nextLevelXP = GetXPForLevel(currentLevel + 1);
+            long xpIntoLevel = currentXP - currentLevelXP;
+            long xpRequired = nextLevelXP - currentLevelXP;
 
-            int currentLevelXP = GetXPForLevel(currentLevel);
-            int nextLevelXP = GetXPForLevel(currentLevel + 1);
-            int xpIntoLevel = currentXP - currentLevelXP;
-            int xpRequired = nextLevelXP - currentLevelXP;
-
-            return xpRequired > 0 ? (float)xpIntoLevel / xpRequired : 1f;
+            return xpRequired > 0 ? (float)xpIntoLevel / xpRequired : 0f;
         }
     }
 
     /// <summary>
     /// Fired when XP is gained. Provides (amount gained, new total XP).
     /// </summary>
-    public event Action<int, int> OnXPGained;
+    public event Action<long, long> OnXPGained;
 
     /// <summary>
     /// Fired when level increases. Provides new level.
@@ -67,11 +60,10 @@ public class LevelSystem : MonoBehaviour
     /// <summary>
     /// Fired when XP changes. Provides (current XP, XP required for next level).
     /// </summary>
-    public event Action<int, int> OnXPChanged;
+    public event Action<long, long> OnXPChanged;
 
     private void Awake()
     {
-        BuildXPTable();
         healthSystem = GetComponent<HealthSystem>();
         manaSystem = GetComponent<ManaSystem>();
     }
@@ -80,12 +72,17 @@ public class LevelSystem : MonoBehaviour
     {
         ApplyStatScaling(refill: false);
         OnXPChanged?.Invoke(currentXP, XPForNextLevel);
+
+        if (debugLogging)
+        {
+            LogMilestones();
+        }
     }
 
     /// <summary>
     /// Adds XP and processes any resulting level-ups.
     /// </summary>
-    public void AddXP(int amount)
+    public void AddXP(long amount)
     {
         if (amount <= 0)
             return;
@@ -94,18 +91,18 @@ public class LevelSystem : MonoBehaviour
 
         if (debugLogging)
         {
-            Debug.Log($"[LevelSystem] Gained {amount} XP. Total: {currentXP}");
+            Debug.Log($"[LevelSystem] Gained {amount:N0} XP. Total: {currentXP:N0}");
         }
 
         OnXPGained?.Invoke(amount, currentXP);
 
-        while (currentLevel < maxLevel && currentXP >= GetXPForLevel(currentLevel + 1))
+        while (currentXP >= GetXPForLevel(currentLevel + 1))
         {
             currentLevel++;
 
             if (debugLogging)
             {
-                Debug.Log($"[LevelSystem] Level up! Now level {currentLevel}");
+                Debug.Log($"[LevelSystem] Level up! Now level {currentLevel}. Next level at {GetXPForLevel(currentLevel + 1):N0} XP");
             }
 
             ApplyStatScaling(refill: true);
@@ -120,7 +117,8 @@ public class LevelSystem : MonoBehaviour
     /// </summary>
     public void SetLevel(int level)
     {
-        level = Mathf.Clamp(level, 1, maxLevel);
+        if (level < 1)
+            level = 1;
 
         if (level == currentLevel)
             return;
@@ -146,32 +144,82 @@ public class LevelSystem : MonoBehaviour
 
     /// <summary>
     /// Returns total XP required to reach the specified level.
+    /// Uses RuneScape formula extended infinitely with caching for performance.
     /// </summary>
-    public int GetXPForLevel(int level)
+    public long GetXPForLevel(int level)
     {
         if (level <= 1)
             return 0;
-        if (level > maxLevel)
-            level = maxLevel;
 
-        return xpTable[level];
+        if (xpCache.TryGetValue(level, out long cachedXP))
+            return cachedXP;
+
+        // Calculate from the highest cached level or from scratch
+        int startLevel = 1;
+        long totalXP = 0;
+
+        // Find highest cached level below target
+        for (int i = level - 1; i >= 1; i--)
+        {
+            if (xpCache.TryGetValue(i, out long foundXP))
+            {
+                startLevel = i;
+                totalXP = foundXP;
+                break;
+            }
+        }
+
+        // Calculate from startLevel to target level
+        for (int lvl = startLevel; lvl < level; lvl++)
+        {
+            // RuneScape formula: floor((level + 300 * 2^(level/7)) / 4)
+            double xpForLevel = Math.Floor((lvl + 300.0 * Math.Pow(2, lvl / 7.0)) / 4.0);
+            totalXP += (long)xpForLevel;
+
+            // Cache intermediate values for future lookups
+            if (!xpCache.ContainsKey(lvl + 1))
+            {
+                xpCache[lvl + 1] = totalXP;
+            }
+        }
+
+        return totalXP;
     }
 
     /// <summary>
     /// Returns the level that corresponds to the given total XP.
+    /// Uses binary search for efficiency with large XP values.
     /// </summary>
-    public int GetLevelFromXP(int xp)
+    public int GetLevelFromXP(long xp)
     {
         if (xp <= 0)
             return 1;
 
-        for (int level = maxLevel; level >= 1; level--)
+        // Binary search to find the level
+        int low = 1;
+        int high = 1000; // Start with reasonable upper bound
+
+        // Expand upper bound if needed
+        while (GetXPForLevel(high) <= xp)
         {
-            if (xp >= xpTable[level])
-                return level;
+            high *= 2;
         }
 
-        return 1;
+        // Binary search
+        while (low < high)
+        {
+            int mid = (low + high + 1) / 2;
+            if (GetXPForLevel(mid) <= xp)
+            {
+                low = mid;
+            }
+            else
+            {
+                high = mid - 1;
+            }
+        }
+
+        return low;
     }
 
     /// <summary>
@@ -191,26 +239,11 @@ public class LevelSystem : MonoBehaviour
     }
 
     /// <summary>
-    /// Pre-calculates the XP table using the RuneScape formula.
+    /// Formats XP value with thousand separators for display.
     /// </summary>
-    private void BuildXPTable()
+    public static string FormatXP(long xp)
     {
-        xpTable = new int[maxLevel + 1];
-        xpTable[1] = 0;
-
-        int totalXP = 0;
-        for (int level = 1; level < maxLevel; level++)
-        {
-            // RuneScape formula: floor((level + 300 * 2^(level/7)) / 4)
-            double xpForLevel = Math.Floor((level + 300.0 * Math.Pow(2, level / 7.0)) / 4.0);
-            totalXP += (int)xpForLevel;
-            xpTable[level + 1] = totalXP;
-        }
-
-        if (debugLogging)
-        {
-            Debug.Log($"[LevelSystem] XP Table built. Level 99 requires {xpTable[99]:N0} XP");
-        }
+        return xp.ToString("N0");
     }
 
     /// <summary>
@@ -227,7 +260,7 @@ public class LevelSystem : MonoBehaviour
 
             if (debugLogging)
             {
-                Debug.Log($"[LevelSystem] Max Health set to {newMaxHealth}");
+                Debug.Log($"[LevelSystem] Max Health set to {newMaxHealth:N0}");
             }
         }
 
@@ -237,8 +270,25 @@ public class LevelSystem : MonoBehaviour
 
             if (debugLogging)
             {
-                Debug.Log($"[LevelSystem] Max Mana set to {newMaxMana}");
+                Debug.Log($"[LevelSystem] Max Mana set to {newMaxMana:N0}");
             }
         }
+    }
+
+    /// <summary>
+    /// Logs XP milestones for debugging and design reference.
+    /// </summary>
+    private void LogMilestones()
+    {
+        Debug.Log("[LevelSystem] === XP Milestones ===");
+        int[] milestones = { 10, 25, 50, 75, 99, 100, 126, 150, 200, 250, 300, 500 };
+        foreach (int level in milestones)
+        {
+            long xp = GetXPForLevel(level);
+            float hp = GetMaxHealthForLevel(level);
+            float mp = GetMaxManaForLevel(level);
+            Debug.Log($"Level {level}: {xp:N0} XP | {hp:N0} HP | {mp:N0} MP");
+        }
+        Debug.Log("[LevelSystem] =====================");
     }
 }

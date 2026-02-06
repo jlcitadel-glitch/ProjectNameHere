@@ -315,7 +315,8 @@ public class CombatController : MonoBehaviour
             return;
         }
 
-        AttackDirection dir = GetAttackDirection();
+        // Always use Forward for combo chain (directional attacks disabled for now)
+        AttackDirection dir = AttackDirection.Forward;
         bool grounded = IsGrounded();
 
         if (logDebugMessages)
@@ -370,18 +371,31 @@ public class CombatController : MonoBehaviour
         if (animator == null)
             return;
 
-        // Use custom trigger from attack data if specified
-        if (!string.IsNullOrEmpty(attack.animationTrigger))
+        string trigger = !string.IsNullOrEmpty(attack.animationTrigger)
+            ? attack.animationTrigger
+            : defaultAttackTrigger;
+
+        if (HasAnimatorParameter(trigger))
         {
             if (logDebugMessages)
-                Debug.Log($"[CombatController] Triggering animation: {attack.animationTrigger}");
-            animator.SetTrigger(attack.animationTrigger);
+                Debug.Log($"[CombatController] Triggering animation: {trigger}");
+            animator.SetTrigger(trigger);
         }
-        else
+        else if (logDebugMessages)
         {
-            // Use default attack trigger
-            animator.SetTrigger(defaultAttackTrigger);
+            Debug.LogWarning($"[CombatController] Animator parameter '{trigger}' not found. " +
+                "Check AttackData.animationTrigger matches your Animator Controller parameters.");
         }
+    }
+
+    private bool HasAnimatorParameter(string paramName)
+    {
+        foreach (var param in animator.parameters)
+        {
+            if (param.name == paramName)
+                return true;
+        }
+        return false;
     }
 
     private AttackDirection GetAttackDirection()

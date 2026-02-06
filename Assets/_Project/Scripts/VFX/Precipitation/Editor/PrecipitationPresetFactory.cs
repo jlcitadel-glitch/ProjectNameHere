@@ -26,6 +26,74 @@ public static class PrecipitationPresetFactory
         }
     }
 
+    [MenuItem("Tools/Precipitation/Migrate Existing Presets")]
+    public static void MigrateExistingPresets()
+    {
+        string[] guids = AssetDatabase.FindAssets("t:PrecipitationPreset", new[] { PRESET_PATH });
+        int migrated = 0;
+
+        foreach (string guid in guids)
+        {
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+            PrecipitationPreset preset = AssetDatabase.LoadAssetAtPath<PrecipitationPreset>(path);
+
+            if (preset == null) continue;
+
+            bool modified = false;
+
+            // Infer type from name if not set
+            if (preset.type == PrecipitationType.Custom || preset.type == PrecipitationType.Rain)
+            {
+                string nameLower = preset.displayName.ToLower();
+                PrecipitationType inferredType = InferTypeFromName(nameLower);
+
+                if (inferredType != preset.type)
+                {
+                    preset.type = inferredType;
+                    modified = true;
+                }
+            }
+
+            // Calculate intensity from emission rate if using default
+            if (Mathf.Approximately(preset.intensity, 0.5f))
+            {
+                // Estimate intensity based on emission rate relative to typical ranges
+                float normalizedEmission = Mathf.InverseLerp(10f, 200f, preset.emissionRate);
+                preset.intensity = Mathf.Clamp01(normalizedEmission);
+                modified = true;
+            }
+
+            if (modified)
+            {
+                EditorUtility.SetDirty(preset);
+                migrated++;
+            }
+        }
+
+        AssetDatabase.SaveAssets();
+        Debug.Log($"[PrecipitationPresetFactory] Migrated {migrated} presets to new format.");
+    }
+
+    private static PrecipitationType InferTypeFromName(string nameLower)
+    {
+        if (nameLower.Contains("rain") || nameLower.Contains("storm"))
+            return PrecipitationType.Rain;
+        if (nameLower.Contains("snow") || nameLower.Contains("blizzard"))
+            return PrecipitationType.Snow;
+        if (nameLower.Contains("ash"))
+            return PrecipitationType.Ash;
+        if (nameLower.Contains("spore"))
+            return PrecipitationType.Spores;
+        if (nameLower.Contains("pollen") || nameLower.Contains("seed"))
+            return PrecipitationType.Pollen;
+        if (nameLower.Contains("dust") || nameLower.Contains("debris"))
+            return PrecipitationType.Dust;
+        if (nameLower.Contains("ember"))
+            return PrecipitationType.Embers;
+
+        return PrecipitationType.Custom;
+    }
+
     [MenuItem("Tools/Precipitation/Create Sample Presets")]
     public static void CreateAllSamplePresets()
     {
@@ -56,14 +124,15 @@ public static class PrecipitationPresetFactory
 
         // Light Rain
         var lightRain = CreatePreset("Rain_Light");
+        lightRain.type = PrecipitationType.Rain;
         lightRain.displayName = "Light Rain";
+        lightRain.intensity = 0.3f;
         lightRain.tint = new Color(0.7f, 0.8f, 0.9f, 0.6f);
         lightRain.sizeRange = new Vector2(0.02f, 0.04f);
         lightRain.emissionRate = 30f;
         lightRain.lifetime = 1.5f;
         lightRain.lifetimeVariation = 0.3f;
         lightRain.maxParticles = 300;
-        lightRain.spawnAreaSize = new Vector2(30f, 1f);
         lightRain.fallSpeed = 12f;
         lightRain.fallSpeedVariation = 2f;
         lightRain.driftAmount = 0.1f;
@@ -79,14 +148,15 @@ public static class PrecipitationPresetFactory
 
         // Heavy Rain
         var heavyRain = CreatePreset("Rain_Heavy");
+        heavyRain.type = PrecipitationType.Rain;
         heavyRain.displayName = "Heavy Rain";
+        heavyRain.intensity = 0.7f;
         heavyRain.tint = new Color(0.6f, 0.7f, 0.85f, 0.7f);
         heavyRain.sizeRange = new Vector2(0.03f, 0.06f);
-        heavyRain.emissionRate = 120f;
+        heavyRain.emissionRate = 80f;
         heavyRain.lifetime = 1.2f;
         heavyRain.lifetimeVariation = 0.2f;
-        heavyRain.maxParticles = 800;
-        heavyRain.spawnAreaSize = new Vector2(35f, 2f);
+        heavyRain.maxParticles = 600;
         heavyRain.fallSpeed = 18f;
         heavyRain.fallSpeedVariation = 3f;
         heavyRain.driftAmount = 0.15f;
@@ -102,14 +172,15 @@ public static class PrecipitationPresetFactory
 
         // Storm Rain
         var stormRain = CreatePreset("Rain_Storm");
+        stormRain.type = PrecipitationType.Rain;
         stormRain.displayName = "Storm Rain";
+        stormRain.intensity = 1.0f;
         stormRain.tint = new Color(0.5f, 0.6f, 0.75f, 0.8f);
         stormRain.sizeRange = new Vector2(0.04f, 0.08f);
-        stormRain.emissionRate = 200f;
+        stormRain.emissionRate = 100f;
         stormRain.lifetime = 1.0f;
         stormRain.lifetimeVariation = 0.2f;
-        stormRain.maxParticles = 1200;
-        stormRain.spawnAreaSize = new Vector2(40f, 3f);
+        stormRain.maxParticles = 600;
         stormRain.fallSpeed = 22f;
         stormRain.fallSpeedVariation = 4f;
         stormRain.driftAmount = 0.3f;
@@ -131,15 +202,16 @@ public static class PrecipitationPresetFactory
 
         // Light Snow
         var lightSnow = CreatePreset("Snow_Light");
+        lightSnow.type = PrecipitationType.Snow;
         lightSnow.displayName = "Light Snow";
+        lightSnow.intensity = 0.3f;
         lightSnow.tint = new Color(1f, 1f, 1f, 0.8f);
         lightSnow.sizeRange = new Vector2(0.04f, 0.1f);
         lightSnow.sizeVariation = 0.5f;
-        lightSnow.emissionRate = 20f;
+        lightSnow.emissionRate = 25f;
         lightSnow.lifetime = 6f;
         lightSnow.lifetimeVariation = 1f;
         lightSnow.maxParticles = 400;
-        lightSnow.spawnAreaSize = new Vector2(30f, 2f);
         lightSnow.fallSpeed = 1.5f;
         lightSnow.fallSpeedVariation = 0.5f;
         lightSnow.driftAmount = 1.2f;
@@ -157,15 +229,16 @@ public static class PrecipitationPresetFactory
 
         // Heavy Snow
         var heavySnow = CreatePreset("Snow_Heavy");
+        heavySnow.type = PrecipitationType.Snow;
         heavySnow.displayName = "Heavy Snow";
+        heavySnow.intensity = 0.7f;
         heavySnow.tint = new Color(0.95f, 0.97f, 1f, 0.9f);
         heavySnow.sizeRange = new Vector2(0.06f, 0.15f);
         heavySnow.sizeVariation = 0.4f;
-        heavySnow.emissionRate = 60f;
+        heavySnow.emissionRate = 50f;
         heavySnow.lifetime = 5f;
         heavySnow.lifetimeVariation = 1f;
-        heavySnow.maxParticles = 600;
-        heavySnow.spawnAreaSize = new Vector2(35f, 3f);
+        heavySnow.maxParticles = 500;
         heavySnow.fallSpeed = 2.5f;
         heavySnow.fallSpeedVariation = 0.8f;
         heavySnow.driftAmount = 1.5f;
@@ -183,15 +256,16 @@ public static class PrecipitationPresetFactory
 
         // Blizzard
         var blizzard = CreatePreset("Snow_Blizzard");
+        blizzard.type = PrecipitationType.Snow;
         blizzard.displayName = "Blizzard";
+        blizzard.intensity = 1.0f;
         blizzard.tint = new Color(0.9f, 0.93f, 1f, 0.85f);
         blizzard.sizeRange = new Vector2(0.05f, 0.12f);
         blizzard.sizeVariation = 0.5f;
-        blizzard.emissionRate = 150f;
+        blizzard.emissionRate = 80f;
         blizzard.lifetime = 4f;
         blizzard.lifetimeVariation = 1f;
-        blizzard.maxParticles = 1000;
-        blizzard.spawnAreaSize = new Vector2(40f, 4f);
+        blizzard.maxParticles = 600;
         blizzard.fallSpeed = 3f;
         blizzard.fallSpeedVariation = 1f;
         blizzard.driftAmount = 2.5f;
@@ -214,15 +288,16 @@ public static class PrecipitationPresetFactory
         EnsureDirectoryExists();
 
         var ash = CreatePreset("Ash_Fall");
+        ash.type = PrecipitationType.Ash;
         ash.displayName = "Ash Fall";
+        ash.intensity = 0.5f;
         ash.tint = new Color(0.4f, 0.4f, 0.42f, 0.7f);
         ash.sizeRange = new Vector2(0.03f, 0.08f);
         ash.sizeVariation = 0.4f;
-        ash.emissionRate = 25f;
+        ash.emissionRate = 30f;
         ash.lifetime = 5f;
         ash.lifetimeVariation = 1f;
         ash.maxParticles = 300;
-        ash.spawnAreaSize = new Vector2(30f, 2f);
         ash.fallSpeed = 2f;
         ash.fallSpeedVariation = 0.6f;
         ash.driftAmount = 1.0f;
@@ -245,15 +320,16 @@ public static class PrecipitationPresetFactory
         EnsureDirectoryExists();
 
         var spores = CreatePreset("Spore_Drift");
+        spores.type = PrecipitationType.Spores;
         spores.displayName = "Spore Drift";
+        spores.intensity = 0.4f;
         spores.tint = new Color(0.6f, 0.9f, 0.5f, 0.6f);
         spores.sizeRange = new Vector2(0.02f, 0.05f);
         spores.sizeVariation = 0.3f;
-        spores.emissionRate = 15f;
+        spores.emissionRate = 20f;
         spores.lifetime = 8f;
         spores.lifetimeVariation = 2f;
         spores.maxParticles = 200;
-        spores.spawnAreaSize = new Vector2(25f, 3f);
         spores.fallSpeed = 0.5f;
         spores.fallSpeedVariation = 0.3f;
         spores.driftAmount = 2.0f;
@@ -276,15 +352,16 @@ public static class PrecipitationPresetFactory
         EnsureDirectoryExists();
 
         var pollen = CreatePreset("Pollen_Seeds");
+        pollen.type = PrecipitationType.Pollen;
         pollen.displayName = "Pollen & Seeds";
+        pollen.intensity = 0.35f;
         pollen.tint = new Color(1f, 0.95f, 0.7f, 0.5f);
         pollen.sizeRange = new Vector2(0.015f, 0.04f);
         pollen.sizeVariation = 0.5f;
-        pollen.emissionRate = 12f;
+        pollen.emissionRate = 15f;
         pollen.lifetime = 10f;
         pollen.lifetimeVariation = 3f;
         pollen.maxParticles = 150;
-        pollen.spawnAreaSize = new Vector2(25f, 4f);
         pollen.fallSpeed = 0.3f;
         pollen.fallSpeedVariation = 0.2f;
         pollen.driftAmount = 2.5f;
@@ -307,15 +384,16 @@ public static class PrecipitationPresetFactory
         EnsureDirectoryExists();
 
         var dust = CreatePreset("Dust_Debris");
+        dust.type = PrecipitationType.Dust;
         dust.displayName = "Dust & Debris";
+        dust.intensity = 0.4f;
         dust.tint = new Color(0.7f, 0.6f, 0.5f, 0.4f);
         dust.sizeRange = new Vector2(0.01f, 0.03f);
         dust.sizeVariation = 0.6f;
-        dust.emissionRate = 20f;
+        dust.emissionRate = 25f;
         dust.lifetime = 6f;
         dust.lifetimeVariation = 2f;
         dust.maxParticles = 250;
-        dust.spawnAreaSize = new Vector2(30f, 5f);
         dust.fallSpeed = 0.4f;
         dust.fallSpeedVariation = 0.3f;
         dust.driftAmount = 1.8f;
@@ -338,16 +416,16 @@ public static class PrecipitationPresetFactory
         EnsureDirectoryExists();
 
         var embers = CreatePreset("Embers");
+        embers.type = PrecipitationType.Embers;
         embers.displayName = "Embers";
+        embers.intensity = 0.45f;
         embers.tint = new Color(1f, 0.5f, 0.1f, 0.9f);
         embers.sizeRange = new Vector2(0.02f, 0.05f);
         embers.sizeVariation = 0.4f;
-        embers.emissionRate = 18f;
+        embers.emissionRate = 20f;
         embers.lifetime = 4f;
         embers.lifetimeVariation = 1f;
         embers.maxParticles = 200;
-        embers.spawnAreaSize = new Vector2(20f, 3f);
-        embers.spawnOffset = new Vector2(0f, 5f); // Can spawn lower
         embers.fallSpeed = -0.5f; // Negative = rise upward!
         embers.fallSpeedVariation = 0.8f;
         embers.driftAmount = 1.2f;
@@ -365,7 +443,9 @@ public static class PrecipitationPresetFactory
 
         // Rising Embers variant (more upward)
         var risingEmbers = CreatePreset("Embers_Rising");
+        risingEmbers.type = PrecipitationType.Embers;
         risingEmbers.displayName = "Rising Embers";
+        risingEmbers.intensity = 0.6f;
         risingEmbers.tint = new Color(1f, 0.6f, 0.2f, 0.85f);
         risingEmbers.sizeRange = new Vector2(0.015f, 0.04f);
         risingEmbers.sizeVariation = 0.5f;
@@ -373,8 +453,6 @@ public static class PrecipitationPresetFactory
         risingEmbers.lifetime = 3f;
         risingEmbers.lifetimeVariation = 0.8f;
         risingEmbers.maxParticles = 250;
-        risingEmbers.spawnAreaSize = new Vector2(15f, 2f);
-        risingEmbers.spawnOffset = new Vector2(0f, -5f); // Spawn below
         risingEmbers.fallSpeed = -2f; // Rise faster
         risingEmbers.fallSpeedVariation = 0.5f;
         risingEmbers.driftAmount = 0.8f;

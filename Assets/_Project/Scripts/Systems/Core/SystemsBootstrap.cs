@@ -18,6 +18,15 @@ public class SystemsBootstrap : MonoBehaviour
     [Tooltip("Create SkillManager if not found")]
     [SerializeField] private bool ensureSkillManager = true;
 
+    [Tooltip("Create MusicManager if not found")]
+    [SerializeField] private bool ensureMusicManager = true;
+
+    [Tooltip("Create SceneLoader if not found")]
+    [SerializeField] private bool ensureSceneLoader = true;
+
+    [Tooltip("Create DisplaySettings if not found")]
+    [SerializeField] private bool ensureDisplaySettings = true;
+
     [Header("Debug")]
     [SerializeField] private bool logCreation = true;
 
@@ -81,6 +90,39 @@ public class SystemsBootstrap : MonoBehaviour
             if (logCreation)
             {
                 Debug.Log("[SystemsBootstrap] Created SkillManager");
+            }
+        }
+
+        // Ensure MusicManager
+        if (ensureMusicManager && MusicManager.Instance == null)
+        {
+            managersGO.AddComponent<MusicManager>();
+
+            if (logCreation)
+            {
+                Debug.Log("[SystemsBootstrap] Created MusicManager");
+            }
+        }
+
+        // Ensure SceneLoader
+        if (ensureSceneLoader && SceneLoader.Instance == null)
+        {
+            managersGO.AddComponent<SceneLoader>();
+
+            if (logCreation)
+            {
+                Debug.Log("[SystemsBootstrap] Created SceneLoader");
+            }
+        }
+
+        // Ensure DisplaySettings
+        if (ensureDisplaySettings && ProjectName.UI.DisplaySettings.Instance == null)
+        {
+            managersGO.AddComponent<ProjectName.UI.DisplaySettings>();
+
+            if (logCreation)
+            {
+                Debug.Log("[SystemsBootstrap] Created DisplaySettings");
             }
         }
 
