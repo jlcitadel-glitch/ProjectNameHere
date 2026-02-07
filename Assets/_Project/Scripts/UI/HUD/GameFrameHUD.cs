@@ -22,6 +22,9 @@ namespace ProjectName.UI
         [SerializeField] private SkillHotbar skillHotbar;
         [SerializeField] private Image bottomFrame;
 
+        [Header("Wave Tracker")]
+        [SerializeField] private TMP_Text waveText;
+
         [Header("Style")]
         [SerializeField] private UIStyleGuide styleGuide;
         [SerializeField] private GothicFrameStyle frameStyle;
@@ -33,6 +36,7 @@ namespace ProjectName.UI
         private HealthSystem healthSystem;
         private ManaSystem manaSystem;
         private LevelSystem levelSystem;
+        private WaveManager waveManager;
 
         private void Start()
         {
@@ -90,6 +94,9 @@ namespace ProjectName.UI
             manaSystem = player.GetComponent<ManaSystem>();
             levelSystem = player.GetComponent<LevelSystem>();
 
+            // Wave manager lives on its own GameObject, not on the player
+            waveManager = FindAnyObjectByType<WaveManager>();
+
             SubscribeToEvents();
             InitializeValues();
         }
@@ -105,6 +112,12 @@ namespace ProjectName.UI
             {
                 manaSystem.OnManaChanged += HandleManaChanged;
             }
+
+            if (waveManager != null)
+            {
+                waveManager.OnWaveStarted += HandleWaveStarted;
+                waveManager.OnWaveCleared += HandleWaveCleared;
+            }
         }
 
         private void UnsubscribeFromEvents()
@@ -117,6 +130,12 @@ namespace ProjectName.UI
             if (manaSystem != null)
             {
                 manaSystem.OnManaChanged -= HandleManaChanged;
+            }
+
+            if (waveManager != null)
+            {
+                waveManager.OnWaveStarted -= HandleWaveStarted;
+                waveManager.OnWaveCleared -= HandleWaveCleared;
             }
         }
 
@@ -141,6 +160,8 @@ namespace ProjectName.UI
             {
                 expBar.SetLevelSystem(levelSystem);
             }
+
+            RefreshWaveDisplay();
         }
 
         private void WireComponents()
@@ -184,6 +205,24 @@ namespace ProjectName.UI
             {
                 manaBar.SetValue(current, max);
             }
+        }
+
+        private void HandleWaveStarted(int wave)
+        {
+            RefreshWaveDisplay();
+        }
+
+        private void HandleWaveCleared(int wave)
+        {
+            RefreshWaveDisplay();
+        }
+
+        private void RefreshWaveDisplay()
+        {
+            if (waveText == null) return;
+
+            int wave = waveManager != null && waveManager.CurrentWave > 0 ? waveManager.CurrentWave : 1;
+            waveText.text = $"Wave {wave}";
         }
 
         /// <summary>
@@ -301,11 +340,44 @@ namespace ProjectName.UI
                 Destroy(oldTopLeft.gameObject);
 
             BuildBottomBar(hud, parent);
+            BuildWaveTracker(hud, parent);
 
             hud.autoWireComponents = false;
 
             Debug.Log("[GameFrameHUD] Runtime UI created (bottom bar layout).");
             return hud;
+        }
+
+        private static void BuildWaveTracker(GameFrameHUD hud, Transform parent)
+        {
+            // Container anchored to top center
+            var waveGo = MakeRect("WaveTracker", parent);
+            var waveRect = waveGo.GetComponent<RectTransform>();
+            waveRect.anchorMin = new Vector2(0.5f, 1f);
+            waveRect.anchorMax = new Vector2(0.5f, 1f);
+            waveRect.pivot = new Vector2(0.5f, 1f);
+            waveRect.anchoredPosition = new Vector2(0, -8f);
+            waveRect.sizeDelta = new Vector2(200f, 36f);
+
+            // Background
+            var waveBg = MakeRect("Background", waveGo.transform);
+            Stretch(waveBg);
+            var waveBgImg = waveBg.AddComponent<Image>();
+            waveBgImg.sprite = WhiteSprite;
+            waveBgImg.color = BlackBg;
+
+            // Text
+            var waveTextGo = MakeRect("WaveText", waveGo.transform);
+            Stretch(waveTextGo);
+            var waveTmp = waveTextGo.AddComponent<TextMeshProUGUI>();
+            waveTmp.text = "Wave 1";
+            waveTmp.fontSize = 20;
+            waveTmp.alignment = TextAlignmentOptions.Center;
+            waveTmp.color = AgedGold;
+            waveTmp.fontStyle = FontStyles.Bold;
+            FontManager.EnsureFont(waveTmp);
+
+            hud.waveText = waveTmp;
         }
 
         private static void BuildBottomBar(GameFrameHUD hud, Transform parent)

@@ -21,7 +21,7 @@ public class GameManager : MonoBehaviour
     }
 
     [Header("State")]
-    [SerializeField] private GameState initialState = GameState.Playing;
+    [SerializeField] private GameState initialState = GameState.MainMenu;
 
     private GameState currentState;
     private GameState previousState;

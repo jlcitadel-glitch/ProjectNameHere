@@ -185,6 +185,30 @@ public class SaveManager : MonoBehaviour
             }
         }
 
+        // Carry over character creation data from current session
+        if (currentSaveData != null)
+        {
+            data.characterName = currentSaveData.characterName;
+            data.startingClass = currentSaveData.startingClass;
+            data.appearanceIndex = currentSaveData.appearanceIndex;
+        }
+
+        // Wave progress
+        var waveManager = UnityEngine.Object.FindAnyObjectByType<WaveManager>();
+        if (waveManager != null)
+        {
+            data.currentWave = waveManager.CurrentWave;
+            data.maxWaveReached = Mathf.Max(
+                waveManager.CurrentWave,
+                currentSaveData?.maxWaveReached ?? 0
+            );
+        }
+        else if (currentSaveData != null)
+        {
+            data.currentWave = currentSaveData.currentWave;
+            data.maxWaveReached = currentSaveData.maxWaveReached;
+        }
+
         // Calculate play time
         if (currentSaveData != null)
         {
@@ -305,7 +329,13 @@ public class SaveManager : MonoBehaviour
         currentSaveData.characterName = !string.IsNullOrEmpty(characterName) ? characterName : "Hero";
         currentSaveData.startingClass = startingClass ?? "";
         currentSaveData.appearanceIndex = appearanceIndex;
+        currentSaveData.currentWave = 1;
         sessionStartTime = Time.realtimeSinceStartup;
+
+        // Persist immediately so save slot shows character info
+        string json = JsonUtility.ToJson(currentSaveData, true);
+        PlayerPrefs.SetString(key, json);
+        PlayerPrefs.Save();
 
         Debug.Log($"[SaveManager] New game created in slot {slotIndex} - {currentSaveData.characterName} ({currentSaveData.startingClass})");
     }
@@ -466,6 +496,11 @@ public class SaveManager : MonoBehaviour
         {
             SkillManager.Instance.ApplySaveData(currentSaveData.skillData);
         }
+        // Set initial job from character creation (for new games without skill save data)
+        else if (SkillManager.Instance != null && !string.IsNullOrEmpty(currentSaveData.startingClass))
+        {
+            SkillManager.Instance.SetStartingJob(currentSaveData.startingClass.ToLower());
+        }
 
         // Apply skill hotbar
         var skillController = player.GetComponent<PlayerSkillController>();
@@ -481,7 +516,56 @@ public class SaveManager : MonoBehaviour
             statSystem.ApplySaveData(currentSaveData.statData);
         }
 
+        // Apply player appearance from job class
+        var playerAppearance = player.GetComponent<PlayerAppearance>();
+        if (playerAppearance != null && SkillManager.Instance?.CurrentJob != null)
+        {
+            playerAppearance.ApplyAppearance(SkillManager.Instance.CurrentJob);
+        }
+
         Debug.Log("[SaveManager] Save data applied to game world.");
+    }
+
+    /// <summary>
+    /// Applies only starting class and appearance for new games.
+    /// Does NOT modify player position or abilities (preserves scene spawn point).
+    /// </summary>
+    public void ApplyNewGameData()
+    {
+        if (currentSaveData == null)
+        {
+            Debug.LogWarning("[SaveManager] No save data for new game.");
+            return;
+        }
+
+        var player = GameObject.FindGameObjectWithTag("Player");
+        if (player == null)
+        {
+            Debug.LogWarning("[SaveManager] Player not found. Cannot apply new game data.");
+            return;
+        }
+
+        // Set starting job from character creation
+        if (SkillManager.Instance != null && !string.IsNullOrEmpty(currentSaveData.startingClass))
+        {
+            SkillManager.Instance.SetStartingJob(currentSaveData.startingClass.ToLower());
+        }
+
+        // Apply stat system defaults
+        var statSystem = player.GetComponent<StatSystem>();
+        if (statSystem != null && currentSaveData.statData != null)
+        {
+            statSystem.ApplySaveData(currentSaveData.statData);
+        }
+
+        // Apply player appearance from job class
+        var playerAppearance = player.GetComponent<PlayerAppearance>();
+        if (playerAppearance != null && SkillManager.Instance?.CurrentJob != null)
+        {
+            playerAppearance.ApplyAppearance(SkillManager.Instance.CurrentJob);
+        }
+
+        Debug.Log($"[SaveManager] New game data applied - Class: {currentSaveData.startingClass}, Name: {currentSaveData.characterName}");
     }
 
     /// <summary>

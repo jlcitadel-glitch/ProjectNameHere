@@ -16,7 +16,6 @@ namespace ProjectName.UI
         [SerializeField] private CanvasGroup canvasGroup;
         [SerializeField] private TMP_Text titleText;
         [SerializeField] private TMP_Text subtitleText;
-        [SerializeField] private Button respawnButton;
         [SerializeField] private Button quitButton;
         [SerializeField] private Image backgroundOverlay;
 
@@ -33,7 +32,6 @@ namespace ProjectName.UI
 
         [Header("Audio")]
         [SerializeField] private AudioClip deathSound;
-        [SerializeField] private AudioClip respawnSound;
 
         private HealthSystem healthSystem;
         private AudioSource audioSource;
@@ -42,7 +40,6 @@ namespace ProjectName.UI
         private bool isShowing;
         private bool textVisible;
 
-        public event Action OnRespawnRequested;
         public event Action OnQuitRequested;
 
         private void Awake()
@@ -145,11 +142,6 @@ namespace ProjectName.UI
 
         private void InitializeButtons()
         {
-            if (respawnButton != null)
-            {
-                respawnButton.onClick.AddListener(HandleRespawn);
-            }
-
             if (quitButton != null)
             {
                 quitButton.onClick.AddListener(HandleQuit);
@@ -268,33 +260,9 @@ namespace ProjectName.UI
 
         private void SetButtonsVisible(bool visible)
         {
-            if (respawnButton != null)
-            {
-                respawnButton.gameObject.SetActive(visible);
-            }
-
             if (quitButton != null)
             {
                 quitButton.gameObject.SetActive(visible);
-            }
-        }
-
-        private void HandleRespawn()
-        {
-            PlaySound(respawnSound);
-            Hide();
-            OnRespawnRequested?.Invoke();
-
-            // Revive player
-            if (healthSystem != null)
-            {
-                healthSystem.Revive();
-            }
-
-            // Resume game
-            if (GameManager.Instance != null)
-            {
-                GameManager.Instance.StartPlaying();
             }
         }
 
@@ -422,7 +390,6 @@ namespace ProjectName.UI
             spacerLayout.preferredHeight = 50f;
 
             // --- Buttons ---
-            var respawnBtn = MakeButton("Respawn", contentGo.transform);
             var quitBtn = MakeButton("Quit to Menu", contentGo.transform);
 
             // --- DeathScreen component (can access private fields from within the class) ---
@@ -430,7 +397,6 @@ namespace ProjectName.UI
             ds.canvasGroup = cg;
             ds.titleText = titleTmp;
             ds.subtitleText = subTmp;
-            ds.respawnButton = respawnBtn;
             ds.quitButton = quitBtn;
             ds.backgroundOverlay = bgImg;
 

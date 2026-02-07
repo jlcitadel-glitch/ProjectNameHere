@@ -671,11 +671,39 @@ public class CombatController : MonoBehaviour
     /// Called when an attack hits a target.
     /// </summary>
     /// <summary>
-    /// Returns the damage multiplier from stats.
+    /// Returns the damage multiplier based on active weapon type, stats, and job class.
+    /// Melee/Ranged use STR-based multiplier + attackModifier.
+    /// Magic uses INT-based multiplier + magicModifier.
     /// </summary>
     public float GetDamageMultiplier()
     {
-        return statSystem != null ? statSystem.MeleeDamageMultiplier : 1f;
+        float statMultiplier;
+        float jobModifier = 1f;
+
+        var currentJob = SkillManager.Instance != null ? SkillManager.Instance.CurrentJob : null;
+
+        if (activeWeaponType == WeaponType.Magic)
+        {
+            statMultiplier = statSystem != null ? statSystem.SkillDamageMultiplier : 1f;
+            if (currentJob != null)
+                jobModifier = currentJob.magicModifier;
+        }
+        else
+        {
+            statMultiplier = statSystem != null ? statSystem.MeleeDamageMultiplier : 1f;
+            if (currentJob != null)
+                jobModifier = currentJob.attackModifier;
+        }
+
+        return statMultiplier * jobModifier;
+    }
+
+    /// <summary>
+    /// Returns the crit chance from agility stats (0-1 range).
+    /// </summary>
+    public float GetCritChance()
+    {
+        return statSystem != null ? statSystem.CritChance : 0f;
     }
 
     public void ReportHit(AttackData attack, Collider2D target)

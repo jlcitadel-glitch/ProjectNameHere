@@ -101,6 +101,13 @@ public class AttackHitbox : MonoBehaviour
         float damageMultiplier = owner != null ? owner.GetDamageMultiplier() : 1f;
         float finalDamage = attackData.baseDamage * damageMultiplier;
 
+        // Crit roll
+        float critChance = owner != null ? owner.GetCritChance() : 0f;
+        if (critChance > 0f && Random.value < critChance)
+        {
+            finalDamage *= 2f;
+        }
+
         // Prefer IDamageable for custom damage handling (knockback resistance, etc.)
         IDamageable damageable = target.GetComponent<IDamageable>();
         if (damageable == null)

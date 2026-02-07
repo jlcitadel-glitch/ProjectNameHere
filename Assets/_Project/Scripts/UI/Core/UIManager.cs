@@ -102,6 +102,9 @@ namespace ProjectName.UI
             // Ensure the stat menu exists for gameplay scenes
             EnsureStatMenu();
 
+            // Ensure the skill tree exists for gameplay scenes
+            EnsureSkillTree();
+
             // Re-setup pause input after scene change in case PlayerInput was recreated
             SetupPauseInput();
         }
@@ -437,6 +440,19 @@ namespace ProjectName.UI
 
             StatMenuController.CreateRuntimeUI();
             Debug.Log("[UIManager] Created runtime StatMenu");
+        }
+
+        private void EnsureSkillTree()
+        {
+            if (IsMainMenuScene())
+                return;
+
+            var existing = FindObjectsByType<SkillTreeController>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            if (existing.Length > 0)
+                return;
+
+            SkillTreeController.CreateRuntimeUI();
+            Debug.Log("[UIManager] Created runtime SkillTree");
         }
 
         private bool IsMainMenuScene()

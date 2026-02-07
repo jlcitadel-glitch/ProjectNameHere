@@ -101,17 +101,8 @@ namespace ProjectName.UI
             fallbackOpenAction = new InputAction("OpenStatMenu", InputActionType.Button, "<Keyboard>/s");
             escapeAction = new InputAction("CloseStatMenu", InputActionType.Button, "<Keyboard>/escape");
 
-            // Wire buttons
-            if (closeButton != null)
-                closeButton.onClick.AddListener(Close);
-            if (allocateStrButton != null)
-                allocateStrButton.onClick.AddListener(() => AllocateStat("str"));
-            if (allocateIntButton != null)
-                allocateIntButton.onClick.AddListener(() => AllocateStat("int"));
-            if (allocateAgiButton != null)
-                allocateAgiButton.onClick.AddListener(() => AllocateStat("agi"));
-            if (resetButton != null)
-                resetButton.onClick.AddListener(ResetAllocations);
+            // Wire buttons (works for scene-placed UI; runtime UI calls WireButtonListeners() after field assignment)
+            WireButtonListeners();
 
             // Start closed
             Close();
@@ -180,6 +171,25 @@ namespace ProjectName.UI
         {
             fallbackOpenAction?.Dispose();
             escapeAction?.Dispose();
+        }
+
+        /// <summary>
+        /// Wires onClick listeners to all buttons. Safe to call multiple times
+        /// (buttons are only wired if non-null and not already connected).
+        /// Called from Awake() for scene-placed UI, and from CreateRuntimeUI() for runtime UI.
+        /// </summary>
+        private void WireButtonListeners()
+        {
+            if (closeButton != null)
+                closeButton.onClick.AddListener(Close);
+            if (allocateStrButton != null)
+                allocateStrButton.onClick.AddListener(() => AllocateStat("str"));
+            if (allocateIntButton != null)
+                allocateIntButton.onClick.AddListener(() => AllocateStat("int"));
+            if (allocateAgiButton != null)
+                allocateAgiButton.onClick.AddListener(() => AllocateStat("agi"));
+            if (resetButton != null)
+                resetButton.onClick.AddListener(ResetAllocations);
         }
 
         private void FindPlayerSystems()
@@ -448,7 +458,7 @@ namespace ProjectName.UI
             if (classText != null)
             {
                 string jobName = SkillManager.Instance?.CurrentJob?.jobName;
-                classText.text = !string.IsNullOrEmpty(jobName) ? jobName : "Adventurer";
+                classText.text = !string.IsNullOrEmpty(jobName) ? $"({jobName})" : "(Adventurer)";
             }
 
             if (playerImage != null && playerSpriteRenderer != null && playerSpriteRenderer.sprite != null)
@@ -766,6 +776,10 @@ namespace ProjectName.UI
             controller.allocateIntButton = intBtn;
             controller.allocateAgiButton = agiBtn;
             controller.resetButton = resetBtn;
+
+            // Wire button listeners now that fields are assigned
+            // (Awake() already ran before fields were set, so listeners were not attached)
+            controller.WireButtonListeners();
 
             Debug.Log("[StatMenuController] Runtime UI created.");
             return controller;

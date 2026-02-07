@@ -96,6 +96,10 @@ public class PlayerControllerScript : MonoBehaviour
         dashAbility = GetComponent<DashAbility>();
         combatController = GetComponent<CombatController>();
         statSystem = GetComponent<StatSystem>();
+        if (statSystem == null)
+        {
+            statSystem = gameObject.AddComponent<StatSystem>();
+        }
 
         // Get animator
         animator = GetComponent<Animator>();

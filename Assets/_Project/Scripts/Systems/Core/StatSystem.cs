@@ -8,7 +8,7 @@ using UnityEngine;
 public class StatSystem : MonoBehaviour
 {
     [Header("Configuration")]
-    [SerializeField] private int statPointsPerLevel = 3;
+    [SerializeField] private int statPointsPerLevel = 5;
 
     [Header("Debug")]
     [SerializeField] private bool debugLogging = false;

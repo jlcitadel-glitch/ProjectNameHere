@@ -99,6 +99,7 @@ namespace ProjectName.UI
             EnsureMusicManager();
             EnsureCharacterCreation();
             AddButtonSounds();
+            AdjustMainMenuLayout();
 
             // Wire credits back button
             if (creditsController != null)
@@ -657,11 +658,9 @@ namespace ProjectName.UI
             string startingClass = characterCreation.SelectedClass != null
                 ? characterCreation.SelectedClass.jobName
                 : "";
-            int appearanceIdx = characterCreation.SelectedAppearanceIndex;
-
             if (SaveManager.Instance != null)
             {
-                SaveManager.Instance.CreateNewGame(slotIndex, charName, startingClass, appearanceIdx);
+                SaveManager.Instance.CreateNewGame(slotIndex, charName, startingClass, 0);
             }
 
             StartNewGame(slotIndex);
@@ -851,6 +850,62 @@ namespace ProjectName.UI
         }
 
         #endregion
+
+        /// <summary>
+        /// Repositions the title and menu buttons at runtime.
+        /// Title gets double spacing from top, buttons move to the middle third.
+        /// Also resizes the save selection panel to fit all slots properly.
+        /// </summary>
+        private void AdjustMainMenuLayout()
+        {
+            var safeArea = transform.Find("SafeArea");
+            Transform parent = safeArea != null ? safeArea : transform;
+
+            // Double the title spacing (move from -80 to -160 from top)
+            var titleGroup = parent.Find("TitleGroup");
+            if (titleGroup != null)
+            {
+                var titleRect = titleGroup.GetComponent<RectTransform>();
+                if (titleRect != null)
+                {
+                    titleRect.anchoredPosition = new Vector2(0, -160);
+                }
+            }
+
+            // Move menu buttons to the middle third
+            if (mainMenuPanel != null)
+            {
+                var menuRect = mainMenuPanel.GetComponent<RectTransform>();
+                if (menuRect != null)
+                {
+                    menuRect.anchorMin = new Vector2(0.5f, 0.4f);
+                    menuRect.anchorMax = new Vector2(0.5f, 0.4f);
+                    menuRect.pivot = new Vector2(0.5f, 0.5f);
+                    menuRect.anchoredPosition = Vector2.zero;
+                }
+            }
+
+            // Resize save selection panel to fit 5 slots comfortably
+            if (saveSelectionPanel != null)
+            {
+                var panelRect = saveSelectionPanel.GetComponent<RectTransform>();
+                if (panelRect != null)
+                {
+                    panelRect.sizeDelta = new Vector2(800, 700);
+                }
+
+                // Increase each slot's height
+                var slots = saveSelectionPanel.GetComponentsInChildren<SaveSlotUI>(true);
+                foreach (var slot in slots)
+                {
+                    var le = slot.GetComponent<LayoutElement>();
+                    if (le != null)
+                    {
+                        le.preferredHeight = 100;
+                    }
+                }
+            }
+        }
 
         private void OnDestroy()
         {

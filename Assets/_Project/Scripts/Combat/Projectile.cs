@@ -136,24 +136,38 @@ public class Projectile : MonoBehaviour
 
     private void ApplyDamage(Collider2D target)
     {
-        HealthSystem healthSystem = target.GetComponent<HealthSystem>();
-        if (healthSystem == null)
+        // Calculate final damage with stat and job multipliers
+        float damageMultiplier = owner != null ? owner.GetDamageMultiplier() : 1f;
+        float finalDamage = attackData.baseDamage * damageMultiplier;
+
+        // Crit roll
+        float critChance = owner != null ? owner.GetCritChance() : 0f;
+        if (critChance > 0f && Random.value < critChance)
         {
-            healthSystem = target.GetComponentInParent<HealthSystem>();
+            finalDamage *= 2f;
         }
 
-        if (healthSystem != null)
-        {
-            healthSystem.TakeDamage(attackData.baseDamage);
-        }
-
+        // Prefer IDamageable for custom damage handling (knockback resistance, etc.)
         IDamageable damageable = target.GetComponent<IDamageable>();
         if (damageable == null)
         {
             damageable = target.GetComponentInParent<IDamageable>();
         }
 
-        damageable?.TakeDamage(attackData.baseDamage, attackData);
+        if (damageable != null)
+        {
+            damageable.TakeDamage(finalDamage, attackData);
+            return;
+        }
+
+        // Fallback to direct HealthSystem if no IDamageable
+        HealthSystem healthSystem = target.GetComponent<HealthSystem>();
+        if (healthSystem == null)
+        {
+            healthSystem = target.GetComponentInParent<HealthSystem>();
+        }
+
+        healthSystem?.TakeDamage(finalDamage);
     }
 
     private void ApplyKnockback(Collider2D target)

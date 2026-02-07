@@ -63,6 +63,7 @@ public class SkillManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
 
         BuildLookupCaches();
+        EnsureRuntimeData();
         InitializeDefaultState();
     }
 
@@ -99,6 +100,276 @@ public class SkillManager : MonoBehaviour
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Creates runtime fallback data when serialized fields are null (AddComponent scenario).
+    /// Only runs when allJobData and allSkillData are both null/empty.
+    /// First tries to find existing ScriptableObject assets before creating duplicates.
+    /// </summary>
+    private void EnsureRuntimeData()
+    {
+        bool hasJobs = allJobData != null && allJobData.Length > 0;
+        bool hasSkills = allSkillData != null && allSkillData.Length > 0;
+
+        if (hasJobs || hasSkills)
+            return;
+
+        // Try to find existing assets before creating runtime fallbacks.
+        // This handles the case where SystemsBootstrap creates SkillManager via
+        // AddComponent (no serialized refs) but real assets exist in the project.
+        var foundJobs = Resources.FindObjectsOfTypeAll<JobClassData>();
+        var foundSkills = Resources.FindObjectsOfTypeAll<SkillData>();
+
+        if (foundJobs.Length > 0 && foundSkills.Length > 0)
+        {
+            allJobData = foundJobs;
+            allSkillData = foundSkills;
+            BuildLookupCaches();
+
+            if (defaultJob == null)
+            {
+                foreach (var job in allJobData)
+                {
+                    if (job.tier == JobTier.Beginner)
+                    {
+                        defaultJob = job;
+                        break;
+                    }
+                }
+            }
+
+            if (logEvents)
+                Debug.Log($"[SkillManager] Found existing assets: {allJobData.Length} jobs, {allSkillData.Length} skills.");
+            return;
+        }
+
+        if (logEvents)
+            Debug.Log("[SkillManager] No serialized data found, creating runtime fallback data.");
+
+        // --- Create Skills (3 per class = 9 total) ---
+
+        // Warrior skills
+        var cleave = CreateSkillData("warrior_cleave", "Cleave", "Sweeping physical attack that hits nearby enemies for {damage} damage.",
+            SkillType.Active, DamageType.Physical, "warrior", tier: 0, position: new Vector2(0, 0),
+            baseDamage: 25f, baseManaCost: 8f, baseCooldown: 3f);
+
+        var ironWill = CreateSkillData("warrior_iron_will", "Iron Will", "Hardens your resolve, reducing damage taken for {duration}s.",
+            SkillType.Buff, DamageType.Physical, "warrior", tier: 1, position: new Vector2(-1, 1),
+            baseDamage: 0f, baseManaCost: 15f, baseCooldown: 12f, baseDuration: 8f, durationPerLevel: 1f,
+            prereqs: new SkillData[] { cleave }, prereqLevels: new int[] { 1 });
+
+        var warCry = CreateSkillData("warrior_war_cry", "War Cry", "Unleash a battle cry that boosts attack power for {duration}s.",
+            SkillType.Buff, DamageType.Physical, "warrior", tier: 1, position: new Vector2(1, 1),
+            baseDamage: 0f, baseManaCost: 20f, baseCooldown: 15f, baseDuration: 10f, durationPerLevel: 1f,
+            prereqs: new SkillData[] { cleave }, prereqLevels: new int[] { 3 });
+
+        // Mage skills
+        var fireball = CreateSkillData("mage_fireball", "Fireball", "Hurls a ball of fire that deals {damage} fire damage.",
+            SkillType.Active, DamageType.Fire, "mage", tier: 0, position: new Vector2(0, 0),
+            baseDamage: 30f, baseManaCost: 12f, baseCooldown: 4f);
+
+        var frostNova = CreateSkillData("mage_frost_nova", "Frost Nova", "Sends out a wave of frost dealing {damage} ice damage to nearby enemies.",
+            SkillType.Active, DamageType.Ice, "mage", tier: 1, position: new Vector2(-1, 1),
+            baseDamage: 20f, baseManaCost: 18f, baseCooldown: 8f,
+            prereqs: new SkillData[] { fireball }, prereqLevels: new int[] { 1 });
+
+        var arcaneShield = CreateSkillData("mage_arcane_shield", "Arcane Shield", "Conjures a magic barrier that absorbs damage for {duration}s.",
+            SkillType.Buff, DamageType.Magic, "mage", tier: 1, position: new Vector2(1, 1),
+            baseDamage: 0f, baseManaCost: 25f, baseCooldown: 18f, baseDuration: 6f, durationPerLevel: 0.5f,
+            prereqs: new SkillData[] { fireball }, prereqLevels: new int[] { 3 });
+
+        // Rogue skills
+        var quickStrike = CreateSkillData("rogue_quick_strike", "Quick Strike", "A lightning-fast melee attack dealing {damage} damage.",
+            SkillType.Active, DamageType.Physical, "rogue", tier: 0, position: new Vector2(0, 0),
+            baseDamage: 18f, baseManaCost: 5f, baseCooldown: 1.5f);
+
+        var shadowStep = CreateSkillData("rogue_shadow_step", "Shadow Step", "Vanish into shadow, dodging all attacks for {duration}s.",
+            SkillType.Buff, DamageType.Dark, "rogue", tier: 1, position: new Vector2(-1, 1),
+            baseDamage: 0f, baseManaCost: 15f, baseCooldown: 10f, baseDuration: 2f, durationPerLevel: 0.3f,
+            prereqs: new SkillData[] { quickStrike }, prereqLevels: new int[] { 1 });
+
+        var poisonBlade = CreateSkillData("rogue_poison_blade", "Poison Blade", "Coats your weapon in poison, dealing {damage} poison damage over time.",
+            SkillType.Buff, DamageType.Poison, "rogue", tier: 1, position: new Vector2(1, 1),
+            baseDamage: 12f, baseManaCost: 10f, baseCooldown: 8f, baseDuration: 5f, durationPerLevel: 0.5f,
+            prereqs: new SkillData[] { quickStrike }, prereqLevels: new int[] { 3 });
+
+        // --- Create Skill Trees ---
+        var warriorTree = CreateSkillTree("warrior_tree", "Warrior Skills", cleave, ironWill, warCry);
+        var mageTree = CreateSkillTree("mage_tree", "Mage Skills", fireball, frostNova, arcaneShield);
+        var rogueTree = CreateSkillTree("rogue_tree", "Rogue Skills", quickStrike, shadowStep, poisonBlade);
+
+        // --- Create Jobs ---
+        var warrior = CreateJobData("warrior", "Warrior", "A stalwart fighter wielding brute strength.",
+            JobTier.First, new Color(0.55f, 0f, 0f), // deep crimson
+            strPerLevel: 3, intPerLevel: 1, agiPerLevel: 1, spPerLevel: 3,
+            warriorTree, new SkillData[] { cleave, ironWill, warCry });
+
+        var mage = CreateJobData("mage", "Mage", "A scholar of the arcane arts.",
+            JobTier.First, new Color(0.1f, 0.1f, 0.44f), // midnight blue
+            strPerLevel: 1, intPerLevel: 3, agiPerLevel: 1, spPerLevel: 3,
+            mageTree, new SkillData[] { fireball, frostNova, arcaneShield });
+
+        var rogue = CreateJobData("rogue", "Rogue", "A swift shadow striking from the dark.",
+            JobTier.First, new Color(0f, 0.3f, 0f), // dark green
+            strPerLevel: 1, intPerLevel: 1, agiPerLevel: 3, spPerLevel: 3,
+            rogueTree, new SkillData[] { quickStrike, shadowStep, poisonBlade });
+
+        var beginner = CreateJobData("beginner", "Beginner", "A novice adventurer ready to choose a path.",
+            JobTier.Beginner, Color.white,
+            strPerLevel: 1, intPerLevel: 1, agiPerLevel: 1, spPerLevel: 3,
+            null, new SkillData[0]);
+        beginner.childJobs = new JobClassData[] { warrior, mage, rogue };
+        warrior.parentJob = beginner;
+        mage.parentJob = beginner;
+        rogue.parentJob = beginner;
+
+        // --- Assign to serialized fields ---
+        allSkillData = new SkillData[] { cleave, ironWill, warCry, fireball, frostNova, arcaneShield, quickStrike, shadowStep, poisonBlade };
+        allJobData = new JobClassData[] { beginner, warrior, mage, rogue };
+        defaultJob = beginner;
+
+        // Rebuild caches with new data
+        BuildLookupCaches();
+
+        if (logEvents)
+            Debug.Log($"[SkillManager] Runtime data created: {allJobData.Length} jobs, {allSkillData.Length} skills.");
+    }
+
+    private SkillData CreateSkillData(string id, string skillName, string description,
+        SkillType skillType, DamageType damageType, string requiredJobId,
+        int tier, Vector2 position, float baseDamage, float baseManaCost, float baseCooldown,
+        float baseDuration = 0f, float durationPerLevel = 0f,
+        SkillData[] prereqs = null, int[] prereqLevels = null)
+    {
+        var skill = ScriptableObject.CreateInstance<SkillData>();
+        skill.skillId = id;
+        skill.skillName = skillName;
+        skill.description = description;
+        skill.skillType = skillType;
+        skill.damageType = damageType;
+        skill.requiredJobId = requiredJobId;
+        skill.requiredPlayerLevel = 1;
+        skill.maxSkillLevel = 10;
+        skill.spCost = 1;
+        skill.baseDamage = baseDamage;
+        skill.baseManaCost = baseManaCost;
+        skill.baseCooldown = baseCooldown;
+        skill.baseDuration = baseDuration;
+        skill.damagePerLevel = baseDamage > 0 ? 5f : 0f;
+        skill.manaCostPerLevel = 2f;
+        skill.cooldownReductionPerLevel = 0.1f;
+        skill.durationPerLevel = durationPerLevel;
+        skill.tier = tier;
+        skill.nodePosition = position;
+        skill.prerequisiteSkills = prereqs;
+        skill.prerequisiteLevels = prereqLevels;
+        skill.name = skillName;
+        return skill;
+    }
+
+    private SkillTreeData CreateSkillTree(string id, string treeName,
+        SkillData rootSkill, SkillData leftBranch, SkillData rightBranch)
+    {
+        var tree = ScriptableObject.CreateInstance<SkillTreeData>();
+        tree.treeId = id;
+        tree.treeName = treeName;
+        tree.name = treeName;
+
+        // V-shape layout: root at top center, two branches below
+        tree.nodes = new SkillTreeData.SkillNode[]
+        {
+            new SkillTreeData.SkillNode
+            {
+                skill = rootSkill,
+                position = new Vector2(0, 0),
+                row = 0,
+                column = 1,
+                childNodeIndices = new int[] { 1, 2 }
+            },
+            new SkillTreeData.SkillNode
+            {
+                skill = leftBranch,
+                position = new Vector2(-1, 1),
+                row = 1,
+                column = 0,
+                childNodeIndices = new int[0]
+            },
+            new SkillTreeData.SkillNode
+            {
+                skill = rightBranch,
+                position = new Vector2(1, 1),
+                row = 1,
+                column = 2,
+                childNodeIndices = new int[0]
+            }
+        };
+
+        // Connections: root -> left, root -> right
+        tree.connections = new SkillTreeData.NodeConnection[]
+        {
+            new SkillTreeData.NodeConnection { fromNodeIndex = 0, toNodeIndex = 1 },
+            new SkillTreeData.NodeConnection { fromNodeIndex = 0, toNodeIndex = 2 }
+        };
+
+        return tree;
+    }
+
+    private JobClassData CreateJobData(string id, string jobName, string description,
+        JobTier tier, Color color, int strPerLevel, int intPerLevel, int agiPerLevel,
+        int spPerLevel, SkillTreeData skillTree, SkillData[] availableSkills)
+    {
+        var job = ScriptableObject.CreateInstance<JobClassData>();
+        job.jobId = id;
+        job.jobName = jobName;
+        job.description = description;
+        job.tier = tier;
+        job.jobColor = color;
+        job.strPerLevel = strPerLevel;
+        job.intPerLevel = intPerLevel;
+        job.agiPerLevel = agiPerLevel;
+        job.spPerLevel = spPerLevel;
+        job.skillTree = skillTree;
+        job.availableSkills = availableSkills;
+        job.requiredLevel = tier == JobTier.Beginner ? 1 : 10;
+        job.bonusSPOnAdvancement = tier == JobTier.Beginner ? 0 : 5;
+        job.attackModifier = 1f;
+        job.magicModifier = 1f;
+        job.defenseModifier = 1f;
+        job.characterAnimator = null;
+        job.idlePreviewFrames = null;
+        job.defaultSprite = null;
+        job.name = jobName;
+        return job;
+    }
+
+    /// <summary>
+    /// Sets the starting job directly (bypasses advancement checks).
+    /// Used for character creation class selection.
+    /// </summary>
+    public void SetStartingJob(string jobId)
+    {
+        if (string.IsNullOrEmpty(jobId))
+            return;
+
+        var job = GetJobData(jobId);
+        if (job == null)
+        {
+            if (logEvents)
+                Debug.LogWarning($"[SkillManager] SetStartingJob: job '{jobId}' not found.");
+            return;
+        }
+
+        var previousJob = currentJob;
+        currentJob = job;
+
+        if (!jobHistory.Contains(job))
+            jobHistory.Add(job);
+
+        if (logEvents)
+            Debug.Log($"[SkillManager] Starting job set: {previousJob?.jobName ?? "None"} -> {job.jobName}");
+
+        OnJobChanged?.Invoke(previousJob, job);
     }
 
     private void InitializeDefaultState()

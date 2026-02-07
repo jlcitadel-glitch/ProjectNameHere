@@ -88,6 +88,19 @@ public class JobClassData : ScriptableObject
     [Tooltip("AGI gained per level from class growth")]
     public int agiPerLevel = 1;
 
+    [Header("Appearance")]
+    [Tooltip("Animator controller for this class (base or override)")]
+    public RuntimeAnimatorController characterAnimator;
+
+    [Tooltip("Sprite frames for idle preview animation in UI")]
+    public Sprite[] idlePreviewFrames;
+
+    [Tooltip("Frame rate for idle preview animation")]
+    public float idlePreviewFrameRate = 6f;
+
+    [Tooltip("Static fallback sprite when no animation is available")]
+    public Sprite defaultSprite;
+
     /// <summary>
     /// Checks if a player meets the requirements to advance to this job.
     /// </summary>

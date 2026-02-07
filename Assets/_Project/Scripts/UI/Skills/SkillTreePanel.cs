@@ -99,6 +99,37 @@ namespace ProjectName.UI
         }
 
         /// <summary>
+        /// Assigns serialized field references from the runtime UI builder.
+        /// </summary>
+        public void SetRuntimeReferences(
+            ScrollRect scrollRect, RectTransform contentContainer,
+            RectTransform nodesContainer, RectTransform connectionsContainer,
+            TMP_Text jobTitleText, Image jobIconImage,
+            TMP_Text spDisplayText, TMP_Text levelDisplayText,
+            GameObject skillInfoPanel, TMP_Text skillNameText,
+            Image skillIconImage, TMP_Text skillDescriptionText,
+            TMP_Text skillStatsText, TMP_Text skillRequirementsText,
+            Button learnButton, TMP_Text learnButtonText)
+        {
+            this.scrollRect = scrollRect;
+            this.contentContainer = contentContainer;
+            this.nodesContainer = nodesContainer;
+            this.connectionsContainer = connectionsContainer;
+            this.jobTitleText = jobTitleText;
+            this.jobIconImage = jobIconImage;
+            this.spDisplayText = spDisplayText;
+            this.levelDisplayText = levelDisplayText;
+            this.skillInfoPanel = skillInfoPanel;
+            this.skillNameText = skillNameText;
+            this.skillIconImage = skillIconImage;
+            this.skillDescriptionText = skillDescriptionText;
+            this.skillStatsText = skillStatsText;
+            this.skillRequirementsText = skillRequirementsText;
+            this.learnButton = learnButton;
+            this.learnButtonText = learnButtonText;
+        }
+
+        /// <summary>
         /// Loads and displays a skill tree.
         /// </summary>
         public void LoadTree(SkillTreeData treeData)

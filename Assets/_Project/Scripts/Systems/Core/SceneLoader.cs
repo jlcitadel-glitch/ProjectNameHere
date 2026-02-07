@@ -110,8 +110,8 @@ public class SceneLoader : MonoBehaviour
         }
         else
         {
-            // Fallback: create new game and load
-            if (SaveManager.Instance != null)
+            // Fallback: create new game and load (only if not already set up by character creation)
+            if (SaveManager.Instance != null && !SaveManager.Instance.HasSaveData)
             {
                 SaveManager.Instance.CreateNewGame(slotIndex);
             }
@@ -149,8 +149,9 @@ public class SceneLoader : MonoBehaviour
             {
                 SaveManager.Instance.Load();
             }
-            else
+            else if (!SaveManager.Instance.HasSaveData)
             {
+                // Only create new game if character creation hasn't already set it up
                 SaveManager.Instance.CreateNewGame(slotIndex);
             }
         }
@@ -185,12 +186,22 @@ public class SceneLoader : MonoBehaviour
         if (loadingScreen != null)
             loadingScreen.SetActive(false);
 
-        // Apply save data after scene is loaded (if loading existing save)
-        if (loadSaveData && SaveManager.Instance != null)
+        // Apply data after scene is loaded
+        if (SaveManager.Instance != null && SaveManager.Instance.HasSaveData)
         {
             // Wait a frame for scene objects to initialize
             yield return null;
-            SaveManager.Instance.ApplyLoadedData();
+
+            if (loadSaveData)
+            {
+                // Full restore for loaded saves (position, abilities, skills, appearance)
+                SaveManager.Instance.ApplyLoadedData();
+            }
+            else
+            {
+                // New game: only apply starting class and appearance, keep scene spawn position
+                SaveManager.Instance.ApplyNewGameData();
+            }
         }
 
         // Set game state to playing

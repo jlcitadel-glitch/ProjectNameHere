@@ -6,7 +6,7 @@ using TMPro;
 namespace ProjectName.UI
 {
     /// <summary>
-    /// Handles the character creation flow: Name -> Class -> Appearance.
+    /// Handles the character creation flow: Name -> Class Selection (with preview) -> Start.
     /// Works with MainMenuController to manage state transitions.
     /// </summary>
     public class CharacterCreationController : MonoBehaviour
@@ -14,8 +14,7 @@ namespace ProjectName.UI
         public enum CreationStep
         {
             NameEntry,
-            ClassSelection,
-            AppearanceSelection
+            ClassSelection
         }
 
         [Header("Name Entry")]
@@ -37,31 +36,31 @@ namespace ProjectName.UI
         [SerializeField] private TMP_Text classStatsPreviewText;
         [SerializeField] private TMP_Text classNameText;
 
-        [Header("Appearance Selection")]
-        [SerializeField] private GameObject appearancePanel;
-        [SerializeField] private Button appearanceLeftButton;
-        [SerializeField] private Button appearanceRightButton;
-        [SerializeField] private Button appearanceBackButton;
-        [SerializeField] private Button appearanceConfirmButton;
-        [SerializeField] private Image appearancePreview;
-        [SerializeField] private Sprite[] appearanceSprites;
+        [Header("Class Preview Images")]
+        [SerializeField] private Image warriorPreviewImage;
+        [SerializeField] private Image magePreviewImage;
+        [SerializeField] private Image roguePreviewImage;
 
         [Header("Job Data References")]
         [SerializeField] private JobClassData warriorData;
         [SerializeField] private JobClassData mageData;
         [SerializeField] private JobClassData rogueData;
 
+        // Animated preview components (added at runtime)
+        private UIAnimatedSprite warriorAnimSprite;
+        private UIAnimatedSprite mageAnimSprite;
+        private UIAnimatedSprite rogueAnimSprite;
+
         // Creation data
         private string characterName = "";
         private JobClassData selectedClass;
-        private int selectedAppearanceIndex;
         private int targetSlotIndex = -1;
         private CreationStep currentStep;
+        private bool classSpritesLoaded;
 
         // Results
         public string CharacterName => characterName;
         public JobClassData SelectedClass => selectedClass;
-        public int SelectedAppearanceIndex => selectedAppearanceIndex;
         public int TargetSlotIndex => targetSlotIndex;
         public CreationStep CurrentStep => currentStep;
 
@@ -98,15 +97,6 @@ namespace ProjectName.UI
             if (classConfirmButton != null)
                 classConfirmButton.onClick.AddListener(OnClassConfirm);
 
-            // Appearance selection
-            if (appearanceLeftButton != null)
-                appearanceLeftButton.onClick.AddListener(() => CycleAppearance(-1));
-            if (appearanceRightButton != null)
-                appearanceRightButton.onClick.AddListener(() => CycleAppearance(1));
-            if (appearanceBackButton != null)
-                appearanceBackButton.onClick.AddListener(OnAppearanceBack);
-            if (appearanceConfirmButton != null)
-                appearanceConfirmButton.onClick.AddListener(OnAppearanceConfirm);
         }
 
         /// <summary>
@@ -118,11 +108,9 @@ namespace ProjectName.UI
             currentStep = CreationStep.NameEntry;
             characterName = "";
             selectedClass = null;
-            selectedAppearanceIndex = 0;
 
             SetPanelActive(nameEntryPanel, true);
             SetPanelActive(classSelectionPanel, false);
-            SetPanelActive(appearancePanel, false);
 
             if (nameInputField != null)
             {
@@ -183,7 +171,16 @@ namespace ProjectName.UI
             currentStep = CreationStep.ClassSelection;
             SetPanelActive(nameEntryPanel, false);
             SetPanelActive(classSelectionPanel, true);
-            SetPanelActive(appearancePanel, false);
+
+            // Load class preview sprites on first show (deferred so assets are in memory)
+            if (!classSpritesLoaded)
+            {
+                classSpritesLoaded = true;
+                TryLoadClassSprites();
+            }
+
+            // Set initial static previews from JobClassData
+            SetInitialPreviews();
 
             // Disable confirm until a class is selected
             if (classConfirmButton != null)
@@ -193,9 +190,9 @@ namespace ProjectName.UI
             if (selectedClass == null)
             {
                 if (classNameText != null)
-                    classNameText.text = "Select a Class";
+                    classNameText.text = "Which road will you travel?";
                 if (classDescriptionText != null)
-                    classDescriptionText.text = "Choose your path.";
+                    classDescriptionText.text = "";
                 if (classStatsPreviewText != null)
                     classStatsPreviewText.text = "";
             }
@@ -224,13 +221,81 @@ namespace ProjectName.UI
 
             if (classStatsPreviewText != null)
             {
-                classStatsPreviewText.text =
-                    $"Growth per Level:\n" +
-                    $"  STR +{classData.strPerLevel}  INT +{classData.intPerLevel}  AGI +{classData.agiPerLevel}\n\n" +
-                    $"Modifiers:\n" +
-                    $"  ATK x{classData.attackModifier:F1}  MAG x{classData.magicModifier:F1}  DEF x{classData.defenseModifier:F1}\n\n" +
-                    $"SP per Level: {classData.spPerLevel}";
+                classStatsPreviewText.text = "";
             }
+
+            // Animate selected class, show static first frame on others
+            UpdatePreviewAnimation(warriorAnimSprite, warriorData, classData == warriorData);
+            UpdatePreviewAnimation(mageAnimSprite, mageData, classData == mageData);
+            UpdatePreviewAnimation(rogueAnimSprite, rogueData, classData == rogueData);
+        }
+
+        /// <summary>
+        /// Plays or stops the animated preview for a class card.
+        /// </summary>
+        private void UpdatePreviewAnimation(UIAnimatedSprite animSprite, JobClassData jobData, bool isSelected)
+        {
+            if (animSprite == null || jobData == null)
+                return;
+
+            if (!HasJobVisualData(jobData))
+                return;
+
+            if (isSelected && jobData.idlePreviewFrames != null && jobData.idlePreviewFrames.Length > 1)
+            {
+                animSprite.Play(jobData.idlePreviewFrames, jobData.idlePreviewFrameRate);
+            }
+            else
+            {
+                // Show static first frame or default sprite
+                Sprite staticSprite = jobData.defaultSprite;
+                if (staticSprite == null && jobData.idlePreviewFrames != null && jobData.idlePreviewFrames.Length > 0)
+                    staticSprite = jobData.idlePreviewFrames[0];
+
+                if (staticSprite != null)
+                    animSprite.SetStaticSprite(staticSprite);
+                else
+                    animSprite.Stop();
+            }
+        }
+
+        /// <summary>
+        /// Sets initial static previews from JobClassData visual fields.
+        /// </summary>
+        private void SetInitialPreviews()
+        {
+            SetInitialPreview(warriorAnimSprite, warriorData, warriorPreviewImage);
+            SetInitialPreview(mageAnimSprite, mageData, magePreviewImage);
+            SetInitialPreview(rogueAnimSprite, rogueData, roguePreviewImage);
+        }
+
+        private void SetInitialPreview(UIAnimatedSprite animSprite, JobClassData jobData, Image previewImage)
+        {
+            if (jobData == null || previewImage == null)
+                return;
+
+            if (!HasJobVisualData(jobData))
+                return;
+
+            Sprite preview = jobData.defaultSprite;
+            if (preview == null && jobData.idlePreviewFrames != null && jobData.idlePreviewFrames.Length > 0)
+                preview = jobData.idlePreviewFrames[0];
+
+            if (preview != null)
+            {
+                previewImage.sprite = preview;
+                previewImage.color = Color.white;
+            }
+        }
+
+        /// <summary>
+        /// Checks if any JobClassData has visual data assigned.
+        /// </summary>
+        private static bool HasJobVisualData(JobClassData jobData)
+        {
+            if (jobData == null) return false;
+            return jobData.defaultSprite != null
+                || (jobData.idlePreviewFrames != null && jobData.idlePreviewFrames.Length > 0);
         }
 
         private void OnClassConfirm()
@@ -238,8 +303,9 @@ namespace ProjectName.UI
             if (selectedClass == null)
                 return;
 
-            UIManager.Instance?.PlaySelectSound();
-            ShowAppearanceSelection();
+            UIManager.Instance?.PlayConfirmSound();
+            HideAllPanels();
+            OnCreationComplete?.Invoke();
         }
 
         private void OnClassBack()
@@ -248,59 +314,6 @@ namespace ProjectName.UI
             ShowNameEntry(targetSlotIndex);
             if (nameInputField != null)
                 nameInputField.text = characterName;
-        }
-
-        #endregion
-
-        #region Appearance Selection
-
-        private void ShowAppearanceSelection()
-        {
-            currentStep = CreationStep.AppearanceSelection;
-            SetPanelActive(nameEntryPanel, false);
-            SetPanelActive(classSelectionPanel, false);
-            SetPanelActive(appearancePanel, true);
-
-            selectedAppearanceIndex = 0;
-            UpdateAppearancePreview();
-        }
-
-        private void CycleAppearance(int direction)
-        {
-            if (appearanceSprites == null || appearanceSprites.Length == 0)
-                return;
-
-            selectedAppearanceIndex += direction;
-
-            if (selectedAppearanceIndex < 0)
-                selectedAppearanceIndex = appearanceSprites.Length - 1;
-            else if (selectedAppearanceIndex >= appearanceSprites.Length)
-                selectedAppearanceIndex = 0;
-
-            UpdateAppearancePreview();
-            UIManager.Instance?.PlaySelectSound();
-        }
-
-        private void UpdateAppearancePreview()
-        {
-            if (appearancePreview != null && appearanceSprites != null
-                && selectedAppearanceIndex < appearanceSprites.Length)
-            {
-                appearancePreview.sprite = appearanceSprites[selectedAppearanceIndex];
-            }
-        }
-
-        private void OnAppearanceConfirm()
-        {
-            UIManager.Instance?.PlayConfirmSound();
-            HideAllPanels();
-            OnCreationComplete?.Invoke();
-        }
-
-        private void OnAppearanceBack()
-        {
-            UIManager.Instance?.PlayCancelSound();
-            ShowClassSelection();
         }
 
         #endregion
@@ -315,7 +328,6 @@ namespace ProjectName.UI
         {
             SetPanelActive(nameEntryPanel, false);
             SetPanelActive(classSelectionPanel, false);
-            SetPanelActive(appearancePanel, false);
         }
 
         #region Runtime UI Builder
@@ -342,8 +354,8 @@ namespace ProjectName.UI
 
             BuildNamePanel(ctrl, rootGo.transform);
             BuildClassPanel(ctrl, rootGo.transform);
-            BuildAppearancePanel(ctrl, rootGo.transform);
             FindJobData(ctrl);
+            LoadClassPreviewSprites(ctrl);
 
             // Awake already ran with null refs (no-op), so bind listeners now
             ctrl.SetupButtons();
@@ -380,62 +392,294 @@ namespace ProjectName.UI
             panel.SetActive(false);
             ctrl.classSelectionPanel = panel;
 
-            var content = MakeContentColumn(panel.transform);
-            MakeLabel(content.transform, "Choose Your Class", 36f);
-            MakeSpacer(content.transform, 20f);
+            // Centered content column, wide enough for 3 large cards
+            var content = MakeUIObject("Content", panel.transform);
+            var contentRt = content.GetComponent<RectTransform>();
+            contentRt.anchorMin = new Vector2(0.5f, 0.5f);
+            contentRt.anchorMax = new Vector2(0.5f, 0.5f);
+            contentRt.pivot = new Vector2(0.5f, 0.5f);
+            contentRt.sizeDelta = new Vector2(2000f, 0f);
 
-            var classRow = MakeHRow(content.transform, 15f, 65f);
-            ctrl.warriorButton = MakeButton(classRow.transform, "Warrior", 160f, 60f);
-            ctrl.mageButton = MakeButton(classRow.transform, "Mage", 160f, 60f);
-            ctrl.rogueButton = MakeButton(classRow.transform, "Rogue", 160f, 60f);
-            MakeSpacer(content.transform, 20f);
+            var contentVlg = content.AddComponent<VerticalLayoutGroup>();
+            contentVlg.childAlignment = TextAnchor.UpperCenter;
+            contentVlg.childControlWidth = true;
+            contentVlg.childControlHeight = true;
+            contentVlg.childForceExpandWidth = true;
+            contentVlg.childForceExpandHeight = false;
+            contentVlg.spacing = 10f;
+            contentVlg.padding = new RectOffset(20, 20, 40, 40);
 
-            ctrl.classNameText = MakeLabel(content.transform, "Select a Class", 28f);
-            MakeSpacer(content.transform, 8f);
-            ctrl.classDescriptionText = MakeLabel(content.transform, "Choose your path.", 20f);
+            var contentCsf = content.AddComponent<ContentSizeFitter>();
+            contentCsf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            // Class cards row
+            var classRow = MakeHRow(content.transform, 80f, 620f);
+
+            ctrl.warriorButton = MakeClassCard(classRow.transform, "Warrior", out var warriorImg);
+            ctrl.warriorPreviewImage = warriorImg;
+
+            ctrl.mageButton = MakeClassCard(classRow.transform, "Mage", out var mageImg);
+            ctrl.magePreviewImage = mageImg;
+
+            ctrl.rogueButton = MakeClassCard(classRow.transform, "Rogue", out var rogueImg);
+            ctrl.roguePreviewImage = rogueImg;
+
+            MakeSpacer(content.transform, 30f);
+            ctrl.classNameText = MakeLabel(content.transform, "Which road will you travel?", 38f);
+            ctrl.classNameText.GetComponent<LayoutElement>().preferredWidth = -1f;
+
+            ctrl.classDescriptionText = MakeLabel(content.transform, "", 26f);
+            ctrl.classDescriptionText.GetComponent<LayoutElement>().preferredWidth = -1f;
             MakeAutoHeight(ctrl.classDescriptionText.gameObject);
-            MakeSpacer(content.transform, 8f);
-            ctrl.classStatsPreviewText = MakeLabel(content.transform, "", 18f);
-            MakeAutoHeight(ctrl.classStatsPreviewText.gameObject);
-            MakeSpacer(content.transform, 20f);
 
-            var navRow = MakeHRow(content.transform, 10f, 50f);
-            ctrl.classBackButton = MakeButton(navRow.transform, "Back", 150f);
-            ctrl.classConfirmButton = MakeButton(navRow.transform, "Next", 150f);
+            ctrl.classStatsPreviewText = MakeLabel(content.transform, "", 24f);
+            ctrl.classStatsPreviewText.GetComponent<LayoutElement>().preferredWidth = -1f;
+            MakeAutoHeight(ctrl.classStatsPreviewText.gameObject);
+
+            var navRow = MakeHRow(content.transform, 20f, 65f);
+            ctrl.classBackButton = MakeButton(navRow.transform, "Back", 220f, 60f);
+            var backTmp = ctrl.classBackButton.GetComponentInChildren<TextMeshProUGUI>();
+            if (backTmp != null) backTmp.fontSize = 28f;
+            ctrl.classConfirmButton = MakeButton(navRow.transform, "Start Game", 280f, 60f);
+            var confirmTmp = ctrl.classConfirmButton.GetComponentInChildren<TextMeshProUGUI>();
+            if (confirmTmp != null) confirmTmp.fontSize = 28f;
             ctrl.classConfirmButton.interactable = false;
         }
 
-        private static void BuildAppearancePanel(CharacterCreationController ctrl, Transform parent)
+        /// <summary>
+        /// Builds a class card: vertical container with preview image on top and button below.
+        /// </summary>
+        private static Button MakeClassCard(Transform parent, string className, out Image previewImage)
         {
-            var panel = MakeDarkPanel(parent, "AppearancePanel");
-            panel.SetActive(false);
-            ctrl.appearancePanel = panel;
+            var cardGo = MakeUIObject(className + "Card", parent);
+            var cardLayout = cardGo.AddComponent<LayoutElement>();
+            cardLayout.preferredWidth = 400f;
+            cardLayout.preferredHeight = 620f;
 
-            var content = MakeContentColumn(panel.transform);
-            MakeLabel(content.transform, "Choose Appearance", 36f);
-            MakeSpacer(content.transform, 20f);
+            var vlg = cardGo.AddComponent<VerticalLayoutGroup>();
+            vlg.childAlignment = TextAnchor.UpperCenter;
+            vlg.childControlWidth = true;
+            vlg.childControlHeight = true;
+            vlg.childForceExpandWidth = true;
+            vlg.childForceExpandHeight = false;
+            vlg.spacing = 12f;
 
-            // Preview image placeholder
-            var previewGo = MakeUIObject("Preview", content.transform);
-            var previewImg = previewGo.AddComponent<Image>();
-            previewImg.color = new Color(0.25f, 0.25f, 0.3f, 1f);
-            previewImg.preserveAspect = true;
-            var previewLayout = previewGo.AddComponent<LayoutElement>();
-            previewLayout.preferredWidth = 128f;
-            previewLayout.preferredHeight = 128f;
-            ctrl.appearancePreview = previewImg;
+            // Preview image container
+            var imgContainer = MakeUIObject("PreviewContainer", cardGo.transform);
+            var containerImg = imgContainer.AddComponent<Image>();
+            containerImg.color = new Color(0.12f, 0.12f, 0.15f, 1f);
+            var containerLayout = imgContainer.AddComponent<LayoutElement>();
+            containerLayout.preferredHeight = 520f;
 
-            MakeLabel(content.transform, "Default Appearance", 18f);
-            MakeSpacer(content.transform, 10f);
+            // Preview image (fills container, preserves aspect ratio)
+            var imgGo = MakeUIObject("Preview", imgContainer.transform);
+            var img = imgGo.AddComponent<Image>();
+            img.preserveAspect = true;
+            img.color = Color.white;
+            var imgRect = imgGo.GetComponent<RectTransform>();
+            imgRect.anchorMin = Vector2.zero;
+            imgRect.anchorMax = Vector2.one;
+            imgRect.offsetMin = Vector2.zero;
+            imgRect.offsetMax = Vector2.zero;
+            previewImage = img;
 
-            var cycleRow = MakeHRow(content.transform, 10f, 50f);
-            ctrl.appearanceLeftButton = MakeButton(cycleRow.transform, "<", 60f);
-            ctrl.appearanceRightButton = MakeButton(cycleRow.transform, ">", 60f);
-            MakeSpacer(content.transform, 20f);
+            // Class button
+            var btn = MakeButton(cardGo.transform, className, 400f, 80f);
+            var btnTmp = btn.GetComponentInChildren<TextMeshProUGUI>();
+            if (btnTmp != null) btnTmp.fontSize = 48f;
 
-            var navRow = MakeHRow(content.transform, 10f, 50f);
-            ctrl.appearanceBackButton = MakeButton(navRow.transform, "Back", 150f);
-            ctrl.appearanceConfirmButton = MakeButton(navRow.transform, "Start Game", 200f);
+            return btn;
+        }
+
+        /// <summary>
+        /// Attempts to load class preview sprites. Called early from CreateRuntimeUI
+        /// and again deferred from ShowClassSelection when more assets are in memory.
+        /// Uses JobClassData visuals when available, falls back to procedural silhouettes.
+        /// </summary>
+        private static void LoadClassPreviewSprites(CharacterCreationController ctrl)
+        {
+            // Ensure UIAnimatedSprite components exist on preview images
+            EnsureAnimatedSprite(ctrl.warriorPreviewImage, ref ctrl.warriorAnimSprite);
+            EnsureAnimatedSprite(ctrl.magePreviewImage, ref ctrl.mageAnimSprite);
+            EnsureAnimatedSprite(ctrl.roguePreviewImage, ref ctrl.rogueAnimSprite);
+
+            // Try JobClassData visuals first, fall back to silhouettes
+            if (!TryApplyJobPreview(ctrl.warriorPreviewImage, ctrl.warriorData))
+            {
+                if (ctrl.warriorPreviewImage != null && ctrl.warriorPreviewImage.sprite == null)
+                {
+                    ctrl.warriorPreviewImage.sprite = MakeCharacterSilhouette(
+                        new Color(0.55f, 0f, 0f), new Color(0.8f, 0.6f, 0.2f));
+                }
+            }
+            if (!TryApplyJobPreview(ctrl.magePreviewImage, ctrl.mageData))
+            {
+                if (ctrl.magePreviewImage != null && ctrl.magePreviewImage.sprite == null)
+                {
+                    ctrl.magePreviewImage.sprite = MakeCharacterSilhouette(
+                        new Color(0.15f, 0.15f, 0.5f), new Color(0.3f, 0.7f, 1f));
+                    ctrl.magePreviewImage.color = Color.white;
+                }
+            }
+            if (!TryApplyJobPreview(ctrl.roguePreviewImage, ctrl.rogueData))
+            {
+                if (ctrl.roguePreviewImage != null && ctrl.roguePreviewImage.sprite == null)
+                {
+                    ctrl.roguePreviewImage.sprite = MakeCharacterSilhouette(
+                        new Color(0.1f, 0.3f, 0.1f), new Color(0.4f, 0.9f, 0.4f));
+                    ctrl.roguePreviewImage.color = Color.white;
+                }
+            }
+        }
+
+        private static void EnsureAnimatedSprite(Image image, ref UIAnimatedSprite animSprite)
+        {
+            if (image == null) return;
+            if (animSprite == null)
+                animSprite = image.gameObject.GetComponent<UIAnimatedSprite>();
+            if (animSprite == null)
+                animSprite = image.gameObject.AddComponent<UIAnimatedSprite>();
+        }
+
+        /// <summary>
+        /// Tries to apply a preview from JobClassData visual fields.
+        /// Returns true if visual data was found and applied.
+        /// </summary>
+        private static bool TryApplyJobPreview(Image image, JobClassData jobData)
+        {
+            if (image == null || jobData == null)
+                return false;
+
+            if (!HasJobVisualData(jobData))
+                return false;
+
+            Sprite preview = jobData.defaultSprite;
+            if (preview == null && jobData.idlePreviewFrames != null && jobData.idlePreviewFrames.Length > 0)
+                preview = jobData.idlePreviewFrames[0];
+
+            if (preview != null)
+            {
+                image.sprite = preview;
+                image.color = Color.white;
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Deferred sprite loading. Called when class panel is first shown,
+        /// giving Unity more time to load asset references into memory.
+        /// Skips HeroKnight fallback if any JobClassData has visual data assigned.
+        /// </summary>
+        private void TryLoadClassSprites()
+        {
+            // If any job has visual data, skip the HeroKnight sprite hunt
+            if (HasJobVisualData(warriorData) || HasJobVisualData(mageData) || HasJobVisualData(rogueData))
+                return;
+
+            Sprite knightSprite = FindSprite("HeroKnight_0");
+
+            if (knightSprite != null)
+            {
+                // Warrior: actual knight sprite
+                if (warriorPreviewImage != null)
+                {
+                    warriorPreviewImage.sprite = knightSprite;
+                    warriorPreviewImage.color = Color.white;
+                }
+
+                // Mage: knight tinted blue until real mage art exists
+                if (magePreviewImage != null)
+                {
+                    magePreviewImage.sprite = knightSprite;
+                    magePreviewImage.color = new Color(0.4f, 0.5f, 1f, 1f);
+                }
+
+                // Rogue: knight tinted green until real rogue art exists
+                if (roguePreviewImage != null)
+                {
+                    roguePreviewImage.sprite = knightSprite;
+                    roguePreviewImage.color = new Color(0.5f, 1f, 0.5f, 1f);
+                }
+            }
+        }
+
+        private static Sprite FindSprite(string spriteName)
+        {
+            // Search all sprites currently in memory (includes AssetDatabase in editor)
+            var allSprites = Resources.FindObjectsOfTypeAll<Sprite>();
+            foreach (var s in allSprites)
+            {
+                if (s.name == spriteName)
+                    return s;
+            }
+
+            // Fallback: search SpriteRenderers on prefabs/objects for the sprite
+            var allRenderers = Resources.FindObjectsOfTypeAll<SpriteRenderer>();
+            foreach (var sr in allRenderers)
+            {
+                if (sr.sprite != null && sr.sprite.name == spriteName)
+                    return sr.sprite;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Generates a 32x32 pixel character silhouette with body and accent colors.
+        /// Used as placeholder until real class art is provided.
+        /// </summary>
+        private static Sprite MakeCharacterSilhouette(Color body, Color accent)
+        {
+            int w = 96, h = 96;
+            var tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+            tex.filterMode = FilterMode.Point;
+            var clear = new Color(0, 0, 0, 0);
+
+            // Fill transparent
+            var pixels = new Color[w * h];
+            for (int i = 0; i < pixels.Length; i++)
+                pixels[i] = clear;
+
+            // Head (rows 78-95, cols 36-59)
+            FillRect(pixels, w, 36, 78, 60, 96, accent);
+            // Neck (rows 72-77, cols 42-53)
+            FillRect(pixels, w, 42, 72, 54, 78, body);
+            // Torso (rows 42-72, cols 30-65)
+            FillRect(pixels, w, 30, 42, 66, 72, body);
+            // Belt/accent stripe (rows 45-50)
+            FillRect(pixels, w, 30, 45, 66, 51, accent);
+            // Left arm (rows 48-72, cols 18-30)
+            FillRect(pixels, w, 18, 48, 30, 72, body);
+            // Right arm (rows 48-72, cols 66-78)
+            FillRect(pixels, w, 66, 48, 78, 72, body);
+            // Left leg (rows 6-42, cols 33-45)
+            FillRect(pixels, w, 33, 6, 45, 42, body);
+            // Right leg (rows 6-42, cols 51-63)
+            FillRect(pixels, w, 51, 6, 63, 42, body);
+            // Boots accent (rows 6-12)
+            FillRect(pixels, w, 33, 6, 45, 12, accent);
+            FillRect(pixels, w, 51, 6, 63, 12, accent);
+            // Shoulder accents
+            FillRect(pixels, w, 24, 66, 33, 72, accent);
+            FillRect(pixels, w, 63, 66, 72, 72, accent);
+
+            tex.SetPixels(pixels);
+            tex.Apply();
+            return Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 96f);
+        }
+
+        private static void FillRect(Color[] pixels, int texWidth, int x0, int y0, int x1, int y1, Color color)
+        {
+            for (int y = y0; y < y1; y++)
+            {
+                for (int x = x0; x < x1; x++)
+                {
+                    if (x >= 0 && x < texWidth && y >= 0 && y < texWidth)
+                        pixels[y * texWidth + x] = color;
+                }
+            }
         }
 
         private static void FindJobData(CharacterCreationController ctrl)
@@ -445,9 +689,23 @@ namespace ProjectName.UI
             {
                 if (string.IsNullOrEmpty(job.jobName)) continue;
                 string n = job.jobName.ToLower();
-                if (n.Contains("warrior") && ctrl.warriorData == null) ctrl.warriorData = job;
-                else if (n.Contains("mage") && ctrl.mageData == null) ctrl.mageData = job;
-                else if (n.Contains("rogue") && ctrl.rogueData == null) ctrl.rogueData = job;
+
+                // Prefer assets with visual data over runtime duplicates without
+                if (n.Contains("warrior"))
+                {
+                    if (ctrl.warriorData == null || (!HasJobVisualData(ctrl.warriorData) && HasJobVisualData(job)))
+                        ctrl.warriorData = job;
+                }
+                else if (n.Contains("mage"))
+                {
+                    if (ctrl.mageData == null || (!HasJobVisualData(ctrl.mageData) && HasJobVisualData(job)))
+                        ctrl.mageData = job;
+                }
+                else if (n.Contains("rogue"))
+                {
+                    if (ctrl.rogueData == null || (!HasJobVisualData(ctrl.rogueData) && HasJobVisualData(job)))
+                        ctrl.rogueData = job;
+                }
             }
 
             // Runtime fallbacks if assets not found (e.g. in builds)
@@ -535,9 +793,9 @@ namespace ProjectName.UI
 
             var vlg = go.AddComponent<VerticalLayoutGroup>();
             vlg.childAlignment = TextAnchor.UpperCenter;
-            vlg.childControlWidth = false;
-            vlg.childControlHeight = false;
-            vlg.childForceExpandWidth = false;
+            vlg.childControlWidth = true;
+            vlg.childControlHeight = true;
+            vlg.childForceExpandWidth = true;
             vlg.childForceExpandHeight = false;
             vlg.spacing = 5f;
             vlg.padding = new RectOffset(20, 20, 20, 20);
@@ -601,8 +859,8 @@ namespace ProjectName.UI
             var go = MakeUIObject("Row", parent);
             var hlg = go.AddComponent<HorizontalLayoutGroup>();
             hlg.childAlignment = TextAnchor.MiddleCenter;
-            hlg.childControlWidth = false;
-            hlg.childControlHeight = false;
+            hlg.childControlWidth = true;
+            hlg.childControlHeight = true;
             hlg.childForceExpandWidth = false;
             hlg.childForceExpandHeight = false;
             hlg.spacing = spacing;
@@ -693,10 +951,6 @@ namespace ProjectName.UI
             if (rogueButton != null) rogueButton.onClick.RemoveAllListeners();
             if (classBackButton != null) classBackButton.onClick.RemoveAllListeners();
             if (classConfirmButton != null) classConfirmButton.onClick.RemoveAllListeners();
-            if (appearanceLeftButton != null) appearanceLeftButton.onClick.RemoveAllListeners();
-            if (appearanceRightButton != null) appearanceRightButton.onClick.RemoveAllListeners();
-            if (appearanceBackButton != null) appearanceBackButton.onClick.RemoveAllListeners();
-            if (appearanceConfirmButton != null) appearanceConfirmButton.onClick.RemoveAllListeners();
         }
     }
 }

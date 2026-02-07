@@ -24,6 +24,7 @@ public class LevelSystem : MonoBehaviour
 
     private HealthSystem healthSystem;
     private ManaSystem manaSystem;
+    private StatSystem statSystem;
 
     public int CurrentLevel => currentLevel;
     public long CurrentXP => currentXP;
@@ -66,6 +67,7 @@ public class LevelSystem : MonoBehaviour
     {
         healthSystem = GetComponent<HealthSystem>();
         manaSystem = GetComponent<ManaSystem>();
+        statSystem = GetComponent<StatSystem>();
     }
 
     private void Start()
@@ -76,6 +78,18 @@ public class LevelSystem : MonoBehaviour
         // Wire level-up to skill manager SP awards
         OnLevelUp += HandleLevelUpForSkills;
 
+        // Recalculate health/mana when stats change (e.g. allocating stat points)
+        if (statSystem != null)
+        {
+            statSystem.OnStatsChanged += HandleStatsChanged;
+        }
+
+        // Recalculate when job class changes (different baseHPBonus/baseMPBonus)
+        if (SkillManager.Instance != null)
+        {
+            SkillManager.Instance.OnJobChanged += HandleJobChanged;
+        }
+
         if (debugLogging)
         {
             LogMilestones();
@@ -85,6 +99,26 @@ public class LevelSystem : MonoBehaviour
     private void OnDestroy()
     {
         OnLevelUp -= HandleLevelUpForSkills;
+
+        if (statSystem != null)
+        {
+            statSystem.OnStatsChanged -= HandleStatsChanged;
+        }
+
+        if (SkillManager.Instance != null)
+        {
+            SkillManager.Instance.OnJobChanged -= HandleJobChanged;
+        }
+    }
+
+    private void HandleStatsChanged()
+    {
+        ApplyStatScaling(refill: false);
+    }
+
+    private void HandleJobChanged(JobClassData previousJob, JobClassData newJob)
+    {
+        ApplyStatScaling(refill: false);
     }
 
     private void HandleLevelUpForSkills(int newLevel)
@@ -270,13 +304,35 @@ public class LevelSystem : MonoBehaviour
         float newMaxHealth = GetMaxHealthForLevel(currentLevel);
         float newMaxMana = GetMaxManaForLevel(currentLevel);
 
+        // Add stat bonuses (Strength -> HP, Intelligence -> Mana)
+        if (statSystem != null)
+        {
+            newMaxHealth += statSystem.BonusMaxHP;
+            newMaxMana += statSystem.BonusMaxMana;
+        }
+
+        // Add job class bonuses (baseHPBonus, baseMPBonus)
+        var currentJob = SkillManager.Instance != null ? SkillManager.Instance.CurrentJob : null;
+        if (currentJob != null)
+        {
+            newMaxHealth += currentJob.baseHPBonus;
+            newMaxMana += currentJob.baseMPBonus;
+        }
+
         if (healthSystem != null)
         {
             healthSystem.SetMaxHealth(newMaxHealth, refill);
 
+            // Apply job defense modifier (higher = less damage taken)
+            if (currentJob != null)
+            {
+                healthSystem.SetDefenseMultiplier(currentJob.defenseModifier);
+            }
+
             if (debugLogging)
             {
-                Debug.Log($"[LevelSystem] Max Health set to {newMaxHealth:N0}");
+                Debug.Log($"[LevelSystem] Max Health set to {newMaxHealth:N0}" +
+                    (currentJob != null ? $", Defense: {currentJob.defenseModifier:F1}x" : ""));
             }
         }
 

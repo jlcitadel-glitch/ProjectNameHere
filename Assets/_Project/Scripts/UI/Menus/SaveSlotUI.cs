@@ -47,6 +47,7 @@ namespace ProjectName.UI
         private void Awake()
         {
             AutoFindReferences();
+            EnsureFilledStateUI();
             SetupButtons();
         }
 
@@ -127,6 +128,140 @@ namespace ProjectName.UI
                 var found = transform.Find("Border");
                 if (found != null) borderImage = found.GetComponent<Image>();
             }
+        }
+
+        /// <summary>
+        /// Creates any missing UI elements and repositions all text for proper layout.
+        /// Handles scenes built before these elements were added.
+        /// Layout: Top row: [Name] [Level] [Wave]  Bottom row: [Class] [PlayTime] [Date]
+        /// </summary>
+        private void EnsureFilledStateUI()
+        {
+            // Ensure FilledState group exists
+            if (filledStateGroup == null)
+            {
+                var go = new GameObject("FilledState", typeof(RectTransform));
+                go.transform.SetParent(transform, false);
+                var rt = go.GetComponent<RectTransform>();
+                rt.anchorMin = new Vector2(0.18f, 0);
+                rt.anchorMax = new Vector2(0.92f, 1);
+                rt.offsetMin = Vector2.zero;
+                rt.offsetMax = Vector2.zero;
+                go.SetActive(false);
+                filledStateGroup = go;
+            }
+            else
+            {
+                // Fix existing FilledState anchors for wider layout
+                var rt = filledStateGroup.GetComponent<RectTransform>();
+                if (rt != null)
+                {
+                    rt.anchorMin = new Vector2(0.18f, 0);
+                    rt.anchorMax = new Vector2(0.92f, 1);
+                    rt.offsetMin = Vector2.zero;
+                    rt.offsetMax = Vector2.zero;
+                }
+            }
+
+            // Ensure EmptyState group exists
+            if (emptyStateGroup == null)
+            {
+                var go = new GameObject("EmptyState", typeof(RectTransform));
+                go.transform.SetParent(transform, false);
+                var rt = go.GetComponent<RectTransform>();
+                rt.anchorMin = new Vector2(0.18f, 0);
+                rt.anchorMax = new Vector2(0.92f, 1);
+                rt.offsetMin = Vector2.zero;
+                rt.offsetMax = Vector2.zero;
+                emptyStateGroup = go;
+
+                if (statusText == null)
+                {
+                    statusText = CreateSlotText(go.transform, "StatusText", "Empty Slot", 20,
+                        TextAlignmentOptions.Left, new Color(0.5f, 0.5f, 0.5f, 1f),
+                        new Vector2(0, 0), new Vector2(1, 1),
+                        new Vector2(10, 0), Vector2.zero);
+                }
+            }
+
+            var parent = filledStateGroup.transform;
+
+            // Top row: Character Name (left), Level (center), Wave (right)
+            characterNameText = EnsureSlotText(characterNameText, parent, "CharacterNameText", "Hero", 22,
+                TextAlignmentOptions.Left, new Color(0.961f, 0.961f, 0.863f, 1f),
+                new Vector2(0, 0.5f), new Vector2(0.45f, 1),
+                new Vector2(10, 4), new Vector2(0, -4));
+            characterNameText.fontStyle = FontStyles.Bold;
+
+            levelText = EnsureSlotText(levelText, parent, "LevelText", "Lv. 1", 20,
+                TextAlignmentOptions.Center, new Color(0.812f, 0.710f, 0.231f, 1f),
+                new Vector2(0.45f, 0.5f), new Vector2(0.65f, 1),
+                new Vector2(0, 4), new Vector2(0, -4));
+
+            waveText = EnsureSlotText(waveText, parent, "WaveText", "", 18,
+                TextAlignmentOptions.Right, new Color(0.545f, 0.545f, 0.7f, 1f),
+                new Vector2(0.65f, 0.5f), new Vector2(1, 1),
+                new Vector2(0, 4), new Vector2(-10, -4));
+
+            // Bottom row: Play Time (left), Date (right)
+            playTimeText = EnsureSlotText(playTimeText, parent, "PlayTimeText", "", 16,
+                TextAlignmentOptions.Left, new Color(0.6f, 0.6f, 0.6f, 1f),
+                new Vector2(0, 0), new Vector2(0.45f, 0.5f),
+                new Vector2(10, 4), new Vector2(0, -4));
+
+            dateText = EnsureSlotText(dateText, parent, "DateText", "", 16,
+                TextAlignmentOptions.Right, new Color(0.5f, 0.5f, 0.5f, 1f),
+                new Vector2(0.45f, 0), new Vector2(1, 0.5f),
+                new Vector2(0, 4), new Vector2(-10, -4));
+        }
+
+        /// <summary>
+        /// Ensures a text element exists and has correct positioning.
+        /// Creates it if missing, repositions it if it already exists.
+        /// </summary>
+        private static TMP_Text EnsureSlotText(TMP_Text existing, Transform parent, string name,
+            string defaultText, float fontSize, TextAlignmentOptions alignment, Color color,
+            Vector2 anchorMin, Vector2 anchorMax, Vector2 offsetMin, Vector2 offsetMax)
+        {
+            if (existing == null)
+            {
+                existing = CreateSlotText(parent, name, defaultText, fontSize,
+                    alignment, color, anchorMin, anchorMax, offsetMin, offsetMax);
+            }
+            else
+            {
+                // Reposition existing element
+                existing.fontSize = fontSize;
+                existing.alignment = alignment;
+                var rt = existing.GetComponent<RectTransform>();
+                if (rt != null)
+                {
+                    rt.anchorMin = anchorMin;
+                    rt.anchorMax = anchorMax;
+                    rt.offsetMin = offsetMin;
+                    rt.offsetMax = offsetMax;
+                }
+            }
+            return existing;
+        }
+
+        private static TMP_Text CreateSlotText(Transform parent, string name, string text,
+            float fontSize, TextAlignmentOptions alignment, Color color,
+            Vector2 anchorMin, Vector2 anchorMax, Vector2 offsetMin, Vector2 offsetMax)
+        {
+            var go = new GameObject(name, typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            var tmp = go.AddComponent<TextMeshProUGUI>();
+            tmp.text = text;
+            tmp.fontSize = fontSize;
+            tmp.alignment = alignment;
+            tmp.color = color;
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = anchorMin;
+            rt.anchorMax = anchorMax;
+            rt.offsetMin = offsetMin;
+            rt.offsetMax = offsetMax;
+            return tmp;
         }
 
         private void SetupButtons()

@@ -13,6 +13,7 @@ public class HealthSystem : MonoBehaviour
 
     private float currentHealth;
     private float invulnerabilityTimer;
+    private float defenseMultiplier = 1f;
     private Animator animator;
     private bool animationTriggersEnabled = true;
     private static readonly int AnimHurt = Animator.StringToHash("Hurt");
@@ -80,7 +81,9 @@ public class HealthSystem : MonoBehaviour
         if (IsInvulnerable && !ignoreInvulnerability)
             return 0f;
 
-        float actualDamage = Mathf.Min(amount, currentHealth);
+        // Apply defense reduction (higher defenseMultiplier = less damage taken)
+        float reducedAmount = defenseMultiplier > 0f ? amount / defenseMultiplier : amount;
+        float actualDamage = Mathf.Min(reducedAmount, currentHealth);
         currentHealth -= actualDamage;
 
         invulnerabilityTimer = invulnerabilityDuration;
@@ -197,6 +200,15 @@ public class HealthSystem : MonoBehaviour
     public void SetInvulnerabilityDuration(float duration)
     {
         invulnerabilityDuration = Mathf.Max(0f, duration);
+    }
+
+    /// <summary>
+    /// Sets the defense multiplier. Higher values = less damage taken.
+    /// e.g., 1.2 = take 83% damage (Warrior), 0.8 = take 125% damage (Mage).
+    /// </summary>
+    public void SetDefenseMultiplier(float multiplier)
+    {
+        defenseMultiplier = Mathf.Max(0.01f, multiplier);
     }
 
     /// <summary>
