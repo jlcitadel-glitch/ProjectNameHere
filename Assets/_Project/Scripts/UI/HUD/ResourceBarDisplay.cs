@@ -218,7 +218,8 @@ namespace ProjectName.UI
             if (Mathf.Approximately(displayedValue, targetValue))
                 return;
 
-            displayedValue = Mathf.Lerp(displayedValue, targetValue, smoothSpeed * Time.deltaTime);
+            // Use unscaledDeltaTime so bar animates even when time is paused (e.g. stat menu open)
+            displayedValue = Mathf.Lerp(displayedValue, targetValue, smoothSpeed * Time.unscaledDeltaTime);
 
             if (Mathf.Abs(displayedValue - targetValue) < 0.001f)
             {
@@ -248,7 +249,7 @@ namespace ProjectName.UI
             if (!isPulsing || fillImage == null)
                 return;
 
-            pulseTimer += Time.deltaTime * pulseSpeed;
+            pulseTimer += Time.unscaledDeltaTime * pulseSpeed;
             float pulse = Mathf.Sin(pulseTimer * Mathf.PI * 2f) * pulseIntensity;
 
             Color baseColor = useGradient && resourceGradient != null
@@ -324,6 +325,15 @@ namespace ProjectName.UI
                 fillImage.color = fillColor;
             if (backgroundImage != null)
                 backgroundImage.color = bgColor;
+        }
+
+        /// <summary>
+        /// Sets the label format string. Use {0} for current and {1} for max.
+        /// Example: "HP {0}/{1}" displays as "HP 100/100".
+        /// </summary>
+        public void SetLabelFormat(string format)
+        {
+            labelFormat = format;
         }
 
         /// <summary>

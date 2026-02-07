@@ -80,6 +80,10 @@ namespace ProjectName.UI
 
             // Start closed
             Close();
+
+            // Disable canvas rendering to prevent overlay flash on load
+            if (skillTreeCanvas != null)
+                skillTreeCanvas.enabled = false;
         }
 
         private void OnEnable()
@@ -206,7 +210,10 @@ namespace ProjectName.UI
 
             isOpen = true;
 
-            // Show canvas using CanvasGroup (don't use SetActive - keeps controller running)
+            // Enable canvas rendering
+            if (skillTreeCanvas != null)
+                skillTreeCanvas.enabled = true;
+
             if (skillTreeCanvasGroup != null)
             {
                 skillTreeCanvasGroup.alpha = 1f;
@@ -262,6 +269,10 @@ namespace ProjectName.UI
                 skillTreeCanvasGroup.interactable = false;
                 skillTreeCanvasGroup.blocksRaycasts = false;
             }
+
+            // Disable canvas rendering when closed
+            if (skillTreeCanvas != null)
+                skillTreeCanvas.enabled = false;
 
             // Restore time if we froze it
             if (pauseGameWhenOpen)

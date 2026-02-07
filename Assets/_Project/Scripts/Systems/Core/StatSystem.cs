@@ -54,6 +54,9 @@ public class StatSystem : MonoBehaviour
 
     private void Start()
     {
+        // Retry in Start in case LevelSystem was added dynamically during Awake
+        if (levelSystem == null) levelSystem = GetComponent<LevelSystem>();
+
         if (levelSystem != null)
         {
             levelSystem.OnLevelUp += HandleLevelUp;
@@ -142,26 +145,6 @@ public class StatSystem : MonoBehaviour
         OnStatPointsChanged?.Invoke(availableStatPoints);
         OnStatsChanged?.Invoke();
         return true;
-    }
-
-    /// <summary>
-    /// Refunds all manually allocated stat points.
-    /// </summary>
-    public void ResetAllocations()
-    {
-        int refunded = allocatedStrength + allocatedIntelligence + allocatedAgility;
-        availableStatPoints += refunded;
-        allocatedStrength = 0;
-        allocatedIntelligence = 0;
-        allocatedAgility = 0;
-
-        if (debugLogging)
-        {
-            Debug.Log($"[StatSystem] Reset allocations. Refunded {refunded} points.");
-        }
-
-        OnStatPointsChanged?.Invoke(availableStatPoints);
-        OnStatsChanged?.Invoke();
     }
 
     /// <summary>

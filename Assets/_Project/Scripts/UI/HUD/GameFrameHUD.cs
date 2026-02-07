@@ -90,7 +90,16 @@ namespace ProjectName.UI
                 return;
             }
 
-            healthSystem = player.GetComponent<HealthSystem>();
+            var newHealthSystem = player.GetComponent<HealthSystem>();
+
+            // Already subscribed to this exact instance — skip
+            if (newHealthSystem != null && newHealthSystem == healthSystem)
+                return;
+
+            // Unsubscribe from old references before re-binding
+            UnsubscribeFromEvents();
+
+            healthSystem = newHealthSystem;
             manaSystem = player.GetComponent<ManaSystem>();
             levelSystem = player.GetComponent<LevelSystem>();
 
@@ -99,6 +108,15 @@ namespace ProjectName.UI
 
             SubscribeToEvents();
             InitializeValues();
+        }
+
+        /// <summary>
+        /// Re-finds player systems after scene transitions.
+        /// Called by UIManager when a new gameplay scene loads.
+        /// </summary>
+        public void RebindPlayerSystems()
+        {
+            FindPlayerSystems();
         }
 
         private void SubscribeToEvents()
@@ -541,6 +559,7 @@ namespace ProjectName.UI
 
             barComp.SetReferences(fillImg, bgImg, labelTmp);
             barComp.ConfigureForRuntime(fillColor, bgColor);
+            barComp.SetLabelFormat($"{labelPrefix} {{0}}/{{1}}");
             return barComp;
         }
 

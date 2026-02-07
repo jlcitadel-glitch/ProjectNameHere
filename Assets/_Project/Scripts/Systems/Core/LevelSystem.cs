@@ -72,6 +72,12 @@ public class LevelSystem : MonoBehaviour
 
     private void Start()
     {
+        // Retry component lookups in Start (all Awakes have run, so dynamically
+        // added components like StatSystem from PlayerControllerScript are available)
+        if (healthSystem == null) healthSystem = GetComponent<HealthSystem>();
+        if (manaSystem == null) manaSystem = GetComponent<ManaSystem>();
+        if (statSystem == null) statSystem = GetComponent<StatSystem>();
+
         ApplyStatScaling(refill: false);
         OnXPChanged?.Invoke(currentXP, XPForNextLevel);
 

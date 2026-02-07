@@ -409,7 +409,11 @@ namespace ProjectName.UI
                 // Check if the bottom bar content already exists
                 var bottomBar = searchRoot.Find("BottomBar");
                 if (bottomBar != null)
+                {
+                    // Re-bind to new scene's Player systems
+                    frameHUD.RebindPlayerSystems();
                     return;
+                }
             }
 
             GameFrameHUD.CreateRuntimeUI(hudCanvas);

@@ -43,7 +43,6 @@ namespace ProjectName.UI
         [SerializeField] private Button allocateStrButton;
         [SerializeField] private Button allocateIntButton;
         [SerializeField] private Button allocateAgiButton;
-        [SerializeField] private Button resetButton;
 
         [Header("Input")]
         [SerializeField] private InputActionReference openStatMenuAction;
@@ -106,6 +105,10 @@ namespace ProjectName.UI
 
             // Start closed
             Close();
+
+            // Disable canvas rendering to prevent overlay flash on load
+            if (statMenuCanvas != null)
+                statMenuCanvas.enabled = false;
         }
 
         private void OnEnable()
@@ -188,8 +191,6 @@ namespace ProjectName.UI
                 allocateIntButton.onClick.AddListener(() => AllocateStat("int"));
             if (allocateAgiButton != null)
                 allocateAgiButton.onClick.AddListener(() => AllocateStat("agi"));
-            if (resetButton != null)
-                resetButton.onClick.AddListener(ResetAllocations);
         }
 
         private void FindPlayerSystems()
@@ -325,6 +326,10 @@ namespace ProjectName.UI
 
             isOpen = true;
 
+            // Enable canvas rendering
+            if (statMenuCanvas != null)
+                statMenuCanvas.enabled = true;
+
             if (statMenuCanvasGroup != null)
             {
                 statMenuCanvasGroup.alpha = 1f;
@@ -364,6 +369,10 @@ namespace ProjectName.UI
                 statMenuCanvasGroup.blocksRaycasts = false;
             }
 
+            // Disable canvas rendering when closed
+            if (statMenuCanvas != null)
+                statMenuCanvas.enabled = false;
+
             if (pauseGameWhenOpen)
             {
                 Time.timeScale = 1f;
@@ -388,14 +397,6 @@ namespace ProjectName.UI
             {
                 RefreshDisplay();
             }
-        }
-
-        private void ResetAllocations()
-        {
-            if (statSystem == null) return;
-
-            statSystem.ResetAllocations();
-            RefreshDisplay();
         }
 
         private void RefreshDisplay()
@@ -712,37 +713,6 @@ namespace ProjectName.UI
             var spdTmp = BuildStatCell(agiRow.transform, "Speed", "Speed: x1.01", 0.28f, 0.56f);
             var critTmp = BuildStatCell(agiRow.transform, "Crit", "Crit: 0.5%", 0.58f, 0.95f);
 
-            // --- Reset button (centered at bottom) ---
-            var resetGo = MakeRect("ResetButton", panelGo.transform);
-            var resetRect = resetGo.GetComponent<RectTransform>();
-            resetRect.anchorMin = new Vector2(0.5f, 0);
-            resetRect.anchorMax = new Vector2(0.5f, 0);
-            resetRect.pivot = new Vector2(0.5f, 0);
-            resetRect.anchoredPosition = new Vector2(0, 20);
-            resetRect.sizeDelta = new Vector2(200, 40);
-
-            var resetImg = resetGo.AddComponent<Image>();
-            resetImg.sprite = WhiteSprite;
-            resetImg.color = BtnNormal;
-
-            var resetBtn = resetGo.AddComponent<Button>();
-            var resetColors = resetBtn.colors;
-            resetColors.normalColor = BtnNormal;
-            resetColors.highlightedColor = BtnHover;
-            resetColors.pressedColor = BtnPress;
-            resetColors.selectedColor = BtnHover;
-            resetColors.fadeDuration = 0.1f;
-            resetBtn.colors = resetColors;
-
-            var resetTextGo = MakeRect("Text", resetGo.transform);
-            Stretch(resetTextGo);
-            var resetTmp = resetTextGo.AddComponent<TextMeshProUGUI>();
-            resetTmp.text = "Reset Points";
-            resetTmp.fontSize = 18;
-            resetTmp.color = BoneWhite;
-            resetTmp.alignment = TextAlignmentOptions.Center;
-            FontManager.EnsureFont(resetTmp);
-
             // --- Wire up StatMenuController component ---
             var controller = canvasGo.AddComponent<StatMenuController>();
             controller.statMenuCanvas = canvas;
@@ -775,7 +745,6 @@ namespace ProjectName.UI
             controller.allocateStrButton = strBtn;
             controller.allocateIntButton = intBtn;
             controller.allocateAgiButton = agiBtn;
-            controller.resetButton = resetBtn;
 
             // Wire button listeners now that fields are assigned
             // (Awake() already ran before fields were set, so listeners were not attached)
