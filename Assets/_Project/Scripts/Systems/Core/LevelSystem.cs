@@ -119,7 +119,22 @@ public class LevelSystem : MonoBehaviour
 
     private void HandleStatsChanged()
     {
+        float oldMaxHealth = healthSystem != null ? healthSystem.MaxHealth : 0f;
+        float oldMaxMana = manaSystem != null ? manaSystem.MaxMana : 0f;
+
         ApplyStatScaling(refill: false);
+
+        // Grant the increase to current health/mana (not just the ceiling)
+        if (healthSystem != null)
+        {
+            float delta = healthSystem.MaxHealth - oldMaxHealth;
+            if (delta > 0f) healthSystem.Heal(delta);
+        }
+        if (manaSystem != null)
+        {
+            float delta = manaSystem.MaxMana - oldMaxMana;
+            if (delta > 0f) manaSystem.RestoreMana(delta);
+        }
     }
 
     private void HandleJobChanged(JobClassData previousJob, JobClassData newJob)
