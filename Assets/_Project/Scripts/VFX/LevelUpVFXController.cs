@@ -1,27 +1,29 @@
 using UnityEngine;
+using System.Collections;
 
 /// <summary>
-/// Spawns a level-up VFX at the player's position when LevelSystem.OnLevelUp fires.
-/// Creates radial burst + vertical column particle systems programmatically.
-/// Attach to the Player GameObject.
+/// Spawns a tall glowing beam from the player on level-up.
+/// Uses sprite-based rendering for a solid beam-of-light look.
+/// Attach to the Player GameObject (requires LevelSystem).
 /// </summary>
 public class LevelUpVFXController : MonoBehaviour
 {
-    [Header("Radial Burst")]
-    [SerializeField] private int burstCount = 30;
-    [SerializeField] private float burstSpeed = 4f;
-    [SerializeField] private float burstLifetime = 0.5f;
-    [SerializeField] private float burstRadius = 0.5f;
+    [Header("Beam Dimensions")]
+    [SerializeField] private float beamWidth = 6f;
+    [SerializeField] private float beamHeight = 25f;
 
-    [Header("Vertical Column")]
-    [SerializeField] private float columnEmissionRate = 40f;
-    [SerializeField] private float columnDuration = 1f;
-    [SerializeField] private float columnSpeed = 3f;
-    [SerializeField] private float columnLifetime = 0.8f;
+    [Header("Beam Color")]
+    [SerializeField] private Color beamColor = new Color(0f, 0.808f, 0.820f, 0.85f);
+    [SerializeField] private Color coreColor = new Color(0.3f, 0.85f, 1f, 0.95f);
 
-    [Header("Camera Shake")]
-    [SerializeField] private float shakeMagnitude = 0.15f;
-    [SerializeField] private float shakeDuration = 0.3f;
+    [Header("Timing")]
+    [SerializeField] private float riseTime = 0.15f;
+    [SerializeField] private float holdTime = 0.6f;
+    [SerializeField] private float fadeTime = 0.5f;
+
+    [Header("Screen Flash")]
+    [SerializeField] private float flashAlpha = 0.2f;
+    [SerializeField] private float flashDuration = 0.2f;
 
     private LevelSystem levelSystem;
 
@@ -44,149 +46,221 @@ public class LevelUpVFXController : MonoBehaviour
 
     private void HandleLevelUp(int newLevel)
     {
-        SpawnLevelUpVFX();
+        StartCoroutine(PlayBeamSequence());
 
-        // Camera shake
-        AdvancedCameraController cam = FindAnyObjectByType<AdvancedCameraController>();
-        if (cam != null)
+        if (ScreenFlash.Instance != null)
         {
-            cam.Shake(shakeMagnitude, shakeDuration);
+            ScreenFlash.Instance.Flash(new Color(beamColor.r, beamColor.g, beamColor.b, flashAlpha), flashDuration);
         }
     }
 
-    private void SpawnLevelUpVFX()
+    private IEnumerator PlayBeamSequence()
     {
-        GameObject vfxRoot = new GameObject("LevelUpVFX");
-        vfxRoot.transform.position = transform.position;
+        GameObject vfxRoot = new GameObject("LevelUpBeamVFX");
+        vfxRoot.transform.SetParent(transform, false);
+        vfxRoot.transform.localPosition = Vector3.zero;
 
-        CreateRadialBurst(vfxRoot.transform);
-        CreateVerticalColumn(vfxRoot.transform);
+        // Outer glow beam
+        SpriteRenderer outerBeam = CreateBeamSprite(vfxRoot.transform, "OuterGlow",
+            beamWidth, beamHeight, beamColor, 14);
 
-        vfxRoot.AddComponent<SelfDestructVFX>();
-    }
+        // Inner bright core (narrower, brighter)
+        SpriteRenderer innerCore = CreateBeamSprite(vfxRoot.transform, "InnerCore",
+            beamWidth * 0.6f, beamHeight, coreColor, 15);
 
-    private void CreateRadialBurst(Transform parent)
-    {
-        GameObject burstObj = new GameObject("RadialBurst");
-        burstObj.transform.SetParent(parent, false);
+        // Base glow at feet
+        SpriteRenderer baseGlow = CreateBaseGlow(vfxRoot.transform, 16);
 
-        ParticleSystem ps = burstObj.AddComponent<ParticleSystem>();
-        var main = ps.main;
-        main.startLifetime = burstLifetime;
-        main.startSpeed = new ParticleSystem.MinMaxCurve(burstSpeed * 0.6f, burstSpeed);
-        main.startSize = new ParticleSystem.MinMaxCurve(0.1f, 0.2f);
-        main.simulationSpace = ParticleSystemSimulationSpace.World;
-        main.loop = false;
-        main.playOnAwake = true;
-        main.maxParticles = burstCount;
-
-        var emission = ps.emission;
-        emission.rateOverTime = 0f;
-        emission.SetBursts(new ParticleSystem.Burst[]
+        // === Rise phase: beam scales up from zero width ===
+        float elapsed = 0f;
+        while (elapsed < riseTime)
         {
-            new ParticleSystem.Burst(0f, burstCount)
-        });
+            float t = elapsed / riseTime;
+            // Smooth ease-out curve
+            float widthScale = 1f - (1f - t) * (1f - t);
 
-        var shape = ps.shape;
-        shape.shapeType = ParticleSystemShapeType.Circle;
-        shape.radius = burstRadius;
-        shape.radiusThickness = 1f; // Emit from edge
+            SetBeamWidth(outerBeam, widthScale);
+            SetBeamWidth(innerCore, widthScale);
+            SetBaseGlowAlpha(baseGlow, beamColor, widthScale);
 
-        // Gold → White gradient
-        var colorOverLifetime = ps.colorOverLifetime;
-        colorOverLifetime.enabled = true;
-        Gradient grad = new Gradient();
-        grad.SetKeys(
-            new GradientColorKey[]
-            {
-                new GradientColorKey(new Color(1f, 0.84f, 0f), 0f),   // Gold
-                new GradientColorKey(Color.white, 1f)
-            },
-            new GradientAlphaKey[]
-            {
-                new GradientAlphaKey(1f, 0f),
-                new GradientAlphaKey(0f, 1f)
-            }
-        );
-        colorOverLifetime.color = grad;
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
 
-        // Size over lifetime: shrink
-        var sizeOverLifetime = ps.sizeOverLifetime;
-        sizeOverLifetime.enabled = true;
-        sizeOverLifetime.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 1f, 1f, 0f));
+        SetBeamWidth(outerBeam, 1f);
+        SetBeamWidth(innerCore, 1f);
+        SetBaseGlowAlpha(baseGlow, beamColor, 1f);
 
-        SetupParticleRenderer(ps, 15);
+        // === Hold phase: beam pulses gently ===
+        elapsed = 0f;
+        while (elapsed < holdTime)
+        {
+            float pulse = 1f + Mathf.Sin(elapsed * 12f) * 0.08f;
+            SetBeamWidth(outerBeam, pulse);
+            SetBeamWidth(innerCore, pulse * 1.05f);
+
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        // === Fade phase: beam fades and narrows ===
+        elapsed = 0f;
+        while (elapsed < fadeTime)
+        {
+            float t = elapsed / fadeTime;
+            // Ease-in curve for fade
+            float fade = 1f - t * t;
+
+            Color outerC = outerBeam.color;
+            outerC.a = beamColor.a * fade;
+            outerBeam.color = outerC;
+
+            Color innerC = innerCore.color;
+            innerC.a = coreColor.a * fade;
+            innerCore.color = innerC;
+
+            // Narrow slightly as it fades
+            float widthFade = Mathf.Lerp(1f, 0.3f, t);
+            SetBeamWidth(outerBeam, widthFade);
+            SetBeamWidth(innerCore, widthFade);
+
+            SetBaseGlowAlpha(baseGlow, beamColor, fade * 0.8f);
+
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        Destroy(vfxRoot);
     }
 
-    private void CreateVerticalColumn(Transform parent)
+    private SpriteRenderer CreateBeamSprite(Transform parent, string name,
+        float width, float height, Color color, int sortOrder)
     {
-        GameObject colObj = new GameObject("Column");
-        colObj.transform.SetParent(parent, false);
+        GameObject obj = new GameObject(name);
+        obj.transform.SetParent(parent, false);
+        // Offset upward so beam rises from player's center
+        obj.transform.localPosition = new Vector3(0f, height * 0.5f, 0f);
 
-        ParticleSystem ps = colObj.AddComponent<ParticleSystem>();
-        var main = ps.main;
-        main.duration = columnDuration;
-        main.startLifetime = columnLifetime;
-        main.startSpeed = new ParticleSystem.MinMaxCurve(columnSpeed * 0.5f, columnSpeed);
-        main.startSize = new ParticleSystem.MinMaxCurve(0.05f, 0.15f);
-        main.simulationSpace = ParticleSystemSimulationSpace.World;
-        main.loop = false;
-        main.playOnAwake = true;
-        main.maxParticles = 60;
+        SpriteRenderer sr = obj.AddComponent<SpriteRenderer>();
+        sr.sprite = CreateSoftRectSprite(32, 128);
+        sr.color = color;
+        sr.sortingLayerName = "Foreground";
+        sr.sortingOrder = sortOrder;
+        sr.drawMode = SpriteDrawMode.Simple;
 
-        var emission = ps.emission;
-        emission.rateOverTime = columnEmissionRate;
+        // Scale to desired world dimensions
+        // Sprite is 32x128 pixels at 32 PPU = 1x4 world units base
+        obj.transform.localScale = new Vector3(width, height / 4f, 1f);
 
-        var shape = ps.shape;
-        shape.shapeType = ParticleSystemShapeType.Cone;
-        shape.angle = 5f;
-        shape.radius = 0.3f;
-        // Cone emits upward by default (local Y+)
-        shape.rotation = new Vector3(-90f, 0f, 0f); // Point upward in 2D
-
-        // White → Gold → Transparent
-        var colorOverLifetime = ps.colorOverLifetime;
-        colorOverLifetime.enabled = true;
-        Gradient grad = new Gradient();
-        grad.SetKeys(
-            new GradientColorKey[]
-            {
-                new GradientColorKey(Color.white, 0f),
-                new GradientColorKey(new Color(1f, 0.84f, 0f), 0.5f), // Gold
-                new GradientColorKey(new Color(1f, 0.84f, 0f), 1f)
-            },
-            new GradientAlphaKey[]
-            {
-                new GradientAlphaKey(1f, 0f),
-                new GradientAlphaKey(0.5f, 0.7f),
-                new GradientAlphaKey(0f, 1f)
-            }
-        );
-        colorOverLifetime.color = grad;
-
-        // Size over lifetime: shrink
-        var sizeOverLifetime = ps.sizeOverLifetime;
-        sizeOverLifetime.enabled = true;
-        sizeOverLifetime.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 1f, 1f, 0.2f));
-
-        SetupParticleRenderer(ps, 14);
-    }
-
-    private void SetupParticleRenderer(ParticleSystem ps, int sortOrder)
-    {
-        var renderer = ps.GetComponent<ParticleSystemRenderer>();
-        renderer.renderMode = ParticleSystemRenderMode.Billboard;
-        renderer.sortingLayerName = "Foreground";
-        renderer.sortingOrder = sortOrder;
-
-        Shader shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
-        if (shader == null)
-            shader = Shader.Find("Sprites/Default");
+        // Use additive-like material for glow
+        Shader shader = Shader.Find("Sprites/Default");
         if (shader != null)
         {
-            Material mat = new Material(shader);
-            mat.SetFloat("_Surface", 1f); // Transparent
-            renderer.material = mat;
+            sr.material = new Material(shader);
         }
+
+        return sr;
+    }
+
+    private SpriteRenderer CreateBaseGlow(Transform parent, int sortOrder)
+    {
+        GameObject obj = new GameObject("BaseGlow");
+        obj.transform.SetParent(parent, false);
+        obj.transform.localPosition = Vector3.zero;
+        obj.transform.localScale = new Vector3(beamWidth * 1.5f, beamWidth * 0.8f, 1f);
+
+        SpriteRenderer sr = obj.AddComponent<SpriteRenderer>();
+        sr.sprite = CreateSoftCircleSprite(32);
+        sr.color = new Color(beamColor.r, beamColor.g, beamColor.b, 0.5f);
+        sr.sortingLayerName = "Foreground";
+        sr.sortingOrder = sortOrder;
+
+        Shader shader = Shader.Find("Sprites/Default");
+        if (shader != null)
+        {
+            sr.material = new Material(shader);
+        }
+
+        return sr;
+    }
+
+    private void SetBeamWidth(SpriteRenderer sr, float scale)
+    {
+        Vector3 s = sr.transform.localScale;
+        float baseWidth = sr.name == "InnerCore" ? beamWidth * 0.6f : beamWidth;
+        s.x = baseWidth * scale;
+        sr.transform.localScale = s;
+    }
+
+    private void SetBaseGlowAlpha(SpriteRenderer sr, Color baseColor, float alpha)
+    {
+        sr.color = new Color(baseColor.r, baseColor.g, baseColor.b, 0.5f * alpha);
+    }
+
+    /// <summary>
+    /// Creates a soft-edged rectangle texture for the beam.
+    /// Bright center column with smooth falloff on all edges.
+    /// </summary>
+    private Sprite CreateSoftRectSprite(int width, int height)
+    {
+        Texture2D tex = new Texture2D(width, height, TextureFormat.RGBA32, false);
+        tex.filterMode = FilterMode.Bilinear;
+        tex.wrapMode = TextureWrapMode.Clamp;
+        Color[] pixels = new Color[width * height];
+
+        float halfW = width * 0.5f;
+        float halfH = height * 0.5f;
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                // Horizontal falloff (wide bright center, soft edges)
+                float dx = Mathf.Abs(x - halfW) / halfW;
+                float alphaX = 1f - Mathf.Clamp01(dx);
+                alphaX = Mathf.Pow(alphaX, 0.8f); // Gentle falloff, stays bright across most of the width
+
+                // Vertical falloff (fade at top, slight fade at bottom)
+                float dy = (float)y / height;
+                float alphaTop = 1f - Mathf.Pow(Mathf.Clamp01((dy - 0.7f) / 0.3f), 1.5f);
+                float alphaBot = Mathf.Clamp01(dy / 0.05f); // Quick fade-in at bottom
+
+                float alpha = alphaX * alphaTop * alphaBot;
+                pixels[y * width + x] = new Color(1f, 1f, 1f, alpha);
+            }
+        }
+
+        tex.SetPixels(pixels);
+        tex.Apply();
+        return Sprite.Create(tex, new Rect(0, 0, width, height),
+            new Vector2(0.5f, 0.5f), 32f);
+    }
+
+    /// <summary>
+    /// Creates a soft circle texture for the base glow.
+    /// </summary>
+    private Sprite CreateSoftCircleSprite(int size)
+    {
+        Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        tex.filterMode = FilterMode.Bilinear;
+        Color[] pixels = new Color[size * size];
+        Vector2 center = new Vector2(size * 0.5f, size * 0.5f);
+        float radius = size * 0.5f;
+
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float dist = Vector2.Distance(new Vector2(x, y), center);
+                float alpha = 1f - Mathf.Clamp01(dist / radius);
+                alpha = Mathf.Pow(alpha, 2f);
+                pixels[y * size + x] = new Color(1f, 1f, 1f, alpha);
+            }
+        }
+
+        tex.SetPixels(pixels);
+        tex.Apply();
+        return Sprite.Create(tex, new Rect(0, 0, size, size),
+            new Vector2(0.5f, 0.5f), size);
     }
 }

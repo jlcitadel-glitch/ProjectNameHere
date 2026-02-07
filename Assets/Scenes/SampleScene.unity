@@ -2119,6 +2119,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2553238395389881092, guid: 22339e5020061054d9a6fed08e6549fe, type: 3}
       insertIndex: -1
       addedObject: {fileID: 896121034}
+    - targetCorrespondingSourceObject: {fileID: 2553238395389881092, guid: 22339e5020061054d9a6fed08e6549fe, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 896121035}
   m_SourcePrefab: {fileID: 100100000, guid: 22339e5020061054d9a6fed08e6549fe, type: 3}
 --- !u!4 &896121032 stripped
 Transform:
@@ -2142,6 +2145,38 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3086202ac899f7b4c988f1f76dcbaa6e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAppearance
+--- !u!114 &896121035
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 896121033}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 232ca2bc46587ed4a8824209fb633a70, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LevelUpVFXController
+  beamSpeed: 14
+  beamLifetime: 1.2
+  beamDuration: 0.8
+  beamEmissionRate: 120
+  beamWidth: 0.4
+  beamMaxParticles: 200
+  coreFlashCount: 20
+  coreFlashSpeed: 1
+  coreFlashLifetime: 0.6
+  coreFlashSize: 0.6
+  burstCount: 40
+  burstSpeed: 6
+  burstLifetime: 0.6
+  ringCount: 50
+  ringSpeed: 5
+  ringLifetime: 0.5
+  shakeMagnitude: 0.25
+  shakeDuration: 0.4
+  flashAlpha: 0.3
+  flashDuration: 0.25
 --- !u!1 &913868510
 GameObject:
   m_ObjectHideFlags: 0
