@@ -84,7 +84,7 @@ public class ExperienceOrb : MonoBehaviour
         {
             coreRenderer = gameObject.AddComponent<SpriteRenderer>();
             coreRenderer.sprite = CreateSoftCircleSprite(16);
-            coreRenderer.color = new Color(0.5f, 1f, 0.2f, 1f); // Bright green-yellow
+            coreRenderer.color = new Color(0.2f, 0.5f, 1f, 1f); // Bright blue
             coreRenderer.sortingLayerName = "Foreground";
             coreRenderer.sortingOrder = 10;
         }
@@ -304,7 +304,7 @@ public class ExperienceOrb : MonoBehaviour
         main.startLifetime = burstLifetime;
         main.startSpeed = burstSpeed;
         main.startSize = new ParticleSystem.MinMaxCurve(0.03f, 0.08f);
-        main.startColor = new Color(0.6f, 1f, 0.3f, 1f); // Green-yellow
+        main.startColor = new Color(0.3f, 0.6f, 1f, 1f); // Blue
         main.simulationSpace = ParticleSystemSimulationSpace.World;
         main.loop = false;
         main.playOnAwake = true;
@@ -327,8 +327,8 @@ public class ExperienceOrb : MonoBehaviour
         Gradient grad = new Gradient();
         grad.SetKeys(
             new GradientColorKey[] {
-                new GradientColorKey(new Color(0.6f, 1f, 0.3f), 0f),
-                new GradientColorKey(new Color(1f, 1f, 0.5f), 1f)
+                new GradientColorKey(new Color(0.3f, 0.6f, 1f), 0f),
+                new GradientColorKey(new Color(0.5f, 0.8f, 1f), 1f)
             },
             new GradientAlphaKey[] {
                 new GradientAlphaKey(1f, 0f),
@@ -367,7 +367,7 @@ public class ExperienceOrb : MonoBehaviour
 
         SpriteRenderer sr = glowObj.AddComponent<SpriteRenderer>();
         sr.sprite = CreateSoftCircleSprite(32);
-        sr.color = new Color(0.4f, 1f, 0.1f, 0.6f); // Green glow
+        sr.color = new Color(0.1f, 0.4f, 1f, 0.6f); // Blue glow
         sr.sortingLayerName = "Foreground";
         sr.sortingOrder = 9;
 
@@ -394,7 +394,7 @@ public class ExperienceOrb : MonoBehaviour
         main.startLifetime = new ParticleSystem.MinMaxCurve(0.3f, 0.5f);
         main.startSpeed = 0f;
         main.startSize = new ParticleSystem.MinMaxCurve(0.05f, 0.1f);
-        main.startColor = new Color(0.5f, 1f, 0.2f, 0.8f);
+        main.startColor = new Color(0.2f, 0.5f, 1f, 0.8f);
         main.simulationSpace = ParticleSystemSimulationSpace.World;
         main.loop = true;
         main.playOnAwake = true;
@@ -414,8 +414,8 @@ public class ExperienceOrb : MonoBehaviour
         grad.SetKeys(
             new GradientColorKey[]
             {
-                new GradientColorKey(new Color(0.5f, 1f, 0.2f), 0f),
-                new GradientColorKey(new Color(0.8f, 1f, 0.4f), 1f)
+                new GradientColorKey(new Color(0.2f, 0.5f, 1f), 0f),
+                new GradientColorKey(new Color(0.4f, 0.8f, 1f), 1f)
             },
             new GradientAlphaKey[]
             {
