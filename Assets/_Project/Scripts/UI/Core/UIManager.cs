@@ -270,9 +270,11 @@ namespace ProjectName.UI
                 }
             }
 
-            // When transitioning to Playing from Loading, ensure pause menu is hidden
-            // This handles the case where we're entering gameplay from main menu
-            if (newState == GameManager.GameState.Playing && previousState == GameManager.GameState.Loading)
+            // When entering gameplay from any non-gameplay state, ensure proper UI setup.
+            // Covers Loading->Playing, MainMenu->Playing, and any other unexpected transitions.
+            if (newState == GameManager.GameState.Playing &&
+                previousState != GameManager.GameState.Paused &&
+                previousState != GameManager.GameState.BossFight)
             {
                 SwitchToGameplayInput();
                 if (pauseCanvas != null)

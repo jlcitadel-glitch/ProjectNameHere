@@ -192,22 +192,39 @@ public class SceneLoader : MonoBehaviour
             // Wait a frame for scene objects to initialize
             yield return null;
 
-            if (loadSaveData)
+            try
             {
-                // Full restore for loaded saves (position, abilities, skills, appearance)
-                SaveManager.Instance.ApplyLoadedData();
+                if (loadSaveData)
+                {
+                    // Full restore for loaded saves (position, abilities, skills, appearance)
+                    SaveManager.Instance.ApplyLoadedData();
+                }
+                else
+                {
+                    // New game: only apply starting class and appearance, keep scene spawn position
+                    SaveManager.Instance.ApplyNewGameData();
+                }
             }
-            else
+            catch (System.Exception e)
             {
-                // New game: only apply starting class and appearance, keep scene spawn position
-                SaveManager.Instance.ApplyNewGameData();
+                Debug.LogError($"[SceneLoader] Error applying save data: {e}");
             }
         }
 
-        // Set game state to playing
-        if (GameManager.Instance != null)
+        // Set game state to playing. FinishLoading only transitions from Loading state.
+        // If something changed the state unexpectedly, force to Playing for gameplay scenes.
+        if (GameManager.Instance != null && sceneName != MAIN_MENU_SCENE)
         {
-            GameManager.Instance.FinishLoading();
+            var currentState = GameManager.Instance.CurrentState;
+            if (currentState == GameManager.GameState.Loading)
+            {
+                GameManager.Instance.FinishLoading();
+            }
+            else if (currentState != GameManager.GameState.Playing)
+            {
+                Debug.LogWarning($"[SceneLoader] Expected Loading state but found {currentState}. Forcing to Playing.");
+                GameManager.Instance.StartPlaying();
+            }
         }
 
         isLoading = false;

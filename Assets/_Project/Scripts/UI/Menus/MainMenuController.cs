@@ -904,7 +904,28 @@ namespace ProjectName.UI
                         le.preferredHeight = 100;
                     }
                 }
+
+                // Scale down navigation buttons (Back, New Game)
+                ScaleButton(backFromSaveButton, 140, 36, 16);
+                ScaleButton(newGameButton, 140, 36, 16);
             }
+
+            // Scale down confirmation panel buttons
+            ScaleButton(confirmOverwriteButton, 120, 36, 16);
+            ScaleButton(cancelOverwriteButton, 120, 36, 16);
+            ScaleButton(confirmDeleteButton, 120, 36, 16);
+            ScaleButton(cancelDeleteButton, 120, 36, 16);
+        }
+
+        private static void ScaleButton(Button btn, float width, float height, float fontSize)
+        {
+            if (btn == null) return;
+            var rt = btn.GetComponent<RectTransform>();
+            if (rt != null)
+                rt.sizeDelta = new Vector2(width, height);
+            var tmp = btn.GetComponentInChildren<TMP_Text>();
+            if (tmp != null)
+                tmp.fontSize = fontSize;
         }
 
         private void OnDestroy()

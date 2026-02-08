@@ -123,6 +123,20 @@ namespace ProjectName.UI
                 if (found != null) deleteButton = found.GetComponent<Button>();
             }
 
+            // Scale down delete button to a small icon size
+            if (deleteButton != null)
+            {
+                var delRect = deleteButton.GetComponent<RectTransform>();
+                if (delRect != null)
+                {
+                    delRect.sizeDelta = new Vector2(28, 28);
+                }
+                // Shrink delete button text if present
+                var delText = deleteButton.GetComponentInChildren<TMP_Text>();
+                if (delText != null)
+                    delText.fontSize = 14;
+            }
+
             if (borderImage == null)
             {
                 var found = transform.Find("Border");
@@ -193,23 +207,23 @@ namespace ProjectName.UI
                 new Vector2(10, 4), new Vector2(0, -4));
             characterNameText.fontStyle = FontStyles.Bold;
 
-            levelText = EnsureSlotText(levelText, parent, "LevelText", "Lv. 1", 20,
+            levelText = EnsureSlotText(levelText, parent, "LevelText", "Lv. 1", 22,
                 TextAlignmentOptions.Center, new Color(0.812f, 0.710f, 0.231f, 1f),
                 new Vector2(0.45f, 0.5f), new Vector2(0.65f, 1),
                 new Vector2(0, 4), new Vector2(0, -4));
 
-            waveText = EnsureSlotText(waveText, parent, "WaveText", "", 18,
+            waveText = EnsureSlotText(waveText, parent, "WaveText", "", 20,
                 TextAlignmentOptions.Right, new Color(0.545f, 0.545f, 0.7f, 1f),
                 new Vector2(0.65f, 0.5f), new Vector2(1, 1),
                 new Vector2(0, 4), new Vector2(-10, -4));
 
             // Bottom row: Play Time (left), Date (right)
-            playTimeText = EnsureSlotText(playTimeText, parent, "PlayTimeText", "", 16,
+            playTimeText = EnsureSlotText(playTimeText, parent, "PlayTimeText", "", 18,
                 TextAlignmentOptions.Left, new Color(0.6f, 0.6f, 0.6f, 1f),
                 new Vector2(0, 0), new Vector2(0.45f, 0.5f),
                 new Vector2(10, 4), new Vector2(0, -4));
 
-            dateText = EnsureSlotText(dateText, parent, "DateText", "", 16,
+            dateText = EnsureSlotText(dateText, parent, "DateText", "", 18,
                 TextAlignmentOptions.Right, new Color(0.5f, 0.5f, 0.5f, 1f),
                 new Vector2(0.45f, 0), new Vector2(1, 0.5f),
                 new Vector2(0, 4), new Vector2(-10, -4));
