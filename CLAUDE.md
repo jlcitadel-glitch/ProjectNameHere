@@ -2,6 +2,8 @@
 
 2D Metroidvania-style platformer built in Unity 6.
 
+> **Migration Notice:** This project uses **beads (`bd`)** for task tracking. Run `bd ready` to find current work. Legacy markdown task files or TODO lists may be outdated — if beads and a markdown file conflict, **trust beads**.
+
 ## Quick Reference
 
 ```bash
@@ -62,6 +64,40 @@ Adding a new ability:
 - **ParticleFogSystem**: Procedural fog with Perlin noise wind
 - **AtmosphericAnimator**: Drift, pulse, rotation for atmosphere objects
 
+## Continuous Integration
+
+Lightweight asset validation runs on every push/PR via GitHub Actions. No Unity Editor or license required — Python scripts parse text-based asset files.
+
+### Run Locally
+
+```bash
+python ci/run_all.py
+```
+
+### Individual Checks
+
+| Script | What It Validates |
+|--------|-------------------|
+| `ci/check_meta_files.py` | Every asset has a `.meta`; no orphaned `.meta` files |
+| `ci/check_guid_references.py` | No broken GUID references in prefabs/scenes/assets under `_Project/` |
+| `ci/check_layer_consistency.py` | Layer, sorting layer, and tag names in C# match `TagManager.asset` |
+| `ci/check_scene_build_settings.py` | Build scenes exist on disk with correct GUIDs |
+| `ci/run_all.py` | Runs all checks, prints pass/fail summary |
+
+### GitHub Actions
+
+Workflow: `.github/workflows/unity-ci.yml`
+- Triggers on push/PR to `main` when `Assets/`, `ProjectSettings/`, `Packages/`, or `ci/` change
+- Each check runs as a separate step (shows exactly which failed)
+- Zero pip dependencies — Python stdlib only
+
+### Adding a New Check
+
+1. Create `ci/check_<name>.py` with a `main()` that returns 0 (pass) or 1 (fail)
+2. Use `os.environ.get("GITHUB_ACTIONS")` to emit `::error` / `::warning` annotations
+3. Add entry to `CHECKS` list in `ci/run_all.py`
+4. Add step to `.github/workflows/unity-ci.yml`
+
 ## Coding Conventions
 
 ### Naming
@@ -85,12 +121,58 @@ Adding a new ability:
 - Callbacks via `InputAction.CallbackContext`
 - Double-tap detection window: 0.3s
 
+## Task Tracking (Beads)
+
+This project uses [Beads](https://github.com/steveyegge/beads) (`bd`) for persistent, git-backed issue tracking across agent sessions.
+
+Read `AGENTS.md` first for the complete workflow reference.
+
+### Core Commands
+
+```bash
+bd ready                              # See unblocked tasks
+bd show <id>                          # View task details and history
+bd create "Title" -p <0-3>            # Create task (0=critical, 3=low)
+bd update <id> --claim                # Claim task (sets assignee + in_progress)
+bd update <id> --status in_progress   # Mark work started
+bd close <id> --reason "what was done" # Complete task
+bd dep add <child> <parent>           # Link dependency
+bd dep tree                           # Visualize task hierarchy
+bd sync                               # Flush to git
+```
+
+### Session Protocol
+
+**Start of session:**
+1. Run `bd ready` to see available work
+2. Claim a task before starting: `bd update <id> --claim`
+3. Review task details: `bd show <id>`
+
+**During work:**
+- Create subtasks for discovered work: `bd create "Subtask" -p 2`
+- Link dependencies: `bd dep add <child> <parent>`
+- Update status as work progresses
+
+**End of session:**
+1. File issues for remaining/discovered work: `bd create ...`
+2. Close finished tasks: `bd close <id> --reason "..."`
+3. Sync: `bd sync`
+
+### Priority Levels
+
+| Priority | Use For |
+|----------|---------|
+| 0 (Critical) | Blocking bugs, broken builds |
+| 1 (High) | Current sprint features, important fixes |
+| 2 (Normal) | Planned work, enhancements |
+| 3 (Low) | Nice-to-have, future ideas, minor polish |
+
 ## Workflow Standards
 
 ### RPI Pattern (Research, Plan, Implement)
-1. **Research** - Explore codebase, understand existing patterns before changes
-2. **Plan** - Design approach, identify impacts, get user approval for non-trivial work
-3. **Implement** - Write code following established conventions
+1. **Research** - Explore codebase, understand existing patterns before changes. Run `bd ready` to check for related open tasks.
+2. **Plan** - Design approach, identify impacts, get user approval for non-trivial work. Create bd tasks for multi-step plans.
+3. **Implement** - Write code following established conventions. Update bd task status as you go.
 
 ### Progressive Disclosure
 - Present essential information first

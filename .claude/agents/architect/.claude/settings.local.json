@@ -5,7 +5,23 @@
       "Bash(test:*)",
       "Bash(cd:*)",
       "Bash(dir:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(gh repo view:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(powershell -Command \"New-Item -ItemType Directory -Force -Path ''C:\\\\Users\\\\Citadel\\\\AppData\\\\Roaming\\\\npm\\\\bd-temp''; Invoke-WebRequest -Uri ''https://github.com/steveyegge/beads/releases/download/v0.49.6/beads_0.49.6_windows_amd64.zip'' -OutFile ''C:\\\\Users\\\\Citadel\\\\AppData\\\\Roaming\\\\npm\\\\bd-temp\\\\beads.zip''\")",
+      "Bash(powershell -Command:*)",
+      "Bash(bd:*)",
+      "Bash(bd.exe:*)",
+      "Bash(while read f)",
+      "Bash(do if [ ! -f \"$f.meta\" ])",
+      "Bash(then echo \"MISSING META: $f\")",
+      "Bash(fi)",
+      "Bash(done)",
+      "Bash(python:*)",
+      "Bash(node -e:*)",
+      "Bash(winget install:*)",
+      "Bash(\"/c/Users/Citadel/AppData/Local/Programs/Python/Python312/python.exe\" --version)",
+      "Bash(\"/c/Users/Citadel/AppData/Local/Programs/Python/Python312/python.exe\" ci/run_all.py)"
     ]
   }
 }

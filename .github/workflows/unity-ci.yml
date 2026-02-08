@@ -1,0 +1,72 @@
+name: Unity CI Checks
+
+on:
+  push:
+    branches: [main]
+    paths: ['Assets/**', 'ProjectSettings/**', 'Packages/**', 'ci/**']
+  pull_request:
+    branches: [main]
+    paths: ['Assets/**', 'ProjectSettings/**', 'Packages/**', 'ci/**']
+
+jobs:
+  asset-validation:
+    name: Asset Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Meta File Integrity
+        id: meta
+        continue-on-error: true
+        run: python ci/check_meta_files.py
+
+      - name: GUID References
+        id: guid
+        continue-on-error: true
+        run: python ci/check_guid_references.py
+
+      - name: Layer/Tag Consistency
+        id: layers
+        continue-on-error: true
+        run: python ci/check_layer_consistency.py
+
+      - name: Build Scene Validation
+        id: scenes
+        continue-on-error: true
+        run: python ci/check_scene_build_settings.py
+
+      - name: Check Results
+        if: always()
+        run: |
+          failed=0
+          if [ "${{ steps.meta.outcome }}" = "failure" ]; then
+            echo "::error::Meta File Integrity check failed"
+            failed=1
+          fi
+          if [ "${{ steps.guid.outcome }}" = "failure" ]; then
+            echo "::error::GUID Reference check failed"
+            failed=1
+          fi
+          if [ "${{ steps.layers.outcome }}" = "failure" ]; then
+            echo "::error::Layer/Tag Consistency check failed"
+            failed=1
+          fi
+          if [ "${{ steps.scenes.outcome }}" = "failure" ]; then
+            echo "::error::Build Scene Validation check failed"
+            failed=1
+          fi
+          if [ $failed -eq 1 ]; then
+            echo ""
+            echo "One or more CI checks failed. See individual steps above for details."
+            exit 1
+          fi
+          echo "All CI checks passed!"

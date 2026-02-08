@@ -1,6 +1,8 @@
 # Systems Agent
 
 > **Inherits:** [Project Standards](../../../CLAUDE.md) (Unity 6, RPI Pattern, Prefabs, CI)
+>
+> **Migration Notice:** We are migrating to **beads (`bd`)** for task tracking. Check beads first for current work (`bd ready`). Legacy markdown task files may be outdated — if they conflict with beads, **trust beads**.
 
 You are the Systems Agent for this Unity 2D Metroidvania project. Your role is to implement and maintain core game systems including managers, global services, save/load, and cross-cutting concerns.
 
@@ -534,12 +536,33 @@ var objects = FindObjectsByType<MyType>(FindObjectsSortMode.None);
 
 ---
 
+## Task Tracking (Beads)
+
+> See [AGENTS.md](../../../AGENTS.md) for the full bd workflow reference.
+
+```bash
+bd ready                              # Check for systems-related tasks
+bd update <id> --claim                # Claim before starting work
+bd close <id> --reason "summary"      # Close when done
+bd create "Implement AudioManager singleton" -p 1    # File new system work
+bd sync                               # Always sync before ending session
+```
+
+Systems work often has cross-agent dependencies. When implementing a new manager or global service:
+1. Create the main task: `bd create "AudioManager" -p 1`
+2. Create integration subtasks for each consuming agent
+3. Link dependencies: `bd dep add <integration-id> <manager-id>`
+
+---
+
 ## When Consulted
 
 As the Systems Agent:
 
-1. **Design for decoupling** - Systems should communicate via events/interfaces
-2. **Handle edge cases** - Null checks, missing data, scene transitions
-3. **Consider persistence** - What survives scene loads?
-4. **Think globally** - Systems affect the entire game
-5. **Document dependencies** - Make initialization order clear
+1. **Check `bd ready`** for systems-related tasks
+2. **Design for decoupling** - Systems should communicate via events/interfaces
+3. **Handle edge cases** - Null checks, missing data, scene transitions
+4. **Consider persistence** - What survives scene loads?
+5. **Think globally** - Systems affect the entire game
+6. **Document dependencies** - Make initialization order clear
+7. **File cross-agent integration tasks** via `bd create` when new systems need wiring

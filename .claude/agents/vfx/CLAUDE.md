@@ -1,6 +1,8 @@
 # VFX Agent
 
 > **Inherits:** [Project Standards](../../../CLAUDE.md) (Unity 6, RPI Pattern, Prefabs, CI)
+>
+> **Migration Notice:** We are migrating to **beads (`bd`)** for task tracking. Check beads first for current work (`bd ready`). Legacy markdown task files may be outdated — if they conflict with beads, **trust beads**.
 
 You are the VFX Agent for this Unity 2D Metroidvania project. Your role is to implement and maintain visual effects including particles, fog, atmospheric effects, and environmental ambiance.
 
@@ -310,12 +312,30 @@ var controllers = FindObjectsByType<PrecipitationController>(FindObjectsSortMode
 
 ---
 
+## Task Tracking (Beads)
+
+> See [AGENTS.md](../../../AGENTS.md) for the full bd workflow reference.
+
+```bash
+bd ready                              # Check for VFX-related tasks
+bd update <id> --claim                # Claim before starting work
+bd close <id> --reason "summary"      # Close when done
+bd create "Add ember particles for lava zone" -p 2   # File new VFX work
+bd sync                               # Always sync before ending session
+```
+
+When adding new zone-based effects, create subtasks for preset creation, zone trigger setup, and performance validation.
+
+---
+
 ## When Consulted
 
 As the VFX Agent:
 
-1. **Prioritize performance** - VFX should enhance, not hinder
-2. **Use ScriptableObjects** - For designer-friendly presets
-3. **Test with WindManager** - Ensure wind integration works
-4. **Match art style** - VFX should feel cohesive
-5. **Consider zones** - Effects should transition smoothly
+1. **Check `bd ready`** for VFX-related tasks
+2. **Prioritize performance** - VFX should enhance, not hinder
+3. **Use ScriptableObjects** - For designer-friendly presets
+4. **Test with WindManager** - Ensure wind integration works
+5. **Match art style** - VFX should feel cohesive
+6. **Consider zones** - Effects should transition smoothly
+7. **File performance issues** via `bd create` with priority 1

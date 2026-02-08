@@ -1,0 +1,62 @@
+{
+    "autorun": true,
+    "autokill": true,
+    "terminals": [
+        {
+            "name": "Architect",
+            "command": "cd .claude\\agents\\architect; claude",
+            "color": "terminal.ansiBlack",
+            "open": true,
+            "focus": false
+        },
+        {
+            "name": "Camera",
+            "command": "cd .claude\\agents\\camera; claude",
+            "color": "terminal.ansiMagenta",
+            "open": true,
+            "focus": false
+        },
+        {
+            "name": "Player",
+            "command": "cd .claude\\agents\\player; claude",
+            "color": "terminal.ansiGreen",
+            "open": true,
+            "focus": false
+        },
+        {
+            "name": "Systems",
+            "command": "cd .claude\\agents\\systems; claude",
+            "color": "terminal.ansiYellow",
+            "open": true,
+            "focus": false
+        },
+        {
+            "name": "UI/UX",
+            "command": "cd .claude\\agents\\ui-ux; claude",
+            "color": "terminal.ansiBlue",
+            "open": true,
+            "focus": false
+        },
+        {
+            "name": "VFX",
+            "command": "cd .claude\\agents\\vfx; claude",
+            "color": "terminal.ansiWhite",
+            "open": true,
+            "focus": false
+        },
+        {
+            "name": "SFX",
+            "command": "cd .claude\\agents\\sound-design; claude",
+            "color": "terminal.ansiCyan",
+            "open": true,
+            "focus": false
+        },
+        {
+            "name": "NPC",
+            "command": "cd .claude\\agents\\enemy-behavior; claude",
+            "color": "terminal.ansiRed",
+            "open": true,
+            "focus": false
+        }
+    ]
+}

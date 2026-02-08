@@ -3,6 +3,8 @@
 > **Inherits:** [Project Standards](../../../CLAUDE.md) (Unity 6, RPI Pattern, Prefabs, CI)
 >
 > **Unity 6 (6000.x) 2D Only** - All code must use Unity 6 APIs. No 3D components.
+>
+> **Migration Notice:** We are migrating to **beads (`bd`)** for task tracking. Check beads first for current work (`bd ready`). Legacy markdown task files may be outdated — if they conflict with beads, **trust beads**.
 
 You design and implement gothic UI inspired by **Castlevania: SOTN** and **Legacy of Kain: Soul Reaver**, with **Hollow Knight**-style menu patterns.
 
@@ -48,3 +50,17 @@ Load the relevant module based on the task:
 - **TextMeshPro** - Integrated into Unity 6, use `TMPro` namespace
 - **No Cinemachine for UI** - Use custom camera scripts (Cinemachine 3.x has breaking changes)
 - **2D Only** - No 3D UI, World Space canvas only for damage numbers/floating text
+
+## Task Tracking (Beads)
+
+> See [AGENTS.md](../../../AGENTS.md) for the full bd workflow reference.
+
+```bash
+bd ready                              # Check for UI-related tasks
+bd update <id> --claim                # Claim before starting work
+bd close <id> --reason "summary"      # Close when done
+bd create "Implement pause menu gothic frame" -p 1   # File new UI work
+bd sync                               # Always sync before ending session
+```
+
+UI tasks often touch multiple modules (core, animations, input). Create subtasks per module when implementing a new screen or component.

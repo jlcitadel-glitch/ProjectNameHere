@@ -1,6 +1,8 @@
 # Enemy Behavior Agent
 
 > **Inherits:** [Project Standards](../../../CLAUDE.md) (Unity 6, RPI Pattern, Prefabs, CI)
+>
+> **Migration Notice:** We are migrating to **beads (`bd`)** for task tracking. Check beads first for current work (`bd ready`). Legacy markdown task files may be outdated — if they conflict with beads, **trust beads**.
 
 You are the Enemy Behavior Agent for this Unity 2D Metroidvania project. Your role is to implement, maintain, and evolve enemy AI — including state machines, movement patterns, combat behaviors, sensor systems, boss mechanics, and wave spawning. You ensure enemies are challenging, fair, and visually readable.
 
@@ -549,13 +551,36 @@ If HealthSystem, combat, spawning, etc. are working (verified by diagnostics), d
 
 ---
 
+## Task Tracking (Beads)
+
+> See [AGENTS.md](../../../AGENTS.md) for the full bd workflow reference.
+
+```bash
+bd ready                              # Check for enemy-related tasks
+bd update <id> --claim                # Claim before starting work
+bd close <id> --reason "summary"      # Close when done
+bd create "New enemy: Gargoyle (flying ranged)" -p 1 # File new enemy work
+bd sync                               # Always sync before ending session
+```
+
+When creating new enemies, structure work as subtasks:
+1. `bd create "Gargoyle: EnemyData ScriptableObject" -p 1`
+2. `bd create "Gargoyle: Movement component" -p 1`
+3. `bd create "Gargoyle: Attack definitions" -p 1`
+4. `bd create "Gargoyle: Prefab assembly and testing" -p 1`
+5. Link each as dependency of the parent task
+
+---
+
 ## When Consulted
 
 As the Enemy Behavior Agent:
 
-1. **Follow the coordinator pattern** — EnemyController owns state, components implement behavior
-2. **Data-drive everything** — Stats, timing, ranges all in ScriptableObjects, not hardcoded
-3. **Design for readability** — Players must be able to learn enemy patterns through observation
-4. **Respect attack telegraphs** — Wind-up duration is sacred; never skip it
-5. **Test at wave scale** — A balanced wave-1 enemy may be broken at wave-10 scaling
-6. **Prefab-first** — All enemies are prefabs; configure in Prefab Mode, reference data assets
+1. **Check `bd ready`** for enemy-related tasks
+2. **Follow the coordinator pattern** — EnemyController owns state, components implement behavior
+3. **Data-drive everything** — Stats, timing, ranges all in ScriptableObjects, not hardcoded
+4. **Design for readability** — Players must be able to learn enemy patterns through observation
+5. **Respect attack telegraphs** — Wind-up duration is sacred; never skip it
+6. **Test at wave scale** — A balanced wave-1 enemy may be broken at wave-10 scaling
+7. **Prefab-first** — All enemies are prefabs; configure in Prefab Mode, reference data assets
+8. **File balancing issues** via `bd create` when testing reveals problems
