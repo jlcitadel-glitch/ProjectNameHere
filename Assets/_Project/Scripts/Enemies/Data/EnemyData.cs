@@ -52,6 +52,18 @@ public class EnemyData : ScriptableObject
     [Range(0f, 1f)]
     public float dropChance = 0.5f;
 
+    [Header("Hopping (Hopping type only)")]
+    [Tooltip("Vertical force applied on each hop")]
+    public float hopForce = 8f;
+    [Tooltip("Horizontal speed during each hop")]
+    public float hopHorizontalSpeed = 3f;
+    [Tooltip("Pause between hops during patrol")]
+    public float hopCooldown = 0.8f;
+    [Tooltip("Pause between hops during chase (shorter = more aggressive)")]
+    public float hopChaseCooldown = 0.4f;
+    [Tooltip("Gravity multiplier while falling for snappy descent")]
+    public float hopFallGravityMultiplier = 3f;
+
     [Header("Audio")]
     public AudioClip spawnSound;
     public AudioClip idleSound;

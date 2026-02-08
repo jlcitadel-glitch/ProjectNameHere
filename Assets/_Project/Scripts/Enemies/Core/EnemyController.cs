@@ -126,6 +126,9 @@ public class EnemyController : MonoBehaviour, IDamageable
             case EnemyType.Flying:
                 Debug.LogWarning($"[EnemyController] {gameObject.name}: Missing FlyingMovement, adding automatically.");
                 return gameObject.AddComponent<FlyingMovement>();
+            case EnemyType.Hopping:
+                Debug.LogWarning($"[EnemyController] {gameObject.name}: Missing HoppingMovement, adding automatically.");
+                return gameObject.AddComponent<HoppingMovement>();
             case EnemyType.Stationary:
             default:
                 return null;

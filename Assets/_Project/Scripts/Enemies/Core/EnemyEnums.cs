@@ -20,7 +20,8 @@ public enum EnemyType
 {
     GroundPatrol,
     Flying,
-    Stationary
+    Stationary,
+    Hopping
 }
 
 /// <summary>
