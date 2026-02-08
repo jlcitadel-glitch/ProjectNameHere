@@ -376,6 +376,19 @@ namespace ProjectName.UI
                         pauseGroup = canvas.gameObject.AddComponent<CanvasGroup>();
                         Debug.Log("[UIManager] Added missing CanvasGroup to PauseMenu_Canvas");
                     }
+
+                    // Immediately hide pause canvas unless game is actually paused.
+                    // The scene's PauseMenu_Canvas may start active with a visible dark overlay;
+                    // it must be hidden until the game is genuinely paused.
+                    bool isPaused = GameManager.Instance != null && GameManager.Instance.IsPaused;
+                    if (!isPaused)
+                    {
+                        pauseCanvas.gameObject.SetActive(false);
+                        pauseGroup.alpha = 0f;
+                        pauseGroup.interactable = false;
+                        pauseGroup.blocksRaycasts = false;
+                    }
+
                     Debug.Log("[UIManager] Auto-found PauseMenu_Canvas");
                 }
                 else if (mainMenuCanvas == null && canvas.name == "MainMenu_Canvas")
