@@ -241,22 +241,41 @@ namespace ProjectName.UI
             if (!HasJobVisualData(jobData))
                 return;
 
-            if (isSelected && jobData.idlePreviewFrames != null && jobData.idlePreviewFrames.Length > 1)
+            // Filter out null frames before playing animation
+            if (isSelected && jobData.idlePreviewFrames != null)
             {
-                animSprite.Play(jobData.idlePreviewFrames, jobData.idlePreviewFrameRate);
-            }
-            else
-            {
-                // Show static first frame or default sprite
-                Sprite staticSprite = jobData.defaultSprite;
-                if (staticSprite == null && jobData.idlePreviewFrames != null && jobData.idlePreviewFrames.Length > 0)
-                    staticSprite = jobData.idlePreviewFrames[0];
+                var validFrames = new System.Collections.Generic.List<Sprite>();
+                foreach (var frame in jobData.idlePreviewFrames)
+                {
+                    if (frame != null)
+                        validFrames.Add(frame);
+                }
 
-                if (staticSprite != null)
-                    animSprite.SetStaticSprite(staticSprite);
-                else
-                    animSprite.Stop();
+                if (validFrames.Count > 1)
+                {
+                    animSprite.Play(validFrames.ToArray(), jobData.idlePreviewFrameRate);
+                    return;
+                }
             }
+
+            // Show static sprite: prefer defaultSprite, then first valid frame
+            Sprite staticSprite = jobData.defaultSprite;
+            if (staticSprite == null && jobData.idlePreviewFrames != null)
+            {
+                foreach (var frame in jobData.idlePreviewFrames)
+                {
+                    if (frame != null)
+                    {
+                        staticSprite = frame;
+                        break;
+                    }
+                }
+            }
+
+            if (staticSprite != null)
+                animSprite.SetStaticSprite(staticSprite);
+            else
+                animSprite.Stop();
         }
 
         /// <summary>
@@ -274,28 +293,75 @@ namespace ProjectName.UI
             if (jobData == null || previewImage == null)
                 return;
 
-            if (!HasJobVisualData(jobData))
-                return;
-
+            // Find the first valid sprite: prefer defaultSprite, then search idle frames
             Sprite preview = jobData.defaultSprite;
-            if (preview == null && jobData.idlePreviewFrames != null && jobData.idlePreviewFrames.Length > 0)
-                preview = jobData.idlePreviewFrames[0];
+            if (preview == null && jobData.idlePreviewFrames != null)
+            {
+                foreach (var frame in jobData.idlePreviewFrames)
+                {
+                    if (frame != null)
+                    {
+                        preview = frame;
+                        break;
+                    }
+                }
+            }
 
             if (preview != null)
             {
                 previewImage.sprite = preview;
                 previewImage.color = Color.white;
             }
+            else
+            {
+                // No valid sprite found; generate a procedural silhouette placeholder.
+                // This ensures the user always sees something for each class.
+                Color body = Color.gray;
+                Color accent = Color.white;
+                string n = jobData.jobName != null ? jobData.jobName.ToLower() : "";
+                if (n.Contains("warrior"))
+                {
+                    body = new Color(0.55f, 0f, 0f);
+                    accent = new Color(0.8f, 0.6f, 0.2f);
+                }
+                else if (n.Contains("mage"))
+                {
+                    body = new Color(0.15f, 0.15f, 0.5f);
+                    accent = new Color(0.3f, 0.7f, 1f);
+                }
+                else if (n.Contains("rogue"))
+                {
+                    body = new Color(0.1f, 0.3f, 0.1f);
+                    accent = new Color(0.4f, 0.9f, 0.4f);
+                }
+
+                previewImage.sprite = MakeCharacterSilhouette(body, accent);
+                previewImage.color = Color.white;
+            }
         }
 
         /// <summary>
-        /// Checks if any JobClassData has visual data assigned.
+        /// Checks if a JobClassData has at least one valid (non-null) visual asset assigned.
+        /// Validates individual array entries because GUID references can resolve to null
+        /// if the source texture is not loaded yet.
         /// </summary>
         private static bool HasJobVisualData(JobClassData jobData)
         {
             if (jobData == null) return false;
-            return jobData.defaultSprite != null
-                || (jobData.idlePreviewFrames != null && jobData.idlePreviewFrames.Length > 0);
+
+            if (jobData.defaultSprite != null)
+                return true;
+
+            if (jobData.idlePreviewFrames != null)
+            {
+                foreach (var frame in jobData.idlePreviewFrames)
+                {
+                    if (frame != null)
+                        return true;
+                }
+            }
+
+            return false;
         }
 
         private void OnClassConfirm()
@@ -543,19 +609,26 @@ namespace ProjectName.UI
 
         /// <summary>
         /// Tries to apply a preview from JobClassData visual fields.
-        /// Returns true if visual data was found and applied.
+        /// Returns true if a valid (non-null) sprite was found and applied.
+        /// Searches defaultSprite first, then all idlePreviewFrames entries.
         /// </summary>
         private static bool TryApplyJobPreview(Image image, JobClassData jobData)
         {
             if (image == null || jobData == null)
                 return false;
 
-            if (!HasJobVisualData(jobData))
-                return false;
-
             Sprite preview = jobData.defaultSprite;
-            if (preview == null && jobData.idlePreviewFrames != null && jobData.idlePreviewFrames.Length > 0)
-                preview = jobData.idlePreviewFrames[0];
+            if (preview == null && jobData.idlePreviewFrames != null)
+            {
+                foreach (var frame in jobData.idlePreviewFrames)
+                {
+                    if (frame != null)
+                    {
+                        preview = frame;
+                        break;
+                    }
+                }
+            }
 
             if (preview != null)
             {
@@ -570,34 +643,37 @@ namespace ProjectName.UI
         /// <summary>
         /// Deferred sprite loading. Called when class panel is first shown,
         /// giving Unity more time to load asset references into memory.
-        /// Skips HeroKnight fallback if any JobClassData has visual data assigned.
+        /// Falls back to HeroKnight sprites or procedural silhouettes if
+        /// JobClassData visual data is not available.
         /// </summary>
         private void TryLoadClassSprites()
         {
-            // If any job has visual data, skip the HeroKnight sprite hunt
-            if (HasJobVisualData(warriorData) || HasJobVisualData(mageData) || HasJobVisualData(rogueData))
+            // If all jobs already have valid visual data, nothing to do
+            bool warriorHasVisual = HasJobVisualData(warriorData);
+            bool mageHasVisual = HasJobVisualData(mageData);
+            bool rogueHasVisual = HasJobVisualData(rogueData);
+
+            if (warriorHasVisual && mageHasVisual && rogueHasVisual)
                 return;
 
+            // Try HeroKnight fallback for any class missing visuals
             Sprite knightSprite = FindSprite("HeroKnight_0");
 
             if (knightSprite != null)
             {
-                // Warrior: actual knight sprite
-                if (warriorPreviewImage != null)
+                if (!warriorHasVisual && warriorPreviewImage != null)
                 {
                     warriorPreviewImage.sprite = knightSprite;
                     warriorPreviewImage.color = Color.white;
                 }
 
-                // Mage: knight tinted blue until real mage art exists
-                if (magePreviewImage != null)
+                if (!mageHasVisual && magePreviewImage != null)
                 {
                     magePreviewImage.sprite = knightSprite;
                     magePreviewImage.color = new Color(0.4f, 0.5f, 1f, 1f);
                 }
 
-                // Rogue: knight tinted green until real rogue art exists
-                if (roguePreviewImage != null)
+                if (!rogueHasVisual && roguePreviewImage != null)
                 {
                     roguePreviewImage.sprite = knightSprite;
                     roguePreviewImage.color = new Color(0.5f, 1f, 0.5f, 1f);
@@ -684,26 +760,51 @@ namespace ProjectName.UI
 
         private static void FindJobData(CharacterCreationController ctrl)
         {
+            // First priority: SkillManager already holds resolved asset references.
+            // These point to the real ScriptableObjects (with visual data) when the
+            // project assets were loaded before the runtime fallback was created.
+            if (SkillManager.Instance != null)
+            {
+                var smJobs = Resources.FindObjectsOfTypeAll<JobClassData>();
+                foreach (var job in smJobs)
+                {
+                    if (job == null || string.IsNullOrEmpty(job.jobId)) continue;
+                    string id = job.jobId.ToLower();
+
+                    if (id == "warrior" && (ctrl.warriorData == null || HasJobVisualData(job)))
+                        ctrl.warriorData = job;
+                    else if (id == "mage" && (ctrl.mageData == null || HasJobVisualData(job)))
+                        ctrl.mageData = job;
+                    else if (id == "rogue" && (ctrl.rogueData == null || HasJobVisualData(job)))
+                        ctrl.rogueData = job;
+                }
+            }
+
+            // Second pass: search all loaded JobClassData assets.
+            // Always upgrade to an asset with visual data if we have one without.
             var allJobs = Resources.FindObjectsOfTypeAll<JobClassData>();
             foreach (var job in allJobs)
             {
                 if (string.IsNullOrEmpty(job.jobName)) continue;
                 string n = job.jobName.ToLower();
 
-                // Prefer assets with visual data over runtime duplicates without
+                // Prefer assets with visual data; always replace if current has none
                 if (n.Contains("warrior"))
                 {
-                    if (ctrl.warriorData == null || (!HasJobVisualData(ctrl.warriorData) && HasJobVisualData(job)))
+                    if (ctrl.warriorData == null
+                        || (HasJobVisualData(job) && !HasJobVisualData(ctrl.warriorData)))
                         ctrl.warriorData = job;
                 }
                 else if (n.Contains("mage"))
                 {
-                    if (ctrl.mageData == null || (!HasJobVisualData(ctrl.mageData) && HasJobVisualData(job)))
+                    if (ctrl.mageData == null
+                        || (HasJobVisualData(job) && !HasJobVisualData(ctrl.mageData)))
                         ctrl.mageData = job;
                 }
                 else if (n.Contains("rogue"))
                 {
-                    if (ctrl.rogueData == null || (!HasJobVisualData(ctrl.rogueData) && HasJobVisualData(job)))
+                    if (ctrl.rogueData == null
+                        || (HasJobVisualData(job) && !HasJobVisualData(ctrl.rogueData)))
                         ctrl.rogueData = job;
                 }
             }

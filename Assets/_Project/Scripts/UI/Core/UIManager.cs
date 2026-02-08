@@ -482,13 +482,8 @@ namespace ProjectName.UI
             if (IsMainMenuScene())
                 return;
 
-            if (DamageNumberSpawner.Instance != null)
-                return;
-
-            var go = new GameObject("DamageNumberSpawner");
-            go.AddComponent<DamageNumberSpawner>();
-            DontDestroyOnLoad(go);
-            Debug.Log("[UIManager] Created runtime DamageNumberSpawner");
+            // GetOrCreate handles the singleton check and DontDestroyOnLoad internally
+            DamageNumberSpawner.GetOrCreate();
         }
 
         private bool IsMainMenuScene()

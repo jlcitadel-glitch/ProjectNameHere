@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using ProjectName.UI;
 
 /// <summary>
 /// Core enemy controller handling state machine, health integration, and death.
@@ -18,6 +19,10 @@ public class EnemyController : MonoBehaviour, IDamageable
     [Header("Experience Orbs")]
     [SerializeField] private GameObject experienceOrbPrefab;
     [SerializeField] private int orbCount = 3;
+
+    [Header("Audio Fallback")]
+    [Tooltip("Played when enemy is hit and EnemyData.hurtSound is not assigned")]
+    [SerializeField] private AudioClip fallbackHurtSound;
 
     [Header("Debug")]
     [SerializeField] private bool debugLogging = false;
@@ -38,6 +43,7 @@ public class EnemyController : MonoBehaviour, IDamageable
     private float stunTimer;
     private Transform currentTarget;
     private bool isDead;
+    private AttackData lastReceivedAttackData;
 
     // Animation hashes
     private static readonly int AnimSpeed = Animator.StringToHash("Speed");
@@ -105,6 +111,14 @@ public class EnemyController : MonoBehaviour, IDamageable
 
         if (animator == null)
             animator = GetComponent<Animator>();
+
+        // Disable root motion so Animator doesn't override physics position.
+        // Without this, animation clips with Transform curves can teleport the
+        // enemy to distant positions, causing the "random teleport" bug.
+        if (animator != null)
+        {
+            animator.applyRootMotion = false;
+        }
 
         if (audioSource == null)
             audioSource = GetComponent<AudioSource>();
@@ -231,6 +245,14 @@ public class EnemyController : MonoBehaviour, IDamageable
         }
     }
 
+    private void FixedUpdate()
+    {
+        if (isDead)
+            return;
+
+        CheckContactDamage();
+    }
+
     private void Update()
     {
         if (isDead)
@@ -332,7 +354,8 @@ public class EnemyController : MonoBehaviour, IDamageable
     {
         if (currentTarget == null)
         {
-            SetState(EnemyState.Patrol);
+            // Stationary enemies return to Idle (they don't patrol)
+            SetState(enemyData.enemyType == EnemyType.Stationary ? EnemyState.Idle : EnemyState.Patrol);
             return;
         }
 
@@ -342,7 +365,7 @@ public class EnemyController : MonoBehaviour, IDamageable
         if (distanceToTarget > enemyData.loseAggroRange)
         {
             currentTarget = null;
-            SetState(EnemyState.Patrol);
+            SetState(enemyData.enemyType == EnemyType.Stationary ? EnemyState.Idle : EnemyState.Patrol);
             return;
         }
 
@@ -353,8 +376,26 @@ public class EnemyController : MonoBehaviour, IDamageable
             return;
         }
 
-        // Chase the target
-        movement?.ChaseTarget(currentTarget);
+        // Stationary enemies (towers) can't move closer — attack at detection range
+        // if they have combat configured. This allows ranged attacks to fire even when
+        // the player is beyond the nominal attackRange.
+        if (enemyData.enemyType == EnemyType.Stationary && combat != null)
+        {
+            FaceTarget();
+            SetState(EnemyState.Attack);
+            return;
+        }
+
+        // Chase the target (null-safe: stationary enemies have no movement)
+        if (movement != null)
+        {
+            movement.ChaseTarget(currentTarget);
+        }
+        else
+        {
+            // No movement component — face target and wait
+            FaceTarget();
+        }
     }
 
     private void UpdateAttack()
@@ -519,7 +560,18 @@ public class EnemyController : MonoBehaviour, IDamageable
             Instantiate(enemyData.hurtVFX, transform.position, Quaternion.identity);
         }
 
-        PlaySound(enemyData.hurtSound);
+        // Play hurt sound with fallback chain:
+        // 1. EnemyData.hurtSound  (designer-assigned per enemy type)
+        // 2. fallbackHurtSound    (designer-assigned on prefab)
+        // 3. AttackData.hitSound  (from the weapon that dealt the blow)
+        // 4. AttackData.attackSound (swing sound — last resort so hits are never silent)
+        AudioClip hurtClip = enemyData.hurtSound;
+        if (hurtClip == null)
+            hurtClip = fallbackHurtSound;
+        if (hurtClip == null && lastReceivedAttackData != null)
+            hurtClip = lastReceivedAttackData.hitSound ?? lastReceivedAttackData.attackSound;
+        PlaySound(hurtClip);
+        lastReceivedAttackData = null;
 
         // Enter stunned state
         stunTimer = enemyData.stunDuration;
@@ -594,6 +646,10 @@ public class EnemyController : MonoBehaviour, IDamageable
 
     public void TakeDamage(float damage, AttackData attackData = null)
     {
+        // Cache the AttackData so HandleDamageTaken can use its hitSound
+        // as a fallback when enemyData.hurtSound is not assigned.
+        lastReceivedAttackData = attackData;
+
         // Deal full damage through HealthSystem (knockback resistance does NOT reduce damage)
         if (healthSystem != null)
         {
@@ -715,29 +771,65 @@ public class EnemyController : MonoBehaviour, IDamageable
 
     #region Contact Damage
 
-    private void OnCollisionStay2D(Collision2D collision)
+    [Header("Contact Damage")]
+    [SerializeField] private float contactCheckRadius = 0.6f;
+    private float contactDamageCooldown;
+    private const float ContactDamageInterval = 0.5f;
+
+    /// <summary>
+    /// Overlap-based contact damage. Player and Enemy layers don't physically collide
+    /// (Physics2D layer matrix), so we detect proximity via OverlapCircle instead of
+    /// OnCollisionStay2D. This prevents enemies and player from pushing each other
+    /// while still dealing contact damage.
+    /// </summary>
+    private void CheckContactDamage()
     {
-        if (isDead || enemyData.contactDamage <= 0f)
+        if (isDead || enemyData == null || enemyData.contactDamage <= 0f)
             return;
 
-        // Check if we hit the player
-        if (collision.gameObject.CompareTag("Player"))
+        if (contactDamageCooldown > 0f)
         {
-            HealthSystem playerHealth = collision.gameObject.GetComponent<HealthSystem>();
+            contactDamageCooldown -= Time.fixedDeltaTime;
+            return;
+        }
+
+        // Check for player overlap using the Player layer
+        int playerLayerMask = 1 << 6; // Player layer index from TagManager
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, contactCheckRadius, playerLayerMask);
+
+        foreach (Collider2D hit in hits)
+        {
+            if (hit.isTrigger)
+                continue;
+
+            if (!hit.CompareTag("Player"))
+                continue;
+
+            HealthSystem playerHealth = hit.GetComponent<HealthSystem>();
             if (playerHealth != null && !playerHealth.IsInvulnerable)
             {
                 playerHealth.TakeDamage(enemyData.contactDamage);
+                contactDamageCooldown = ContactDamageInterval;
+
+                // Spawn damage number for contact damage
+                var spawner = DamageNumberSpawner.GetOrCreate();
+                if (spawner != null)
+                {
+                    Vector3 spawnPos = hit.bounds.center + Vector3.up * hit.bounds.extents.y;
+                    spawner.SpawnDamage(spawnPos, enemyData.contactDamage, DamageNumberType.Normal, false);
+                }
 
                 // Apply knockback to player
-                Rigidbody2D playerRb = collision.gameObject.GetComponent<Rigidbody2D>();
+                Rigidbody2D playerRb = hit.GetComponent<Rigidbody2D>();
                 if (playerRb != null && enemyData.contactKnockbackForce > 0f)
                 {
-                    Vector2 knockDir = (collision.transform.position - transform.position).normalized;
+                    Vector2 knockDir = (hit.transform.position - transform.position).normalized;
                     knockDir.y = 0.3f; // Add slight upward component
                     knockDir.Normalize();
                     playerRb.AddForce(knockDir * enemyData.contactKnockbackForce, ForceMode2D.Impulse);
                 }
             }
+            break; // Only damage one player per check
         }
     }
 

@@ -236,8 +236,9 @@ namespace ProjectName.UI
 
         private void UpdateBarFills()
         {
-            displayedHealth = Mathf.Lerp(displayedHealth, targetHealth, smoothSpeed * Time.deltaTime);
-            displayedMana = Mathf.Lerp(displayedMana, targetMana, smoothSpeed * Time.deltaTime);
+            // Use unscaledDeltaTime so bars animate even when time is paused (e.g. stat menu open)
+            displayedHealth = Mathf.Lerp(displayedHealth, targetHealth, smoothSpeed * Time.unscaledDeltaTime);
+            displayedMana = Mathf.Lerp(displayedMana, targetMana, smoothSpeed * Time.unscaledDeltaTime);
 
             if (Mathf.Abs(displayedHealth - targetHealth) < 0.001f)
                 displayedHealth = targetHealth;
@@ -265,14 +266,15 @@ namespace ProjectName.UI
 
         private void UpdateRecentChangeTimers()
         {
+            // Use unscaledDeltaTime so timers run even when game is paused (e.g. stat menu open)
             if (healthRecentChangeTimer > 0f)
             {
-                healthRecentChangeTimer -= Time.deltaTime;
+                healthRecentChangeTimer -= Time.unscaledDeltaTime;
             }
 
             if (manaRecentChangeTimer > 0f)
             {
-                manaRecentChangeTimer -= Time.deltaTime;
+                manaRecentChangeTimer -= Time.unscaledDeltaTime;
             }
         }
 
@@ -283,7 +285,7 @@ namespace ProjectName.UI
             healthTargetAlpha = shouldShowHealth ? 1f : 0f;
 
             float fadeSpeed = 1f / visibilityFadeDuration;
-            healthCurrentAlpha = Mathf.MoveTowards(healthCurrentAlpha, healthTargetAlpha, fadeSpeed * Time.deltaTime);
+            healthCurrentAlpha = Mathf.MoveTowards(healthCurrentAlpha, healthTargetAlpha, fadeSpeed * Time.unscaledDeltaTime);
 
             ApplyHealthAlpha(healthCurrentAlpha);
         }
@@ -295,7 +297,7 @@ namespace ProjectName.UI
             manaTargetAlpha = shouldShowMana ? 1f : 0f;
 
             float fadeSpeed = 1f / visibilityFadeDuration;
-            manaCurrentAlpha = Mathf.MoveTowards(manaCurrentAlpha, manaTargetAlpha, fadeSpeed * Time.deltaTime);
+            manaCurrentAlpha = Mathf.MoveTowards(manaCurrentAlpha, manaTargetAlpha, fadeSpeed * Time.unscaledDeltaTime);
 
             ApplyManaAlpha(manaCurrentAlpha);
         }
@@ -327,7 +329,7 @@ namespace ProjectName.UI
             if (displayedHealth > lowHealthThreshold)
                 return;
 
-            pulseTimer += Time.deltaTime * pulseSpeed;
+            pulseTimer += Time.unscaledDeltaTime * pulseSpeed;
             float pulse = Mathf.Sin(pulseTimer * Mathf.PI * 2f) * pulseIntensity;
 
             Color c = healthFillColor;

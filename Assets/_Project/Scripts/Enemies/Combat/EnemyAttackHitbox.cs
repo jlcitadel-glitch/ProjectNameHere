@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using ProjectName.UI;
 
 /// <summary>
 /// Trigger-based damage delivery component for enemy melee attacks.
@@ -110,7 +111,17 @@ public class EnemyAttackHitbox : MonoBehaviour
         if (healthSystem != null)
         {
             healthSystem.TakeDamage(finalDamage);
+            SpawnDamageNumber(target, finalDamage);
         }
+    }
+
+    private void SpawnDamageNumber(Collider2D target, float damage)
+    {
+        var spawner = DamageNumberSpawner.GetOrCreate();
+        if (spawner == null) return;
+
+        Vector3 spawnPos = target.bounds.center + Vector3.up * target.bounds.extents.y;
+        spawner.SpawnDamage(spawnPos, damage, DamageNumberType.Normal, false);
     }
 
     private void ApplyKnockback(Collider2D target)

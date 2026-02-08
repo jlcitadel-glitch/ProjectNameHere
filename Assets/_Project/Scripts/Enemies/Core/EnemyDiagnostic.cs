@@ -166,9 +166,15 @@ public class EnemyDiagnostic : MonoBehaviour
     private void CheckDamageNumberSpawner()
     {
         if (DamageNumberSpawner.Instance != null)
+        {
             LogPass("DamageNumberSpawner.Instance exists.");
+        }
         else
-            LogFail("DamageNumberSpawner.Instance is null — damage numbers will not appear.");
+        {
+            LogWarn("DamageNumberSpawner.Instance is null — will be auto-created on first damage.");
+            DamageNumberSpawner.GetOrCreate();
+            LogPass("DamageNumberSpawner auto-created via GetOrCreate().");
+        }
     }
 
     private void CheckEnemies()

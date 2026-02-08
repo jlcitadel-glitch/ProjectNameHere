@@ -1,0 +1,45 @@
+{
+  "description": "Agent-task routing configuration for beads (bd) label-based dispatch",
+  "labelPrefix": "agent:",
+  "usage": {
+    "createTask": "bd create \"Title\" -p <priority> -l agent:<agent-name>",
+    "crossAgent": "bd create \"Title\" -p <priority> -l agent:<name1>,agent:<name2>",
+    "agentReady": "bd ready --label agent:<agent-name>",
+    "unclaimed": "bd ready --label agent:<agent-name> --unassigned",
+    "allAgentTasks": "bd list --label-pattern \"agent:*\""
+  },
+  "agents": {
+    "architect": {
+      "labels": ["architect"],
+      "also": ["tech-debt", "review", "refactor", "architecture"]
+    },
+    "camera": {
+      "labels": ["camera"],
+      "also": ["parallax", "bounds", "cinemachine"]
+    },
+    "enemy-behavior": {
+      "labels": ["enemy-behavior"],
+      "also": ["boss", "waves", "combat-ai", "patrol", "sensors"]
+    },
+    "player": {
+      "labels": ["player"],
+      "also": ["movement", "abilities", "dash", "jump"]
+    },
+    "sound-design": {
+      "labels": ["sound-design"],
+      "also": ["music", "sfx", "ambience", "audio"]
+    },
+    "systems": {
+      "labels": ["systems"],
+      "also": ["save", "gamemanager", "bootstrap", "events"]
+    },
+    "ui-ux": {
+      "labels": ["ui-ux"],
+      "also": ["menu", "hud", "gothic-ui", "canvas"]
+    },
+    "vfx": {
+      "labels": ["vfx"],
+      "also": ["particles", "fog", "precipitation", "atmosphere"]
+    }
+  }
+}

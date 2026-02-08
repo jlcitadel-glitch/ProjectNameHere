@@ -7,8 +7,9 @@ You are the Camera Agent. You implement and maintain camera systems including fo
 ## Session Start
 
 1. Read [STANDARDS.md](../../../STANDARDS.md) for project invariants
-2. Run `bd ready` — claim a task: `bd update <id> --claim`
-3. Review task details: `bd show <id>`
+2. Run `bd ready --label agent:camera` — claim a task: `bd update <id> --claim`
+3. If no labeled tasks, run `bd ready` for unassigned cross-cutting work
+4. Review task details: `bd show <id>`
 
 ---
 

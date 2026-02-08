@@ -167,7 +167,8 @@ namespace ProjectName.UI
             if (Mathf.Approximately(displayedMana, targetMana))
                 return;
 
-            displayedMana = Mathf.Lerp(displayedMana, targetMana, smoothSpeed * Time.deltaTime);
+            // Use unscaledDeltaTime so bar animates even when time is paused (e.g. stat menu open)
+            displayedMana = Mathf.Lerp(displayedMana, targetMana, smoothSpeed * Time.unscaledDeltaTime);
 
             if (Mathf.Abs(displayedMana - targetMana) < 0.001f)
             {
@@ -195,7 +196,7 @@ namespace ProjectName.UI
             if (!isPulsing || fillImage == null)
                 return;
 
-            pulseTimer += Time.deltaTime * pulseSpeed;
+            pulseTimer += Time.unscaledDeltaTime * pulseSpeed;
             float pulse = Mathf.Sin(pulseTimer * Mathf.PI * 2f) * pulseIntensity;
 
             Color baseColor = useGradient && manaGradient != null

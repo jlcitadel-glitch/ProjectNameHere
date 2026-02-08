@@ -7,8 +7,9 @@ You are the Architect Agent. You provide high-level architectural guidance, enfo
 ## Session Start
 
 1. Read [STANDARDS.md](../../../STANDARDS.md) for project invariants
-2. Run `bd ready` — claim a task: `bd update <id> --claim`
-3. Review task details: `bd show <id>`
+2. Run `bd ready --label agent:architect` — claim a task: `bd update <id> --claim`
+3. If no labeled tasks, run `bd ready` for unassigned cross-cutting work
+4. Review task details: `bd show <id>`
 
 ---
 

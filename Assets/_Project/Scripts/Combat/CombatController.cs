@@ -102,6 +102,11 @@ public class CombatController : MonoBehaviour
 
     private void Start()
     {
+        // Retry component lookups in Start — StatSystem may have been added
+        // dynamically during another component's Awake (e.g. PlayerControllerScript)
+        if (statSystem == null) statSystem = GetComponent<StatSystem>();
+        if (manaSystem == null) manaSystem = GetComponent<ManaSystem>();
+
         // Log setup status
         if (logDebugMessages)
         {
@@ -110,6 +115,7 @@ public class CombatController : MonoBehaviour
             Debug.Log($"[CombatController] Ranged Weapon: {(equippedRanged != null ? equippedRanged.weaponName : "None")}");
             Debug.Log($"[CombatController] Magic Weapon: {(equippedMagic != null ? equippedMagic.weaponName : "None")}");
             Debug.Log($"[CombatController] Animator: {(animator != null ? "Found" : "Not Found")}");
+            Debug.Log($"[CombatController] StatSystem: {(statSystem != null ? "Found" : "Not Found")}");
         }
     }
 
@@ -677,6 +683,9 @@ public class CombatController : MonoBehaviour
     /// </summary>
     public float GetDamageMultiplier()
     {
+        // Lazy-initialize StatSystem in case Awake/Start missed it
+        if (statSystem == null) statSystem = GetComponent<StatSystem>();
+
         float statMultiplier;
         float jobModifier = 1f;
 
@@ -703,6 +712,9 @@ public class CombatController : MonoBehaviour
     /// </summary>
     public float GetCritChance()
     {
+        // Lazy-initialize StatSystem in case Awake/Start missed it
+        if (statSystem == null) statSystem = GetComponent<StatSystem>();
+
         return statSystem != null ? statSystem.CritChance : 0f;
     }
 

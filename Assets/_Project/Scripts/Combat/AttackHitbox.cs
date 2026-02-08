@@ -141,15 +141,16 @@ public class AttackHitbox : MonoBehaviour
 
     private void SpawnDamageNumber(Collider2D target, float damage, bool isCritical)
     {
-        if (DamageNumberSpawner.Instance == null)
+        var spawner = DamageNumberSpawner.GetOrCreate();
+        if (spawner == null)
         {
-            Debug.LogWarning("[AttackHitbox] DamageNumberSpawner.Instance is null - cannot spawn damage number");
+            Debug.LogWarning("[AttackHitbox] DamageNumberSpawner could not be created");
             return;
         }
 
         // Spawn above the target's center
         Vector3 spawnPos = target.bounds.center + Vector3.up * target.bounds.extents.y;
-        DamageNumberSpawner.Instance.SpawnDamage(spawnPos, damage, DamageNumberType.Normal, isCritical);
+        spawner.SpawnDamage(spawnPos, damage, DamageNumberType.Normal, isCritical);
     }
 
     private void ApplyKnockback(Collider2D target)

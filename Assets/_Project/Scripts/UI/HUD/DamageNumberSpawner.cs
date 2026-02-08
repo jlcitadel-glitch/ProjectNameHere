@@ -68,6 +68,24 @@ namespace ProjectName.UI
             }
         }
 
+        /// <summary>
+        /// Returns the singleton instance, creating it automatically if it does not exist.
+        /// Call this instead of accessing Instance directly when the spawner is needed
+        /// but may not have been created by UIManager yet (e.g., gameplay scene launched
+        /// directly without going through main menu).
+        /// </summary>
+        public static DamageNumberSpawner GetOrCreate()
+        {
+            if (Instance != null)
+                return Instance;
+
+            var go = new GameObject("DamageNumberSpawner");
+            go.AddComponent<DamageNumberSpawner>();
+            DontDestroyOnLoad(go);
+            Debug.Log("[DamageNumberSpawner] Auto-created (lazy init)");
+            return Instance;
+        }
+
         private void Update()
         {
             if (mainCamera == null)

@@ -121,6 +121,9 @@ public class WaveManager : MonoBehaviour
     {
         currentState = WaveState.Spawning;
 
+        // Reset spawn point tracking so all points are available for the new wave
+        spawnManager.ResetSpawnPoints();
+
         // Check if this is a boss wave
         bool isBossWave = waveConfig.bossWaveInterval > 0
             && waveConfig.bossPrefab != null

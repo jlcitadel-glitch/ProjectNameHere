@@ -13,10 +13,16 @@ public class EnemySpawnManager : MonoBehaviour
 
     [Header("Spawn Distribution")]
     [Tooltip("Minimum distance between spawned enemies to prevent overlap")]
-    [SerializeField] private float minSpawnSeparation = 1.5f;
+    [SerializeField] private float minSpawnSeparation = 2.0f;
+    [Tooltip("Random horizontal offset applied when all spawn points are occupied")]
+    [SerializeField] private float fallbackSpawnOffset = 2.5f;
+
+    [Header("Debug")]
+    [SerializeField] private bool debugLogging = false;
 
     private readonly List<EnemyController> aliveEnemies = new List<EnemyController>();
     private readonly List<int> recentlyUsedSpawnPoints = new List<int>();
+    private readonly List<Vector3> recentSpawnPositions = new List<Vector3>();
 
     public int AliveCount => aliveEnemies.Count;
 
@@ -37,18 +43,31 @@ public class EnemySpawnManager : MonoBehaviour
 
         // Pick a spawn point that isn't too close to existing enemies
         Transform point = PickSpawnPoint();
+        Vector3 spawnPos;
         if (point == null)
         {
-            Debug.LogWarning("[EnemySpawnManager] No valid spawn point available — all too close to existing enemies. Using random fallback.");
+            // All spawn points occupied — pick a random one and add an offset
+            // so the new enemy doesn't land exactly on top of an existing one.
             point = spawnPoints[UnityEngine.Random.Range(0, spawnPoints.Length)];
-        }
-        Vector3 spawnPos = point.position;
+            float offsetX = (UnityEngine.Random.value > 0.5f ? 1f : -1f) * fallbackSpawnOffset;
+            spawnPos = point.position + new Vector3(offsetX, 0f, 0f);
 
-        // For ground-type enemies, raycast down to find the actual ground surface
-        // so they don't spawn floating in mid-air
+            if (debugLogging)
+            {
+                Debug.LogWarning($"[EnemySpawnManager] No valid spawn point available — using fallback with offset ({offsetX:F1}, 0).");
+            }
+        }
+        else
+        {
+            spawnPos = point.position;
+        }
+
+        // For non-flying enemies, raycast down to find the actual ground surface
+        // so they don't spawn floating in mid-air. This applies to GroundPatrol,
+        // Hopping, and Stationary (tower) types.
         EnemyController prefabController = prefab.GetComponent<EnemyController>();
         if (prefabController != null && prefabController.Data != null
-            && prefabController.Data.enemyType == EnemyType.GroundPatrol)
+            && prefabController.Data.enemyType != EnemyType.Flying)
         {
             LayerMask groundMask = prefabController.Data.groundLayer;
 
@@ -77,6 +96,9 @@ public class EnemySpawnManager : MonoBehaviour
                 }
             }
         }
+
+        // Record the final spawn position for overlap prevention
+        recentSpawnPositions.Add(spawnPos);
 
         // Instantiate
         GameObject enemyObj = Instantiate(prefab, spawnPos, Quaternion.identity);
@@ -119,6 +141,7 @@ public class EnemySpawnManager : MonoBehaviour
     public void ResetSpawnPoints()
     {
         recentlyUsedSpawnPoints.Clear();
+        recentSpawnPositions.Clear();
     }
 
     private Transform PickSpawnPoint()
@@ -150,6 +173,7 @@ public class EnemySpawnManager : MonoBehaviour
             Vector3 pos = spawnPoints[idx].position;
             bool tooClose = false;
 
+            // Check distance to alive enemies
             foreach (EnemyController enemy in aliveEnemies)
             {
                 if (enemy != null && Vector2.Distance(pos, enemy.transform.position) < minSpawnSeparation)
@@ -159,9 +183,24 @@ public class EnemySpawnManager : MonoBehaviour
                 }
             }
 
+            // Also check recent spawn positions (catches rapid successive spawns
+            // before the enemy has moved away from its spawn point)
+            if (!tooClose)
+            {
+                foreach (Vector3 recentPos in recentSpawnPositions)
+                {
+                    if (Vector2.Distance(pos, recentPos) < minSpawnSeparation)
+                    {
+                        tooClose = true;
+                        break;
+                    }
+                }
+            }
+
             if (!tooClose)
             {
                 recentlyUsedSpawnPoints.Add(idx);
+                recentSpawnPositions.Add(pos);
                 return spawnPoints[idx];
             }
         }
