@@ -23,6 +23,7 @@ public class EnemySensors : MonoBehaviour
     private EnemyData enemyData;
     private Transform currentTarget;
     private bool hasTarget;
+    private bool useTagFallback;
 
     public Transform CurrentTarget => currentTarget;
     public bool HasTarget => hasTarget;
@@ -51,6 +52,15 @@ public class EnemySensors : MonoBehaviour
         if (targetLayers == 0)
         {
             targetLayers = LayerMask.GetMask("Player");
+        }
+
+        // If targetLayers is still 0 after the fallback (layer doesn't exist),
+        // enable tag-based detection so sensors don't silently fail.
+        if (targetLayers == 0)
+        {
+            Debug.LogWarning($"[EnemySensors] {gameObject.name}: targetLayers is 0 — no valid layer configured. " +
+                "Using tag-based fallback detection (searching all layers for \"{targetTag}\" tag).");
+            useTagFallback = true;
         }
 
         // Set default obstacle layer if not set
@@ -127,11 +137,9 @@ public class EnemySensors : MonoBehaviour
 
     private Transform DetectByRadius()
     {
-        Collider2D[] colliders = Physics2D.OverlapCircleAll(
-            sensorOrigin.position,
-            enemyData.detectionRange,
-            targetLayers
-        );
+        Collider2D[] colliders = useTagFallback
+            ? Physics2D.OverlapCircleAll(sensorOrigin.position, enemyData.detectionRange)
+            : Physics2D.OverlapCircleAll(sensorOrigin.position, enemyData.detectionRange, targetLayers);
 
         foreach (Collider2D col in colliders)
         {
@@ -149,11 +157,9 @@ public class EnemySensors : MonoBehaviour
 
     private Transform DetectByCone()
     {
-        Collider2D[] colliders = Physics2D.OverlapCircleAll(
-            sensorOrigin.position,
-            enemyData.detectionRange,
-            targetLayers
-        );
+        Collider2D[] colliders = useTagFallback
+            ? Physics2D.OverlapCircleAll(sensorOrigin.position, enemyData.detectionRange)
+            : Physics2D.OverlapCircleAll(sensorOrigin.position, enemyData.detectionRange, targetLayers);
 
         float facingDir = controller != null ? controller.FacingDirection : 1f;
         Vector2 forward = new Vector2(facingDir, 0f);
@@ -181,11 +187,9 @@ public class EnemySensors : MonoBehaviour
 
     private Transform DetectByLineOfSight()
     {
-        Collider2D[] colliders = Physics2D.OverlapCircleAll(
-            sensorOrigin.position,
-            enemyData.detectionRange,
-            targetLayers
-        );
+        Collider2D[] colliders = useTagFallback
+            ? Physics2D.OverlapCircleAll(sensorOrigin.position, enemyData.detectionRange)
+            : Physics2D.OverlapCircleAll(sensorOrigin.position, enemyData.detectionRange, targetLayers);
 
         foreach (Collider2D col in colliders)
         {

@@ -89,6 +89,11 @@ public class EnemyController : MonoBehaviour, IDamageable
                 Debug.LogWarning($"[EnemyController] {gameObject.name}: Missing EnemyCombat, adding automatically.");
                 combat = gameObject.AddComponent<EnemyCombat>();
             }
+
+            if (GetComponent<EnemyHitFlash>() == null)
+            {
+                gameObject.AddComponent<EnemyHitFlash>();
+            }
         }
 
         // Safety net: ensure Rigidbody2D is Dynamic so physics (gravity, collisions) work.
@@ -230,6 +235,18 @@ public class EnemyController : MonoBehaviour, IDamageable
 
         UpdateStateMachine();
         UpdateAnimator();
+    }
+
+    private void LateUpdate()
+    {
+        // The Animator runs in Update and can write Transform.position from
+        // animation curves, overriding the Rigidbody2D's physics-driven position.
+        // LateUpdate runs after the Animator, so we re-sync the transform to
+        // where physics says the enemy actually is.
+        if (rb != null && !isDead)
+        {
+            transform.position = new Vector3(rb.position.x, rb.position.y, transform.position.z);
+        }
     }
 
     private void UpdateStateMachine()

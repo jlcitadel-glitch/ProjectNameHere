@@ -452,11 +452,33 @@ Before and after enemy behavior changes, verify:
 
 ## Common Issues
 
-### Enemy Not Moving
-- Check Rigidbody2D bodyType is Dynamic (BaseEnemyMovement enforces in Awake)
-- Verify movement component exists (GroundPatrolMovement or FlyingMovement)
-- Check EnemyController state — may be stuck in Idle (verify idle timer)
-- Ensure ground layer is assigned for GroundPatrolMovement detection
+### Enemy Not Moving (Visually Frozen Despite Non-Zero Velocity)
+**Root cause found Feb 2026:** The Animator overrides physics position every frame.
+
+**Diagnosis strategy that worked:**
+1. Added runtime `EnemyDiagnostic.cs` with a live monitor logging state, velocity, and position every 3 seconds as `LogWarning` (so it shows regardless of console filter settings)
+2. Observed that `rb.linearVelocity` was non-zero but `transform.position` was identical across multiple snapshots — proving something was overwriting the physics-driven position each frame
+3. Identified the Animator as the culprit: animation clips with `Transform.localPosition` keyframes run in `Update()` (after `FixedUpdate` physics), snapping the enemy back to the baked animation position every frame
+
+**Fix:** `EnemyController.LateUpdate()` re-syncs `transform.position` from `rb.position` after the Animator runs:
+```csharp
+private void LateUpdate()
+{
+    if (rb != null && !isDead)
+    {
+        transform.position = new Vector3(rb.position.x, rb.position.y, transform.position.z);
+    }
+}
+```
+
+**Key lesson:** When an enemy has both a Rigidbody2D and an Animator on the same GameObject, and animation clips contain Transform position curves, the Animator will silently override physics movement every frame. The Rigidbody reports correct velocity but the visual position never changes. Always check position-over-time, not just velocity, when debugging "frozen" enemies.
+
+**Checklist (check in this order):**
+1. **Animator position override** — compare `transform.position` across frames; if unchanged despite non-zero velocity, Animator is overriding physics (see LateUpdate fix above)
+2. Rigidbody2D bodyType is Dynamic (BaseEnemyMovement enforces in Awake)
+3. Verify movement component exists (GroundPatrolMovement or FlyingMovement)
+4. Check EnemyController state — may be stuck in Idle (verify idle timer)
+5. Ensure ground layer is assigned for GroundPatrolMovement detection
 
 ### Enemy Not Attacking
 - Verify EnemyCombat component exists
@@ -475,11 +497,55 @@ Before and after enemy behavior changes, verify:
 - Confirm phase2HealthPercent and enrageHealthPercent are set correctly (0.5, 0.2)
 - Check that HealthSystem is the same instance BossController references
 
+### Sensors Not Detecting Player
+**Root cause found Feb 2026:** Enemy prefab `targetLayers` was bitmask 64 (layer 6), but layer 6 had no name in `ProjectSettings/TagManager.asset`. `Physics2D.OverlapCircleAll` with a layer mask for an unnamed layer returns nothing.
+
+**Fix:** Named the layers in TagManager (`layer 6 = "Player"`, `layer 13 = "Enemy"`) and set the Player prefab/scene instance to layer 6. Also added a tag-based fallback in `EnemySensors.Start()` that detects when `targetLayers == 0` and switches to layerless overlap + tag check.
+
+**Key lesson:** Always verify layer names exist in `TagManager.asset` when debugging sensor/detection failures. A serialized `LayerMask` with `m_Bits: 64` means nothing if layer 6 is unnamed. The `LayerMask.GetMask("Player")` fallback in `Start()` also silently returns 0 if the layer doesn't exist.
+
+**Also check:** Scene prefab overrides can set a different layer than the prefab itself. Check both the prefab AND the scene's `m_Modifications` for `propertyPath: m_Layer`.
+
+### Damage Numbers Not Appearing
+- Check `DamageNumberSpawner.Instance` is not null (singleton must exist in scene)
+- Check `Camera.main` is not null — requires the camera GameObject to have tag `MainCamera` (not just the name)
+- The damage pipeline is: `AttackHitbox.OnTriggerEnter2D` → `ApplyDamage` → `SpawnDamageNumber` → `DamageNumberSpawner.SpawnDamage`
+
+### EnemyAttackHitbox Invalid Layer Error
+- `EnemyAttackHitbox.SetupCollider()` sets `gameObject.layer = LayerMask.NameToLayer("EnemyAttack")`
+- If "EnemyAttack" layer doesn't exist, `NameToLayer` returns -1 — must check BEFORE assigning
+- Fixed: check the return value and fall back to the parent enemy's layer
+
 ### Wave Enemies Too Strong / Too Weak
 - Review WaveConfig scaling values (healthScalePerWave, damageScalePerWave, speedScalePerWave)
 - Check EnemyStatModifier is being applied (added by EnemySpawnManager during spawn)
 - Formula: `baseStat * (1 + (wave - 1) * scalePerWave)`
 - Wave 10 at 15% HP scaling = 2.35x base HP
+
+---
+
+## Debugging Strategy
+
+When enemies appear broken, follow this diagnostic approach (proven Feb 2026):
+
+### 1. Add Runtime Diagnostics First — Don't Guess
+Create/use `EnemyDiagnostic.cs` (exists in `Enemies/Core/`). It validates the full pipeline on Start and monitors live enemies. Key: use `Debug.LogWarning` for monitor output so it shows regardless of console filter settings.
+
+### 2. Check Configuration Before Code
+Most "enemy broken" issues are configuration problems, not logic bugs:
+- **Layer names** in `TagManager.asset` — unnamed layers silently break `LayerMask` filtering
+- **Layer assignments** on prefabs AND scene overrides — both must be correct
+- **Tags** on cameras (`MainCamera`), players (`Player`), enemies (`Enemy`)
+- **Serialized fields** on prefabs — `targetLayers`, `groundLayer`, `attacks[]` arrays
+
+### 3. Compare Position Over Time, Not Just Velocity
+`rb.linearVelocity` can be non-zero while the enemy is visually frozen. Always compare `transform.position` across multiple snapshots (the live monitor does this). If position doesn't change but velocity is non-zero, something is overriding the transform after physics runs (usually an Animator).
+
+### 4. Fix One Thing at a Time
+Make isolated changes with clear before/after verification. Never touch shared systems (HealthSystem, AttackHitbox, DamageNumberSpawner) unless the diagnostic directly implicates them.
+
+### 5. Protect Working Systems
+If HealthSystem, combat, spawning, etc. are working (verified by diagnostics), don't modify them. The bug is usually in configuration or a single component interaction.
 
 ---
 

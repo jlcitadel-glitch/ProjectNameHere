@@ -40,13 +40,15 @@ public class EnemyAttackHitbox : MonoBehaviour
         hitboxCollider.size = attackData.hitboxSize;
 
         // Set layer for collision filtering
-        gameObject.layer = LayerMask.NameToLayer("EnemyAttack");
-
-        // If layer doesn't exist, log warning
-        if (gameObject.layer == -1)
+        int attackLayer = LayerMask.NameToLayer("EnemyAttack");
+        if (attackLayer >= 0)
         {
-            Debug.LogWarning("EnemyAttackHitbox: 'EnemyAttack' layer not found. Create it in Project Settings > Tags and Layers.");
-            gameObject.layer = 0; // Default layer
+            gameObject.layer = attackLayer;
+        }
+        else
+        {
+            // Fall back to parent's layer so it still exists in physics
+            gameObject.layer = owner != null ? owner.gameObject.layer : 0;
         }
     }
 
