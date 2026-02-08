@@ -105,6 +105,9 @@ namespace ProjectName.UI
             // Ensure the skill tree exists for gameplay scenes
             EnsureSkillTree();
 
+            // Ensure damage number spawner exists for gameplay scenes
+            EnsureDamageNumberSpawner();
+
             // Re-setup pause input after scene change in case PlayerInput was recreated
             SetupPauseInput();
         }
@@ -472,6 +475,20 @@ namespace ProjectName.UI
 
             SkillTreeController.CreateRuntimeUI();
             Debug.Log("[UIManager] Created runtime SkillTree");
+        }
+
+        private void EnsureDamageNumberSpawner()
+        {
+            if (IsMainMenuScene())
+                return;
+
+            if (DamageNumberSpawner.Instance != null)
+                return;
+
+            var go = new GameObject("DamageNumberSpawner");
+            go.AddComponent<DamageNumberSpawner>();
+            DontDestroyOnLoad(go);
+            Debug.Log("[UIManager] Created runtime DamageNumberSpawner");
         }
 
         private bool IsMainMenuScene()

@@ -1,35 +1,33 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 using TMPro;
 
 namespace ProjectName.UI
 {
     /// <summary>
-    /// Spawns and manages floating damage numbers in world space.
-    /// Attach to a persistent GameObject or use as singleton.
+    /// Spawns and manages floating damage numbers using a screen-space overlay canvas.
+    /// Uses TextMeshProUGUI for reliable rendering in 2D URP.
     /// </summary>
     public class DamageNumberSpawner : MonoBehaviour
     {
         public static DamageNumberSpawner Instance { get; private set; }
-
-        [Header("Prefab")]
-        [SerializeField] private GameObject damageNumberPrefab;
 
         [Header("Pool Settings")]
         [SerializeField] private int initialPoolSize = 20;
         [SerializeField] private int maxPoolSize = 50;
 
         [Header("Animation")]
-        [SerializeField] private float floatSpeed = 2f;
-        [SerializeField] private float floatDistance = 1.5f;
+        [SerializeField] private float floatSpeed = 120f;
+        [SerializeField] private float floatDistance = 80f;
         [SerializeField] private float lifetime = 1f;
         [SerializeField] private float fadeStartTime = 0.5f;
-        [SerializeField] private float randomOffsetRange = 0.3f;
+        [SerializeField] private float randomOffsetRange = 20f;
 
-        [Header("Scaling")]
-        [SerializeField] private float baseScale = 0.02f;
-        [SerializeField] private float criticalScale = 0.03f;
-        [SerializeField] private float healScale = 0.025f;
+        [Header("Font Size")]
+        [SerializeField] private float baseFontSize = 28f;
+        [SerializeField] private float criticalFontSize = 38f;
+        [SerializeField] private float healFontSize = 30f;
 
         [Header("Colors")]
         [SerializeField] private Color normalDamageColor = new Color(1f, 1f, 1f, 1f);
@@ -42,8 +40,11 @@ namespace ProjectName.UI
         [SerializeField] private Color iceColor = new Color(0.5f, 0.8f, 1f, 1f);
         [SerializeField] private Color lightningColor = new Color(1f, 1f, 0.4f, 1f);
 
+        private Canvas canvas;
+        private RectTransform canvasRect;
         private Queue<DamageNumber> pool = new Queue<DamageNumber>();
         private List<DamageNumber> activeNumbers = new List<DamageNumber>();
+        private Camera mainCamera;
 
         private void Awake()
         {
@@ -54,7 +55,9 @@ namespace ProjectName.UI
             }
             Instance = this;
 
+            CreateCanvas();
             InitializePool();
+            Debug.Log($"[DamageNumberSpawner] Initialized with {pool.Count} pooled numbers. Canvas: {canvas != null}, Camera: {Camera.main != null}");
         }
 
         private void OnDestroy()
@@ -67,46 +70,67 @@ namespace ProjectName.UI
 
         private void Update()
         {
+            if (mainCamera == null)
+                mainCamera = Camera.main;
+
             UpdateActiveNumbers();
+        }
+
+        private void CreateCanvas()
+        {
+            var canvasGo = new GameObject("DamageNumberCanvas");
+            canvasGo.transform.SetParent(transform);
+
+            canvas = canvasGo.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 999;
+
+            var scaler = canvasGo.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920, 1080);
+            scaler.matchWidthOrHeight = 0.5f;
+
+            canvasRect = canvasGo.GetComponent<RectTransform>();
         }
 
         private void InitializePool()
         {
-            if (damageNumberPrefab == null)
-            {
-                CreateDefaultPrefab();
-            }
-
             for (int i = 0; i < initialPoolSize; i++)
             {
                 CreatePooledNumber();
             }
         }
 
-        private void CreateDefaultPrefab()
-        {
-            damageNumberPrefab = new GameObject("DamageNumberTemplate");
-            damageNumberPrefab.SetActive(false);
-
-            var tmp = damageNumberPrefab.AddComponent<TextMeshPro>();
-            tmp.alignment = TextAlignmentOptions.Center;
-            tmp.fontSize = 6;
-            tmp.fontStyle = FontStyles.Bold;
-            tmp.sortingOrder = 1000;
-            FontManager.EnsureFont(tmp);
-
-            damageNumberPrefab.transform.SetParent(transform);
-        }
-
         private DamageNumber CreatePooledNumber()
         {
-            GameObject obj = Instantiate(damageNumberPrefab, transform);
-            obj.SetActive(false);
+            var go = new GameObject("DmgNum", typeof(RectTransform));
+            go.transform.SetParent(canvas.transform, false);
+
+            var tmp = go.AddComponent<TextMeshProUGUI>();
+            tmp.alignment = TextAlignmentOptions.Center;
+            tmp.fontSize = baseFontSize;
+            tmp.fontStyle = FontStyles.Bold;
+            tmp.enableWordWrapping = false;
+            tmp.overflowMode = TextOverflowModes.Overflow;
+            tmp.raycastTarget = false;
+            FontManager.EnsureFont(tmp);
+
+            // Black outline for visibility against any background
+            tmp.outlineWidth = 0.3f;
+            tmp.outlineColor = new Color32(0, 0, 0, 255);
+
+            // Size the rect to fit text without clipping
+            var rt = go.GetComponent<RectTransform>();
+            rt.sizeDelta = new Vector2(200, 60);
+
+            // Deactivate AFTER TMP is fully configured
+            go.SetActive(false);
 
             var number = new DamageNumber
             {
-                gameObject = obj,
-                textMesh = obj.GetComponent<TextMeshPro>()
+                gameObject = go,
+                rectTransform = rt,
+                textMesh = tmp
             };
 
             pool.Enqueue(number);
@@ -119,11 +143,10 @@ namespace ProjectName.UI
             {
                 if (activeNumbers.Count < maxPoolSize)
                 {
-                    return CreatePooledNumber();
+                    CreatePooledNumber();
                 }
                 else
                 {
-                    // Recycle oldest active number
                     var oldest = activeNumbers[0];
                     ReturnToPool(oldest);
                 }
@@ -141,15 +164,36 @@ namespace ProjectName.UI
 
         private void UpdateActiveNumbers()
         {
+            if (mainCamera == null) return;
+
             for (int i = activeNumbers.Count - 1; i >= 0; i--)
             {
                 var number = activeNumbers[i];
                 number.elapsedTime += Time.deltaTime;
 
-                // Move upward
-                float yOffset = number.elapsedTime * floatSpeed;
-                yOffset = Mathf.Min(yOffset, floatDistance);
-                number.gameObject.transform.position = number.startPosition + Vector3.up * yOffset;
+                // Calculate world position with upward float
+                float yOffset = Mathf.Min(number.elapsedTime * floatSpeed, floatDistance);
+                Vector3 worldPos = number.worldStartPosition + Vector3.up * (yOffset / 100f);
+
+                // Convert world position to screen position, then to canvas local position
+                Vector3 screenPos = mainCamera.WorldToScreenPoint(worldPos);
+
+                // Don't render if behind camera
+                if (screenPos.z < 0)
+                {
+                    number.gameObject.SetActive(false);
+                    if (number.elapsedTime >= lifetime)
+                        ReturnToPool(number);
+                    continue;
+                }
+
+                // Convert screen position to canvas position
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                    canvasRect, screenPos, null, out Vector2 canvasPos);
+                number.rectTransform.anchoredPosition = canvasPos;
+
+                if (!number.gameObject.activeSelf)
+                    number.gameObject.SetActive(true);
 
                 // Fade out
                 if (number.elapsedTime > fadeStartTime && number.textMesh != null)
@@ -161,10 +205,14 @@ namespace ProjectName.UI
                 }
 
                 // Scale pulse for criticals
-                if (number.isCritical && number.elapsedTime < 0.2f)
+                if (number.isCritical && number.elapsedTime < 0.3f)
                 {
-                    float pulse = 1f + Mathf.Sin(number.elapsedTime * Mathf.PI * 10f) * 0.2f;
-                    number.gameObject.transform.localScale = Vector3.one * number.scale * pulse;
+                    float pulse = 1f + Mathf.Sin(number.elapsedTime * Mathf.PI * 8f) * 0.15f;
+                    number.rectTransform.localScale = Vector3.one * pulse;
+                }
+                else if (number.isCritical && number.elapsedTime >= 0.3f)
+                {
+                    number.rectTransform.localScale = Vector3.one;
                 }
 
                 // Return to pool when lifetime expires
@@ -175,48 +223,54 @@ namespace ProjectName.UI
             }
         }
 
-        private float EaseOutQuad(float t)
-        {
-            return 1f - (1f - t) * (1f - t);
-        }
-
         /// <summary>
-        /// Spawns a damage number at the specified position.
+        /// Spawns a damage number at the specified world position.
         /// </summary>
         public void SpawnDamage(Vector3 position, float amount, DamageNumberType type = DamageNumberType.Normal, bool isCritical = false)
         {
+            if (mainCamera == null)
+                mainCamera = Camera.main;
+            if (mainCamera == null)
+            {
+                Debug.LogWarning("[DamageNumberSpawner] SpawnDamage called but Camera.main is null");
+                return;
+            }
+
+            Debug.Log($"[DamageNumberSpawner] SpawnDamage: {amount} at {position} type={type} crit={isCritical}");
             var number = GetFromPool();
 
-            // Random offset
+            // Random offset in world space
             Vector3 offset = new Vector3(
-                Random.Range(-randomOffsetRange, randomOffsetRange),
-                Random.Range(0f, randomOffsetRange),
+                Random.Range(-0.3f, 0.3f),
+                Random.Range(0f, 0.3f),
                 0f
             );
 
-            number.startPosition = position + offset;
+            number.worldStartPosition = position + offset;
             number.elapsedTime = 0f;
             number.isCritical = isCritical;
 
-            // Set scale
-            number.scale = type == DamageNumberType.Heal ? healScale :
-                           isCritical ? criticalScale : baseScale;
-            number.gameObject.transform.localScale = Vector3.one * number.scale;
-            number.gameObject.transform.position = number.startPosition;
-
-            // Set text
             if (number.textMesh != null)
             {
                 string prefix = type == DamageNumberType.Heal ? "+" : "";
                 string text = prefix + Mathf.RoundToInt(amount).ToString();
-
-                if (isCritical)
-                {
-                    text += "!";
-                }
+                if (isCritical) text += "!";
 
                 number.textMesh.text = text;
                 number.textMesh.color = GetColorForType(type, isCritical);
+                number.textMesh.fontSize = type == DamageNumberType.Heal ? healFontSize :
+                                           isCritical ? criticalFontSize : baseFontSize;
+            }
+
+            number.rectTransform.localScale = Vector3.one;
+
+            // Position immediately
+            Vector3 screenPos = mainCamera.WorldToScreenPoint(number.worldStartPosition);
+            if (screenPos.z > 0)
+            {
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                    canvasRect, screenPos, null, out Vector2 canvasPos);
+                number.rectTransform.anchoredPosition = canvasPos;
             }
 
             number.gameObject.SetActive(true);
@@ -228,20 +282,26 @@ namespace ProjectName.UI
         /// </summary>
         public void SpawnDamageWithType(Vector3 position, float amount, DamageType damageType, bool isCritical = false)
         {
+            if (mainCamera == null)
+                mainCamera = Camera.main;
+            if (mainCamera == null)
+            {
+                Debug.LogWarning("[DamageNumberSpawner] SpawnDamageWithType called but Camera.main is null");
+                return;
+            }
+
+            Debug.Log($"[DamageNumberSpawner] SpawnDamageWithType: {amount} {damageType} at {position} crit={isCritical}");
             var number = GetFromPool();
 
             Vector3 offset = new Vector3(
-                Random.Range(-randomOffsetRange, randomOffsetRange),
-                Random.Range(0f, randomOffsetRange),
+                Random.Range(-0.3f, 0.3f),
+                Random.Range(0f, 0.3f),
                 0f
             );
 
-            number.startPosition = position + offset;
+            number.worldStartPosition = position + offset;
             number.elapsedTime = 0f;
             number.isCritical = isCritical;
-            number.scale = isCritical ? criticalScale : baseScale;
-            number.gameObject.transform.localScale = Vector3.one * number.scale;
-            number.gameObject.transform.position = number.startPosition;
 
             if (number.textMesh != null)
             {
@@ -250,6 +310,17 @@ namespace ProjectName.UI
 
                 number.textMesh.text = text;
                 number.textMesh.color = GetColorForDamageType(damageType, isCritical);
+                number.textMesh.fontSize = isCritical ? criticalFontSize : baseFontSize;
+            }
+
+            number.rectTransform.localScale = Vector3.one;
+
+            Vector3 screenPos = mainCamera.WorldToScreenPoint(number.worldStartPosition);
+            if (screenPos.z > 0)
+            {
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                    canvasRect, screenPos, null, out Vector2 canvasPos);
+                number.rectTransform.anchoredPosition = canvasPos;
             }
 
             number.gameObject.SetActive(true);
@@ -261,25 +332,37 @@ namespace ProjectName.UI
         /// </summary>
         public void SpawnText(Vector3 position, string text, Color color)
         {
+            if (mainCamera == null)
+                mainCamera = Camera.main;
+            if (mainCamera == null) return;
+
             var number = GetFromPool();
 
             Vector3 offset = new Vector3(
-                Random.Range(-randomOffsetRange, randomOffsetRange),
-                Random.Range(0f, randomOffsetRange),
+                Random.Range(-0.3f, 0.3f),
+                Random.Range(0f, 0.3f),
                 0f
             );
 
-            number.startPosition = position + offset;
+            number.worldStartPosition = position + offset;
             number.elapsedTime = 0f;
             number.isCritical = false;
-            number.scale = baseScale;
-            number.gameObject.transform.localScale = Vector3.one * number.scale;
-            number.gameObject.transform.position = number.startPosition;
 
             if (number.textMesh != null)
             {
                 number.textMesh.text = text;
                 number.textMesh.color = color;
+                number.textMesh.fontSize = baseFontSize;
+            }
+
+            number.rectTransform.localScale = Vector3.one;
+
+            Vector3 screenPos = mainCamera.WorldToScreenPoint(number.worldStartPosition);
+            if (screenPos.z > 0)
+            {
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                    canvasRect, screenPos, null, out Vector2 canvasPos);
+                number.rectTransform.anchoredPosition = canvasPos;
             }
 
             number.gameObject.SetActive(true);
@@ -322,11 +405,11 @@ namespace ProjectName.UI
         private class DamageNumber
         {
             public GameObject gameObject;
-            public TextMeshPro textMesh;
-            public Vector3 startPosition;
+            public RectTransform rectTransform;
+            public TextMeshProUGUI textMesh;
+            public Vector3 worldStartPosition;
             public float elapsedTime;
             public bool isCritical;
-            public float scale;
         }
     }
 

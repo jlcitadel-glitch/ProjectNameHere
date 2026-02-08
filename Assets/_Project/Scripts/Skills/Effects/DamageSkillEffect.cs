@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using ProjectName.UI;
 
 /// <summary>
 /// Skill effect that deals damage to enemies in range.
@@ -138,6 +139,13 @@ public class DamageSkillEffect : BaseSkillEffect
         if (targetHealth != null)
         {
             targetHealth.TakeDamage(damage);
+
+            // Spawn floating damage number
+            if (DamageNumberSpawner.Instance != null)
+            {
+                Vector3 spawnPos = target.bounds.center + Vector3.up * target.bounds.extents.y;
+                DamageNumberSpawner.Instance.SpawnDamageWithType(spawnPos, damage, damageType, false);
+            }
 
             // Spawn hit effect
             if (hitEffectPrefab != null)

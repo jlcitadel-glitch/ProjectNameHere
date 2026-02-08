@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using ProjectName.UI;
 
 /// <summary>
 /// Trigger-based damage dealing component for melee attacks.
@@ -102,10 +103,12 @@ public class AttackHitbox : MonoBehaviour
         float finalDamage = attackData.baseDamage * damageMultiplier;
 
         // Crit roll
+        bool isCritical = false;
         float critChance = owner != null ? owner.GetCritChance() : 0f;
         if (critChance > 0f && Random.value < critChance)
         {
             finalDamage *= 2f;
+            isCritical = true;
         }
 
         // Prefer IDamageable for custom damage handling (knockback resistance, etc.)
@@ -118,6 +121,7 @@ public class AttackHitbox : MonoBehaviour
         if (damageable != null)
         {
             damageable.TakeDamage(finalDamage, attackData);
+            SpawnDamageNumber(target, finalDamage, isCritical);
             return;
         }
 
@@ -128,7 +132,24 @@ public class AttackHitbox : MonoBehaviour
             healthSystem = target.GetComponentInParent<HealthSystem>();
         }
 
-        healthSystem?.TakeDamage(finalDamage);
+        if (healthSystem != null)
+        {
+            healthSystem.TakeDamage(finalDamage);
+            SpawnDamageNumber(target, finalDamage, isCritical);
+        }
+    }
+
+    private void SpawnDamageNumber(Collider2D target, float damage, bool isCritical)
+    {
+        if (DamageNumberSpawner.Instance == null)
+        {
+            Debug.LogWarning("[AttackHitbox] DamageNumberSpawner.Instance is null - cannot spawn damage number");
+            return;
+        }
+
+        // Spawn above the target's center
+        Vector3 spawnPos = target.bounds.center + Vector3.up * target.bounds.extents.y;
+        DamageNumberSpawner.Instance.SpawnDamage(spawnPos, damage, DamageNumberType.Normal, isCritical);
     }
 
     private void ApplyKnockback(Collider2D target)

@@ -9,6 +9,7 @@ public class MusicManager : MonoBehaviour
     public static MusicManager Instance { get; private set; }
 
     private AudioSource audioSource;
+    private AudioClip gameplayMusic;
     private float musicVolume = 1f;
     private float masterVolume = 1f;
     private bool isDucked;
@@ -32,6 +33,8 @@ public class MusicManager : MonoBehaviour
         masterVolume = PlayerPrefs.GetFloat("Audio_Master", 1f);
         musicVolume = PlayerPrefs.GetFloat("Audio_Music", 1f);
         ApplyVolume();
+
+        gameplayMusic = Resources.Load<AudioClip>("GameplayMusic");
     }
 
     private void OnEnable()
@@ -76,6 +79,14 @@ public class MusicManager : MonoBehaviour
     {
         isDucked = current == GameManager.GameState.Paused;
         ApplyVolume();
+
+        if (current == GameManager.GameState.Playing && previous != GameManager.GameState.Paused)
+        {
+            if (gameplayMusic != null && audioSource.clip != gameplayMusic)
+            {
+                PlayTrack(gameplayMusic);
+            }
+        }
     }
 
     private void ApplyVolume()
