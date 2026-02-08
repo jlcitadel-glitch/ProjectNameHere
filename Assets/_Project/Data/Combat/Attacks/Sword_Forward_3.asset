@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 95023e0438ddd9b4781be108f1846d2a, type: 3}
   m_Name: Sword_Forward_3
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   attackName: Forward Slash 3
   direction: 0
   weaponType: 0
@@ -34,6 +34,8 @@ MonoBehaviour:
   hitboxVFXPrefab: {fileID: 0}
   impactVFXPrefab: {fileID: 0}
   animationTrigger: Attack3
+  attackSound: {fileID: 8300000, guid: 006fc38f89efadb439b4745cf8a3ced7, type: 3}
+  hitSound: {fileID: 0}
   canUseInAir: 1
   pogoOnDownHit: 0
   pogoForce: 10

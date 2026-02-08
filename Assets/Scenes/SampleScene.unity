@@ -2060,6 +2060,26 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1506306722}
     m_Modifications:
+    - target: {fileID: 1305642785171897839, guid: 22339e5020061054d9a6fed08e6549fe, type: 3}
+      propertyPath: jumpSound
+      value: 
+      objectReference: {fileID: 8300000, guid: eeefd07e99aec5d48b23f0daef8e2841, type: 3}
+    - target: {fileID: 1305642785171897839, guid: 22339e5020061054d9a6fed08e6549fe, type: 3}
+      propertyPath: landSound
+      value: 
+      objectReference: {fileID: 8300000, guid: 865639af0000b994d8ae74751f1d39e2, type: 3}
+    - target: {fileID: 1305642785171897839, guid: 22339e5020061054d9a6fed08e6549fe, type: 3}
+      propertyPath: jumpVolume
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 1305642785171897839, guid: 22339e5020061054d9a6fed08e6549fe, type: 3}
+      propertyPath: footstepSound
+      value: 
+      objectReference: {fileID: 8300000, guid: 013b7481b9cca64408af8cd538812dfc, type: 3}
+    - target: {fileID: 1305642785171897839, guid: 22339e5020061054d9a6fed08e6549fe, type: 3}
+      propertyPath: footstepVolume
+      value: 0.25
+      objectReference: {fileID: 0}
     - target: {fileID: 2553238395389881092, guid: 22339e5020061054d9a6fed08e6549fe, type: 3}
       propertyPath: m_Name
       value: Player
@@ -2157,26 +2177,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 232ca2bc46587ed4a8824209fb633a70, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LevelUpVFXController
-  beamSpeed: 14
-  beamLifetime: 1.2
-  beamDuration: 0.8
-  beamEmissionRate: 120
-  beamWidth: 0.4
-  beamMaxParticles: 200
-  coreFlashCount: 20
-  coreFlashSpeed: 1
-  coreFlashLifetime: 0.6
-  coreFlashSize: 0.6
-  burstCount: 40
-  burstSpeed: 6
-  burstLifetime: 0.6
-  ringCount: 50
-  ringSpeed: 5
-  ringLifetime: 0.5
-  shakeMagnitude: 0.25
-  shakeDuration: 0.4
+  beamWidth: 6
+  beamHeight: 20
+  beamColor: {r: 1, g: 1, b: 1, a: 0.6117647}
+  coreColor: {r: 0, g: 1, b: 0.9747646, a: 0.9}
+  riseTime: 0.15
+  holdTime: 0.5
+  fadeTime: 0.35
   flashAlpha: 0.3
   flashDuration: 0.25
+  levelUpSound: {fileID: 8300000, guid: f126d36de40f7134995a2c37c7570de9, type: 3}
+  levelUpVolume: 2
 --- !u!1 &913868510
 GameObject:
   m_ObjectHideFlags: 0

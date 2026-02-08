@@ -25,10 +25,16 @@ public class LevelUpVFXController : MonoBehaviour
     [SerializeField] private float flashAlpha = 0.2f;
     [SerializeField] private float flashDuration = 0.2f;
 
+    [Header("Audio")]
+    [SerializeField] private AudioClip levelUpSound;
+    [SerializeField] [Range(0f, 2f)] private float levelUpVolume = 1f;
+
     private LevelSystem levelSystem;
+    private AudioSource audioSource;
 
     private void Start()
     {
+        audioSource = GetComponent<AudioSource>();
         levelSystem = GetComponent<LevelSystem>();
         if (levelSystem != null)
         {
@@ -47,6 +53,10 @@ public class LevelUpVFXController : MonoBehaviour
     private void HandleLevelUp(int newLevel)
     {
         StartCoroutine(PlayBeamSequence());
+        if (audioSource != null && levelUpSound != null)
+        {
+            audioSource.PlayOneShot(levelUpSound, SFXManager.GetVolume() * levelUpVolume);
+        }
 
         if (ScreenFlash.Instance != null)
         {
