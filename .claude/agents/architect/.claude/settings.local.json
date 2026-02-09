@@ -22,7 +22,10 @@
       "Bash(winget install:*)",
       "Bash(\"/c/Users/Citadel/AppData/Local/Programs/Python/Python312/python.exe\" --version)",
       "Bash(\"/c/Users/Citadel/AppData/Local/Programs/Python/Python312/python.exe\" ci/run_all.py)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ]
   }
 }
