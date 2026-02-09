@@ -92,6 +92,9 @@ public class JobClassData : ScriptableObject
     [Tooltip("Animator controller for this class (base or override)")]
     public RuntimeAnimatorController characterAnimator;
 
+    [Tooltip("Prefab containing the skeletal visual hierarchy for this class")]
+    public GameObject characterVisualPrefab;
+
     [Tooltip("Sprite frames for idle preview animation in UI")]
     public Sprite[] idlePreviewFrames;
 

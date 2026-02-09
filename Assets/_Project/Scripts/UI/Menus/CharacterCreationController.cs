@@ -221,7 +221,9 @@ namespace ProjectName.UI
 
             if (classStatsPreviewText != null)
             {
-                classStatsPreviewText.text = "";
+                classStatsPreviewText.text = $"HP +{classData.baseHPBonus}  MP +{classData.baseMPBonus}\n" +
+                    $"ATK x{classData.attackModifier:F1}  MAG x{classData.magicModifier:F1}  DEF x{classData.defenseModifier:F1}\n" +
+                    $"STR +{classData.strPerLevel}/lv  INT +{classData.intPerLevel}/lv  AGI +{classData.agiPerLevel}/lv";
             }
 
             // Animate selected class, show static first frame on others

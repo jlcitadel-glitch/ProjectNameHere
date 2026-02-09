@@ -3,10 +3,13 @@ using UnityEngine;
 /// <summary>
 /// Applies visual appearance from JobClassData to the player.
 /// Reads the current job from SkillManager and sets the animator controller and default sprite.
+/// Supports both single-sprite (HeroKnight) and skeletal (Miniature Army) visual systems.
 /// Add this component to the Player prefab.
 /// </summary>
 public class PlayerAppearance : MonoBehaviour
 {
+    private const string ClassVisualName = "ClassVisual";
+
     private SpriteRenderer spriteRenderer;
     private Animator animator;
     private RuntimeAnimatorController originalAnimator;
@@ -45,12 +48,78 @@ public class PlayerAppearance : MonoBehaviour
 
     /// <summary>
     /// Applies the visual appearance defined by the given job class data.
-    /// Falls back to the original animator if the job has no custom one or if the custom one is broken.
+    /// If the job has a characterVisualPrefab, instantiates the skeletal hierarchy.
+    /// Otherwise falls back to the original single-sprite animator behavior.
     /// </summary>
     public void ApplyAppearance(JobClassData jobData)
     {
         if (jobData == null)
             return;
+
+        // Clean up any previous skeletal visual
+        CleanupClassVisual();
+
+        if (jobData.characterVisualPrefab != null)
+        {
+            ApplySkeletalVisual(jobData);
+        }
+        else
+        {
+            ApplyFallbackVisual(jobData);
+        }
+
+        Debug.Log($"[PlayerAppearance] Applied: {jobData.jobName}, Controller: {animator?.runtimeAnimatorController?.name ?? "null"}");
+    }
+
+    private void ApplySkeletalVisual(JobClassData jobData)
+    {
+        // Instantiate the prefab
+        var instance = Instantiate(jobData.characterVisualPrefab);
+
+        // Find the "Body" child in the instantiated prefab
+        Transform bodyTransform = instance.transform.Find("Body");
+        if (bodyTransform == null)
+        {
+            // Try finding any first child as fallback
+            if (instance.transform.childCount > 0)
+                bodyTransform = instance.transform.GetChild(0);
+        }
+
+        if (bodyTransform != null)
+        {
+            // Reparent the Body (and its full subtree) under the Player root
+            bodyTransform.SetParent(transform, false);
+            bodyTransform.localPosition = Vector3.zero;
+            bodyTransform.localRotation = Quaternion.identity;
+            bodyTransform.localScale = Vector3.one;
+            bodyTransform.gameObject.name = ClassVisualName;
+        }
+
+        // Destroy the instantiated shell (we only needed the Body subtree)
+        Destroy(instance);
+
+        // Hide the root SpriteRenderer so HeroKnight sprite doesn't show
+        if (spriteRenderer != null)
+            spriteRenderer.enabled = false;
+
+        // Apply the override controller
+        if (animator != null && jobData.characterAnimator != null)
+        {
+            animator.runtimeAnimatorController = jobData.characterAnimator;
+
+            if (animator.runtimeAnimatorController == null)
+            {
+                Debug.LogWarning($"[PlayerAppearance] Controller from {jobData.jobName} failed to apply, reverting.");
+                animator.runtimeAnimatorController = originalAnimator;
+            }
+        }
+    }
+
+    private void ApplyFallbackVisual(JobClassData jobData)
+    {
+        // Re-enable root SpriteRenderer for single-sprite mode
+        if (spriteRenderer != null)
+            spriteRenderer.enabled = true;
 
         if (animator != null)
         {
@@ -58,14 +127,12 @@ public class PlayerAppearance : MonoBehaviour
             {
                 animator.runtimeAnimatorController = jobData.characterAnimator;
 
-                // Safety: if the controller didn't actually apply, revert
                 if (animator.runtimeAnimatorController == null)
                 {
                     Debug.LogWarning($"[PlayerAppearance] Controller from {jobData.jobName} failed to apply, reverting.");
                     animator.runtimeAnimatorController = originalAnimator;
                 }
             }
-            // No custom animator - keep original (don't re-assign to avoid resetting state)
         }
 
         // Apply default sprite only if no animator is driving the sprite
@@ -76,7 +143,13 @@ public class PlayerAppearance : MonoBehaviour
                 spriteRenderer.sprite = jobData.defaultSprite;
             }
         }
+    }
 
-        Debug.Log($"[PlayerAppearance] Applied: {jobData.jobName}, Controller: {animator?.runtimeAnimatorController?.name ?? "null"}");
+    private void CleanupClassVisual()
+    {
+        // Destroy any existing skeletal visual child
+        var existing = transform.Find(ClassVisualName);
+        if (existing != null)
+            Destroy(existing.gameObject);
     }
 }

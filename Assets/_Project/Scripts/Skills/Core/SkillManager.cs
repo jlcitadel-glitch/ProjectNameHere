@@ -333,9 +333,36 @@ public class SkillManager : MonoBehaviour
         job.availableSkills = availableSkills;
         job.requiredLevel = tier == JobTier.Beginner ? 1 : 10;
         job.bonusSPOnAdvancement = tier == JobTier.Beginner ? 0 : 5;
-        job.attackModifier = 1f;
-        job.magicModifier = 1f;
-        job.defenseModifier = 1f;
+
+        // Set class-specific combat modifiers
+        switch (id)
+        {
+            case "warrior":
+                job.attackModifier = 1.2f;
+                job.magicModifier = 1.0f;
+                job.defenseModifier = 1.3f;
+                job.baseHPBonus = 50;
+                break;
+            case "mage":
+                job.attackModifier = 1.0f;
+                job.magicModifier = 1.4f;
+                job.defenseModifier = 0.8f;
+                job.baseMPBonus = 50;
+                break;
+            case "rogue":
+                job.attackModifier = 1.1f;
+                job.magicModifier = 1.0f;
+                job.defenseModifier = 1.0f;
+                job.baseHPBonus = 20;
+                job.baseMPBonus = 20;
+                break;
+            default:
+                job.attackModifier = 1f;
+                job.magicModifier = 1f;
+                job.defenseModifier = 1f;
+                break;
+        }
+
         job.characterAnimator = null;
         job.idlePreviewFrames = null;
         job.defaultSprite = null;

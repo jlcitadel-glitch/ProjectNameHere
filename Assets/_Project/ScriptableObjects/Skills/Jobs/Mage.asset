@@ -22,8 +22,8 @@ MonoBehaviour:
   childJobs: []
   requiredLevel: 10
   requiredSkills: []
-  requiredSkillLevels: 
-  advancementQuestId: 
+  requiredSkillLevels:
+  advancementQuestId:
   skillTree: {fileID: 11400000, guid: a5d3414690357474a9dfd181bfc3f1dd, type: 2}
   availableSkills:
   - {fileID: 11400000, guid: aabbd849ae9bcf146a10ee16708217ab, type: 2}
@@ -40,17 +40,10 @@ MonoBehaviour:
   magicModifier: 1.4
   defenseModifier: 0.8
   strPerLevel: 1
-  intPerLevel: 1
+  intPerLevel: 3
   agiPerLevel: 1
   characterAnimator: {fileID: 22100000, guid: a1b2c3d4e5f60002a1b2c3d4e5f60002, type: 2}
-  idlePreviewFrames:
-  - {fileID: 21300000, guid: ae297123f091bbf4e8f1835eb98fb293, type: 3}
-  - {fileID: 21300002, guid: ae297123f091bbf4e8f1835eb98fb293, type: 3}
-  - {fileID: 21300004, guid: ae297123f091bbf4e8f1835eb98fb293, type: 3}
-  - {fileID: 21300006, guid: ae297123f091bbf4e8f1835eb98fb293, type: 3}
-  - {fileID: 21300008, guid: ae297123f091bbf4e8f1835eb98fb293, type: 3}
-  - {fileID: 21300010, guid: ae297123f091bbf4e8f1835eb98fb293, type: 3}
-  - {fileID: 21300012, guid: ae297123f091bbf4e8f1835eb98fb293, type: 3}
-  - {fileID: 21300014, guid: ae297123f091bbf4e8f1835eb98fb293, type: 3}
+  characterVisualPrefab: {fileID: 0}
+  idlePreviewFrames: []
   idlePreviewFrameRate: 8
-  defaultSprite: {fileID: 21300000, guid: ae297123f091bbf4e8f1835eb98fb293, type: 3}
+  defaultSprite: {fileID: 21300154, guid: 15b2d2faaecad4bfb9edc6585d94f509, type: 3}
