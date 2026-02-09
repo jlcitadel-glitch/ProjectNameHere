@@ -125,7 +125,8 @@ public class PlayerAppearance : MonoBehaviour
         if (bodyTransform != null)
             AdjustPhysicsForSkeletal(bodyTransform);
 
-        // Apply the override controller
+        // Apply the override controller and rebind so the Animator discovers
+        // the new child hierarchy ("Body", "Body/Head", etc.) for skeletal clips.
         if (animator != null && jobData.characterAnimator != null)
         {
             animator.runtimeAnimatorController = jobData.characterAnimator;
@@ -134,6 +135,13 @@ public class PlayerAppearance : MonoBehaviour
             {
                 Debug.LogWarning($"[PlayerAppearance] Controller from {jobData.jobName} failed to apply, reverting.");
                 animator.runtimeAnimatorController = originalAnimator;
+            }
+            else
+            {
+                // Rebind is critical: override clips target child transforms ("Body/Head")
+                // instead of root SpriteRenderer like the original HeroKnight clips.
+                // Without Rebind(), the Animator uses stale bindings and curves silently fail.
+                animator.Rebind();
             }
         }
     }

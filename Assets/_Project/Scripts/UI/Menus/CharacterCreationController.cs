@@ -295,19 +295,7 @@ namespace ProjectName.UI
             if (jobData == null || previewImage == null)
                 return;
 
-            // Try rendering the full skeletal character from its visual prefab
-            if (jobData.characterVisualPrefab != null)
-            {
-                Sprite rendered = RenderCharacterPreview(jobData);
-                if (rendered != null)
-                {
-                    previewImage.sprite = rendered;
-                    previewImage.color = Color.white;
-                    return;
-                }
-            }
-
-            // Find the first valid sprite: prefer defaultSprite, then search idle frames
+            // Use defaultSprite (body sprite in class color) or first valid idle frame
             Sprite preview = jobData.defaultSprite;
             if (preview == null && jobData.idlePreviewFrames != null)
             {
@@ -351,83 +339,6 @@ namespace ProjectName.UI
                 previewImage.sprite = MakeCharacterSilhouette(body, accent);
                 previewImage.color = Color.white;
             }
-        }
-
-        /// <summary>
-        /// Renders the full skeletal character prefab to a sprite for UI preview.
-        /// Instantiates off-screen, applies class color, captures with a temporary camera.
-        /// </summary>
-        private static Sprite RenderCharacterPreview(JobClassData jobData, int texWidth = 128, int texHeight = 128)
-        {
-            if (jobData == null || jobData.characterVisualPrefab == null)
-                return null;
-
-            // Instantiate far off-screen
-            var instance = UnityEngine.Object.Instantiate(jobData.characterVisualPrefab, new Vector3(10000f, 10000f, 0f), Quaternion.identity);
-
-            // Apply class-specific color variant
-            string targetColor = PlayerAppearance.GetClassColor(jobData);
-            PlayerAppearance.SwapSpriteColors(instance.transform, targetColor);
-
-            // Set all objects to a dedicated layer to avoid capturing scene objects
-            int previewLayer = 31;
-            SetLayerRecursive(instance, previewLayer);
-
-            // Calculate bounds of all sprite renderers
-            var renderers = instance.GetComponentsInChildren<SpriteRenderer>(true);
-            Bounds bounds = default;
-            bool initialized = false;
-            foreach (var r in renderers)
-            {
-                if (r.sprite == null) continue;
-                if (!initialized) { bounds = r.bounds; initialized = true; }
-                else bounds.Encapsulate(r.bounds);
-            }
-
-            if (!initialized)
-            {
-                UnityEngine.Object.Destroy(instance);
-                return null;
-            }
-
-            // Create temporary orthographic camera
-            var camGo = new GameObject("_ClassPreviewCam");
-            camGo.transform.position = new Vector3(bounds.center.x, bounds.center.y, -10f);
-            var cam = camGo.AddComponent<Camera>();
-            cam.orthographic = true;
-            cam.orthographicSize = bounds.extents.y * 1.2f;
-            cam.clearFlags = CameraClearFlags.SolidColor;
-            cam.backgroundColor = Color.clear;
-            cam.nearClipPlane = 0.1f;
-            cam.farClipPlane = 100f;
-            cam.cullingMask = 1 << previewLayer;
-
-            var rt = RenderTexture.GetTemporary(texWidth, texHeight, 0, RenderTextureFormat.ARGB32);
-            cam.targetTexture = rt;
-            cam.Render();
-
-            // Read pixels into a Texture2D
-            var prevRT = RenderTexture.active;
-            RenderTexture.active = rt;
-            var tex = new Texture2D(texWidth, texHeight, TextureFormat.RGBA32, false);
-            tex.filterMode = FilterMode.Point;
-            tex.ReadPixels(new Rect(0, 0, texWidth, texHeight), 0, 0);
-            tex.Apply();
-            RenderTexture.active = prevRT;
-
-            // Cleanup
-            RenderTexture.ReleaseTemporary(rt);
-            UnityEngine.Object.Destroy(camGo);
-            UnityEngine.Object.Destroy(instance);
-
-            return Sprite.Create(tex, new Rect(0, 0, texWidth, texHeight), new Vector2(0.5f, 0.5f), 100f);
-        }
-
-        private static void SetLayerRecursive(GameObject go, int layer)
-        {
-            go.layer = layer;
-            foreach (Transform child in go.transform)
-                SetLayerRecursive(child.gameObject, layer);
         }
 
         /// <summary>
