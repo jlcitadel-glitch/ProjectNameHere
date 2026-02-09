@@ -348,6 +348,9 @@ namespace ProjectName.UI
         {
             if (jobData == null) return false;
 
+            if (!string.IsNullOrEmpty(jobData.classColor))
+                return true;
+
             if (jobData.characterVisualPrefab != null)
                 return true;
 

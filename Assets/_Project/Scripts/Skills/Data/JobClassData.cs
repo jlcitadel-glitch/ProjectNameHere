@@ -104,6 +104,9 @@ public class JobClassData : ScriptableObject
     [Tooltip("Static fallback sprite when no animation is available")]
     public Sprite defaultSprite;
 
+    [Tooltip("Color variant name for paper-doll system (red/blue/green)")]
+    public string classColor;
+
     /// <summary>
     /// Checks if a player meets the requirements to advance to this job.
     /// </summary>
