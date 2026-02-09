@@ -54,11 +54,10 @@ public class PaperDollRenderer : MonoBehaviour
     private readonly Dictionary<BodyPartSlot, Sprite> baseSprites =
         new Dictionary<BodyPartSlot, Sprite>();
 
-    // Original physics values for restoration
+    // Original physics values (reserved for future fallback restoration)
     private Vector2 originalColliderOffset;
     private Vector2 originalColliderSize;
     private Vector3 originalGroundCheckPos;
-    private bool hasOriginalPhysics;
 
     private void Awake()
     {
@@ -339,8 +338,6 @@ public class PaperDollRenderer : MonoBehaviour
         var groundCheck = transform.Find("GroundCheck");
         if (groundCheck != null)
             originalGroundCheckPos = groundCheck.localPosition;
-
-        hasOriginalPhysics = true;
     }
 
     private void AdjustPhysicsForSkeletal(Transform bodyTransform)

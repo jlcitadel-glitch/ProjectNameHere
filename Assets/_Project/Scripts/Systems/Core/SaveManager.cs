@@ -517,10 +517,10 @@ public class SaveManager : MonoBehaviour
         }
 
         // Apply player appearance from job class
-        var playerAppearance = player.GetComponent<PlayerAppearance>();
-        if (playerAppearance != null && SkillManager.Instance?.CurrentJob != null)
+        var paperDoll = player.GetComponent<PaperDollRenderer>();
+        if (paperDoll != null && SkillManager.Instance?.CurrentJob != null)
         {
-            playerAppearance.ApplyAppearance(SkillManager.Instance.CurrentJob);
+            paperDoll.SetClassColor(PaperDollRenderer.GetClassColor(SkillManager.Instance.CurrentJob));
         }
 
         Debug.Log("[SaveManager] Save data applied to game world.");
@@ -559,10 +559,10 @@ public class SaveManager : MonoBehaviour
         }
 
         // Apply player appearance from job class
-        var playerAppearance = player.GetComponent<PlayerAppearance>();
-        if (playerAppearance != null && SkillManager.Instance?.CurrentJob != null)
+        var paperDoll = player.GetComponent<PaperDollRenderer>();
+        if (paperDoll != null && SkillManager.Instance?.CurrentJob != null)
         {
-            playerAppearance.ApplyAppearance(SkillManager.Instance.CurrentJob);
+            paperDoll.SetClassColor(PaperDollRenderer.GetClassColor(SkillManager.Instance.CurrentJob));
         }
 
         Debug.Log($"[SaveManager] New game data applied - Class: {currentSaveData.startingClass}, Name: {currentSaveData.characterName}");
