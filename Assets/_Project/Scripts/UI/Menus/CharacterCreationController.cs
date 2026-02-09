@@ -363,7 +363,7 @@ namespace ProjectName.UI
                 return null;
 
             // Instantiate far off-screen
-            var instance = Object.Instantiate(jobData.characterVisualPrefab, new Vector3(10000f, 10000f, 0f), Quaternion.identity);
+            var instance = UnityEngine.Object.Instantiate(jobData.characterVisualPrefab, new Vector3(10000f, 10000f, 0f), Quaternion.identity);
 
             // Apply class-specific color variant
             string targetColor = PlayerAppearance.GetClassColor(jobData);
@@ -386,7 +386,7 @@ namespace ProjectName.UI
 
             if (!initialized)
             {
-                Object.Destroy(instance);
+                UnityEngine.Object.Destroy(instance);
                 return null;
             }
 
@@ -417,8 +417,8 @@ namespace ProjectName.UI
 
             // Cleanup
             RenderTexture.ReleaseTemporary(rt);
-            Object.Destroy(camGo);
-            Object.Destroy(instance);
+            UnityEngine.Object.Destroy(camGo);
+            UnityEngine.Object.Destroy(instance);
 
             return Sprite.Create(tex, new Rect(0, 0, texWidth, texHeight), new Vector2(0.5f, 0.5f), 100f);
         }
