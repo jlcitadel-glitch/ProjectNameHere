@@ -221,9 +221,7 @@ namespace ProjectName.UI
 
             if (classStatsPreviewText != null)
             {
-                classStatsPreviewText.text = $"HP +{classData.baseHPBonus}  MP +{classData.baseMPBonus}\n" +
-                    $"ATK x{classData.attackModifier:F1}  MAG x{classData.magicModifier:F1}  DEF x{classData.defenseModifier:F1}\n" +
-                    $"STR +{classData.strPerLevel}/lv  INT +{classData.intPerLevel}/lv  AGI +{classData.agiPerLevel}/lv";
+                classStatsPreviewText.text = "";
             }
 
             // Animate selected class, show static first frame on others
@@ -295,7 +293,7 @@ namespace ProjectName.UI
             if (jobData == null || previewImage == null)
                 return;
 
-            // Use defaultSprite (body sprite in class color) or first valid idle frame
+            // Find the first valid sprite: prefer defaultSprite, then search idle frames
             Sprite preview = jobData.defaultSprite;
             if (preview == null && jobData.idlePreviewFrames != null)
             {
@@ -317,6 +315,7 @@ namespace ProjectName.UI
             else
             {
                 // No valid sprite found; generate a procedural silhouette placeholder.
+                // This ensures the user always sees something for each class.
                 Color body = Color.gray;
                 Color accent = Color.white;
                 string n = jobData.jobName != null ? jobData.jobName.ToLower() : "";
@@ -343,16 +342,12 @@ namespace ProjectName.UI
 
         /// <summary>
         /// Checks if a JobClassData has at least one valid (non-null) visual asset assigned.
+        /// Validates individual array entries because GUID references can resolve to null
+        /// if the source texture is not loaded yet.
         /// </summary>
         private static bool HasJobVisualData(JobClassData jobData)
         {
             if (jobData == null) return false;
-
-            if (!string.IsNullOrEmpty(jobData.classColor))
-                return true;
-
-            if (jobData.characterVisualPrefab != null)
-                return true;
 
             if (jobData.defaultSprite != null)
                 return true;

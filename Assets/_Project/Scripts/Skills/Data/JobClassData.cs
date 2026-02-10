@@ -92,9 +92,6 @@ public class JobClassData : ScriptableObject
     [Tooltip("Animator controller for this class (base or override)")]
     public RuntimeAnimatorController characterAnimator;
 
-    [Tooltip("Prefab containing the skeletal visual hierarchy for this class")]
-    public GameObject characterVisualPrefab;
-
     [Tooltip("Sprite frames for idle preview animation in UI")]
     public Sprite[] idlePreviewFrames;
 
@@ -103,9 +100,6 @@ public class JobClassData : ScriptableObject
 
     [Tooltip("Static fallback sprite when no animation is available")]
     public Sprite defaultSprite;
-
-    [Tooltip("Color variant name for paper-doll system (red/blue/green)")]
-    public string classColor;
 
     /// <summary>
     /// Checks if a player meets the requirements to advance to this job.
