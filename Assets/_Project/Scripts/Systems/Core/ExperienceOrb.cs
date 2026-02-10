@@ -51,6 +51,7 @@ public class ExperienceOrb : MonoBehaviour
 
     private OrbState currentState = OrbState.Scattering;
     private Rigidbody2D rb;
+    private CircleCollider2D col;
     private int xpValue;
     private float stateTimer;
     private float lifetimeTimer;
@@ -84,7 +85,7 @@ public class ExperienceOrb : MonoBehaviour
         {
             coreRenderer = gameObject.AddComponent<SpriteRenderer>();
             coreRenderer.sprite = CreateSoftCircleSprite(16);
-            coreRenderer.color = new Color(0.2f, 0.5f, 1f, 1f); // Bright blue
+            coreRenderer.color = new Color(0f, 0.808f, 0.82f, 1f); // Spectral Cyan (matches XP bar)
             coreRenderer.sortingLayerName = "Foreground";
             coreRenderer.sortingOrder = 10;
         }
@@ -107,11 +108,11 @@ public class ExperienceOrb : MonoBehaviour
         }
         trailEmission = trailParticles.emission;
 
-        // Setup collider
-        CircleCollider2D col = GetComponent<CircleCollider2D>();
+        // Setup collider — non-trigger so the orb rests on ground
+        col = GetComponent<CircleCollider2D>();
         if (col != null)
         {
-            col.isTrigger = true;
+            col.isTrigger = false;
             col.radius = 0.15f;
         }
     }
@@ -201,6 +202,7 @@ public class ExperienceOrb : MonoBehaviour
             rb.gravityScale = 0f;
             rb.linearDamping = 0f;
             currentSpeed = 0f;
+            if (col != null) col.isTrigger = true;
             ApplyVisualState();
         }
     }
@@ -211,6 +213,7 @@ public class ExperienceOrb : MonoBehaviour
         {
             currentState = OrbState.Idle;
             rb.gravityScale = idleGravity;
+            if (col != null) col.isTrigger = false;
             ApplyVisualState();
             return;
         }
@@ -304,7 +307,7 @@ public class ExperienceOrb : MonoBehaviour
         main.startLifetime = burstLifetime;
         main.startSpeed = burstSpeed;
         main.startSize = new ParticleSystem.MinMaxCurve(0.03f, 0.08f);
-        main.startColor = new Color(0.3f, 0.6f, 1f, 1f); // Blue
+        main.startColor = new Color(0f, 0.808f, 0.82f, 1f); // Spectral Cyan
         main.simulationSpace = ParticleSystemSimulationSpace.World;
         main.loop = false;
         main.playOnAwake = true;
@@ -327,8 +330,8 @@ public class ExperienceOrb : MonoBehaviour
         Gradient grad = new Gradient();
         grad.SetKeys(
             new GradientColorKey[] {
-                new GradientColorKey(new Color(0.3f, 0.6f, 1f), 0f),
-                new GradientColorKey(new Color(0.5f, 0.8f, 1f), 1f)
+                new GradientColorKey(new Color(0f, 0.808f, 0.82f), 0f),
+                new GradientColorKey(new Color(0.3f, 0.9f, 0.92f), 1f)
             },
             new GradientAlphaKey[] {
                 new GradientAlphaKey(1f, 0f),
@@ -367,7 +370,7 @@ public class ExperienceOrb : MonoBehaviour
 
         SpriteRenderer sr = glowObj.AddComponent<SpriteRenderer>();
         sr.sprite = CreateSoftCircleSprite(32);
-        sr.color = new Color(0.1f, 0.4f, 1f, 0.6f); // Blue glow
+        sr.color = new Color(0f, 0.6f, 0.65f, 0.6f); // Cyan glow
         sr.sortingLayerName = "Foreground";
         sr.sortingOrder = 9;
 
@@ -394,7 +397,7 @@ public class ExperienceOrb : MonoBehaviour
         main.startLifetime = new ParticleSystem.MinMaxCurve(0.3f, 0.5f);
         main.startSpeed = 0f;
         main.startSize = new ParticleSystem.MinMaxCurve(0.05f, 0.1f);
-        main.startColor = new Color(0.2f, 0.5f, 1f, 0.8f);
+        main.startColor = new Color(0f, 0.808f, 0.82f, 0.8f);
         main.simulationSpace = ParticleSystemSimulationSpace.World;
         main.loop = true;
         main.playOnAwake = true;
@@ -414,8 +417,8 @@ public class ExperienceOrb : MonoBehaviour
         grad.SetKeys(
             new GradientColorKey[]
             {
-                new GradientColorKey(new Color(0.2f, 0.5f, 1f), 0f),
-                new GradientColorKey(new Color(0.4f, 0.8f, 1f), 1f)
+                new GradientColorKey(new Color(0f, 0.808f, 0.82f), 0f),
+                new GradientColorKey(new Color(0.3f, 0.9f, 0.92f), 1f)
             },
             new GradientAlphaKey[]
             {

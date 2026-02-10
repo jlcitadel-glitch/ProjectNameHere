@@ -55,7 +55,7 @@ public static class ExperienceOrbSetup
         rb.freezeRotation = true;
 
         CircleCollider2D col = orbObj.AddComponent<CircleCollider2D>();
-        col.isTrigger = true;
+        col.isTrigger = false;
         col.radius = 0.15f;
 
         // ExperienceOrb script will auto-create visuals at runtime
