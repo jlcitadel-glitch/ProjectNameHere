@@ -622,6 +622,7 @@ namespace ProjectName.UI
 
             while (elapsed < duration)
             {
+                if (group == null) yield break;
                 elapsed += Time.unscaledDeltaTime;
                 float t = Mathf.Clamp01(elapsed / duration);
                 // Ease out quad
@@ -630,7 +631,8 @@ namespace ProjectName.UI
                 yield return null;
             }
 
-            group.alpha = to;
+            if (group != null)
+                group.alpha = to;
             onComplete?.Invoke();
         }
 
