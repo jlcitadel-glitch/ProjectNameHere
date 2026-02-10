@@ -41,7 +41,7 @@ public class EnemyAttackHitbox : MonoBehaviour
         hitboxCollider.size = attackData.hitboxSize;
 
         // Set layer for collision filtering
-        int attackLayer = LayerMask.NameToLayer("EnemyAttack");
+        int attackLayer = LayerMask.NameToLayer("EnemyHurtbox");
         if (attackLayer >= 0)
         {
             gameObject.layer = attackLayer;

@@ -29,10 +29,10 @@ public class EnemyProjectile : MonoBehaviour
         lifetime = attack.projectileLifetime;
 
         // Set layer
-        gameObject.layer = LayerMask.NameToLayer("EnemyAttack");
+        gameObject.layer = LayerMask.NameToLayer("EnemyHurtbox");
         if (gameObject.layer == -1)
         {
-            Debug.LogWarning("EnemyProjectile: 'EnemyAttack' layer not found.");
+            Debug.LogWarning("EnemyProjectile: 'EnemyHurtbox' layer not found.");
             gameObject.layer = 0;
         }
 
