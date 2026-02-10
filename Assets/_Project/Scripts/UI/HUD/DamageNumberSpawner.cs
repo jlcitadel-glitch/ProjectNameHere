@@ -22,8 +22,6 @@ namespace ProjectName.UI
         [SerializeField] private float floatDistance = 80f;
         [SerializeField] private float lifetime = 1f;
         [SerializeField] private float fadeStartTime = 0.5f;
-        [SerializeField] private float randomOffsetRange = 20f;
-
         [Header("Font Size")]
         [SerializeField] private float baseFontSize = 28f;
         [SerializeField] private float criticalFontSize = 38f;
@@ -128,7 +126,7 @@ namespace ProjectName.UI
             tmp.alignment = TextAlignmentOptions.Center;
             tmp.fontSize = baseFontSize;
             tmp.fontStyle = FontStyles.Bold;
-            tmp.enableWordWrapping = false;
+            tmp.textWrappingMode = TextWrappingModes.NoWrap;
             tmp.overflowMode = TextOverflowModes.Overflow;
             tmp.raycastTarget = false;
             FontManager.EnsureFont(tmp);

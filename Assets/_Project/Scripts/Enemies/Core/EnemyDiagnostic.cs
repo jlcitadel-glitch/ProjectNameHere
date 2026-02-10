@@ -14,8 +14,6 @@ public class EnemyDiagnostic : MonoBehaviour
     [SerializeField] private bool destroyAfterRun = false;
 
     [Header("Live Monitoring")]
-    [Tooltip("Continuously monitor spawned enemies and log state/velocity")]
-    [SerializeField] private bool liveMonitor = true;
     [SerializeField] private float monitorInterval = 3f;
 
     private float monitorTimer;

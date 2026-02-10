@@ -28,8 +28,6 @@ namespace ProjectName.UI.Editor
         private AnimatorOverrideController mageOverride;
         private AnimatorOverrideController rogueOverride;
 
-        private bool autoDetected;
-
         [MenuItem("Tools/ProjectName/Class Appearance Setup")]
         public static void ShowWindow()
         {
@@ -54,7 +52,6 @@ namespace ProjectName.UI.Editor
             mageOverride = AssetDatabase.LoadAssetAtPath<AnimatorOverrideController>($"{OVERRIDES_PATH}/Mage.overrideController");
             rogueOverride = AssetDatabase.LoadAssetAtPath<AnimatorOverrideController>($"{OVERRIDES_PATH}/Rogue.overrideController");
 
-            autoDetected = true;
         }
 
         private void OnGUI()
