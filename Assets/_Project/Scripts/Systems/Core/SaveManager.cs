@@ -11,7 +11,7 @@ public class SaveManager : MonoBehaviour
 
     private const string SAVE_KEY_PREFIX = "GameSave_Slot_";
     private const string LEGACY_SAVE_KEY = "GameSave";
-    private const int CURRENT_SAVE_VERSION = 3;
+    private const int CURRENT_SAVE_VERSION = 4;
     private const int MAX_SAVE_SLOTS = 5;
 
     [Header("Settings")]
@@ -63,6 +63,9 @@ public class SaveManager : MonoBehaviour
 
         // Stat system
         public StatSaveData statData;
+
+        // Death tracking
+        public int deathCount;
 
         // Metadata
         public string saveTimestamp;
@@ -192,6 +195,9 @@ public class SaveManager : MonoBehaviour
             data.startingClass = currentSaveData.startingClass;
             data.appearanceIndex = currentSaveData.appearanceIndex;
         }
+
+        // Carry over death count
+        data.deathCount = currentSaveData?.deathCount ?? 0;
 
         // Wave progress
         var waveManager = UnityEngine.Object.FindAnyObjectByType<WaveManager>();
@@ -609,6 +615,12 @@ public class SaveManager : MonoBehaviour
             data.statData = null;
         }
 
+        // Migration from version 3 to 4: Add death counter
+        if (data.saveVersion < 4)
+        {
+            data.deathCount = 0;
+        }
+
         data.saveVersion = CURRENT_SAVE_VERSION;
         Debug.Log($"[SaveManager] Migrated save data to version {CURRENT_SAVE_VERSION}");
     }
@@ -665,5 +677,32 @@ public class SaveManager : MonoBehaviour
     public bool HasCollectedItem(string itemId)
     {
         return currentSaveData?.collectedItems.Contains(itemId) ?? false;
+    }
+
+    /// <summary>
+    /// Increments the death counter and persists immediately.
+    /// </summary>
+    public void RecordDeath()
+    {
+        if (currentSaveData == null)
+        {
+            currentSaveData = new SaveData();
+        }
+
+        currentSaveData.deathCount++;
+
+        string json = JsonUtility.ToJson(currentSaveData, true);
+        PlayerPrefs.SetString(GetSlotKey(activeSlotIndex), json);
+        PlayerPrefs.Save();
+
+        Debug.Log($"[SaveManager] Death recorded. Total deaths: {currentSaveData.deathCount}");
+    }
+
+    /// <summary>
+    /// Gets the current death count.
+    /// </summary>
+    public int GetDeathCount()
+    {
+        return currentSaveData?.deathCount ?? 0;
     }
 }

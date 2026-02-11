@@ -25,6 +25,33 @@ namespace ProjectName.UI
         [SerializeField] private string deathTitle = "YOU DIED";
         [SerializeField] private string deathSubtitle = "The darkness claims another soul...";
 
+        [Header("Death Messages")]
+        [SerializeField] private string[] firstDeathMessages = new string[]
+        {
+            "The darkness claims another soul..."
+        };
+        [SerializeField] private string[] earlyDeathMessages = new string[]
+        {
+            "Death's grip tightens...",
+            "The shadows grow restless.",
+            "Again you fall..."
+        };
+        [SerializeField] private string[] midDeathMessages = new string[]
+        {
+            "Persistence is its own reward.",
+            "The void remembers your name.",
+            "Rise again, or don't.",
+            "Pain is a teacher, if you listen.",
+            "Each fall carves wisdom into bone."
+        };
+        [SerializeField] private string[] veteranDeathMessages = new string[]
+        {
+            "At this point, death is an old friend.",
+            "You and the reaper — practically roommates.",
+            "Some call it stubbornness. Others call it heroism.",
+            "The afterlife has a loyalty program. You're a gold member."
+        };
+
         [Header("Animation")]
         [SerializeField] private float fadeInDuration = 1.5f;
         [SerializeField] private float fadeInDelay = 0.5f;
@@ -32,6 +59,7 @@ namespace ProjectName.UI
 
         [Header("Audio")]
         [SerializeField] private AudioClip deathSound;
+        [SerializeField] private AudioClip gameOverSound;
 
         private HealthSystem healthSystem;
         private AudioSource audioSource;
@@ -150,7 +178,39 @@ namespace ProjectName.UI
 
         private void HandleDeath()
         {
+            // Record death and pick a dynamic subtitle
+            if (SaveManager.Instance != null)
+            {
+                SaveManager.Instance.RecordDeath();
+                int deaths = SaveManager.Instance.GetDeathCount();
+                string message = GetDeathMessage(deaths);
+
+                if (subtitleText != null)
+                {
+                    subtitleText.text = message;
+                }
+            }
+
             Show();
+        }
+
+        private string GetDeathMessage(int deathCount)
+        {
+            string[] pool;
+
+            if (deathCount <= 1)
+                pool = firstDeathMessages;
+            else if (deathCount <= 4)
+                pool = earlyDeathMessages;
+            else if (deathCount <= 9)
+                pool = midDeathMessages;
+            else
+                pool = veteranDeathMessages;
+
+            if (pool == null || pool.Length == 0)
+                return deathSubtitle;
+
+            return pool[UnityEngine.Random.Range(0, pool.Length)];
         }
 
         private void Show()
@@ -180,6 +240,8 @@ namespace ProjectName.UI
             {
                 GameManager.Instance.GameOver();
             }
+
+            PlaySound(gameOverSound);
         }
 
         private void Hide()
@@ -283,10 +345,7 @@ namespace ProjectName.UI
 
         private void PlaySound(AudioClip clip)
         {
-            if (clip != null && audioSource != null)
-            {
-                audioSource.PlayOneShot(clip);
-            }
+            SFXManager.PlayOneShot(audioSource, clip);
         }
 
         /// <summary>
