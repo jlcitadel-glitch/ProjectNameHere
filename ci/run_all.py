@@ -12,6 +12,7 @@ CHECKS = [
     ("GUID References", "check_guid_references.py"),
     ("Layer/Tag Consistency", "check_layer_consistency.py"),
     ("Build Scene Validation", "check_scene_build_settings.py"),
+    ("Code Style", "check_code_style.py"),
 ]
 
 GITHUB_ACTIONS = os.environ.get("GITHUB_ACTIONS") == "true"
