@@ -79,6 +79,23 @@ public class EnemyAttackHitbox : MonoBehaviour
         if (!other.CompareTag("Player"))
             return;
 
+        // Check parry before applying damage
+        if (attackData.isParryable)
+        {
+            ParrySystem parrySystem = other.GetComponentInParent<ParrySystem>();
+            if (parrySystem != null)
+            {
+                float damage = attackData.baseDamage * (owner != null ? owner.GetDamageMultiplier() : 1f);
+                ParryResult result = parrySystem.TryParry(damage, owner?.transform, attackData);
+                if (result.wasParried)
+                {
+                    hitTargets.Add(other);
+                    ApplyParryEffects(result);
+                    return;
+                }
+            }
+        }
+
         // Mark as hit
         hitTargets.Add(other);
 
@@ -164,6 +181,32 @@ public class EnemyAttackHitbox : MonoBehaviour
 
         Vector3 impactPoint = target.ClosestPoint(transform.position);
         Instantiate(attackData.impactVFX, impactPoint, Quaternion.identity);
+    }
+
+    private void ApplyParryEffects(ParryResult result)
+    {
+        if (owner == null)
+            return;
+
+        // Stun the enemy
+        if (result.stunDuration > 0f)
+        {
+            EnemyController controller = owner.GetComponent<EnemyController>();
+            if (controller != null)
+            {
+                controller.ApplyStun(result.stunDuration);
+            }
+        }
+
+        // Deal counter-damage to the enemy
+        if (result.counterDamage > 0f)
+        {
+            HealthSystem enemyHealth = owner.GetComponent<HealthSystem>();
+            if (enemyHealth != null)
+            {
+                enemyHealth.TakeDamage(result.counterDamage);
+            }
+        }
     }
 
     private void OnDrawGizmos()

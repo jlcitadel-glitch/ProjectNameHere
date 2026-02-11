@@ -88,6 +88,30 @@ public class EnemyProjectile : MonoBehaviour
         if (!other.CompareTag("Player"))
             return;
 
+        // Check parry before applying damage
+        if (attackData.isParryable)
+        {
+            ParrySystem parrySystem = other.GetComponentInParent<ParrySystem>();
+            if (parrySystem != null)
+            {
+                ParryResult result = parrySystem.TryParry(attackData.baseDamage, transform, attackData);
+                if (result.wasParried)
+                {
+                    hitTargets.Add(other);
+                    if (result.reflectProjectile)
+                    {
+                        ReflectProjectile();
+                    }
+                    else
+                    {
+                        SpawnImpactVFX(other);
+                        DestroyProjectile();
+                    }
+                    return;
+                }
+            }
+        }
+
         // Mark as hit
         hitTargets.Add(other);
 
@@ -151,6 +175,34 @@ public class EnemyProjectile : MonoBehaviour
 
         Vector3 impactPoint = target.ClosestPoint(transform.position);
         Instantiate(attackData.impactVFX, impactPoint, Quaternion.identity);
+    }
+
+    private void ReflectProjectile()
+    {
+        // Reverse direction
+        direction = -direction;
+        rb.linearVelocity = direction * attackData.projectileSpeed;
+
+        // Switch to enemy layer so it can hit enemies instead of the player
+        gameObject.layer = LayerMask.NameToLayer("PlayerHurtbox");
+        if (gameObject.layer == -1)
+        {
+            gameObject.layer = 0;
+        }
+
+        // Clear hit targets so it can hit enemies
+        hitTargets.Clear();
+
+        // Reset lifetime
+        lifetime = attackData.projectileLifetime;
+
+        // Change tag so it doesn't re-trigger player parry
+        gameObject.tag = "Untagged";
+
+        if (debugLogging)
+        {
+            Debug.Log("[EnemyProjectile] Reflected! New direction: " + direction);
+        }
     }
 
     private void DestroyProjectile()
