@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23d35cf978abdd641a1f15f77e21da6a, type: 3}
+  m_Name: MageParry
+  m_EditorClassIdentifier: Assembly-CSharp::ParryData
+  parryType: 1
+  parryWindowDuration: 0.25
+  cooldown: 1.5
+  counterDamageMultiplier: 0.3
+  enemyStunDuration: 0.5
+  grantsInvulnerability: 0
+  invulnerabilityDuration: 0
+  canReflectProjectiles: 1
+  shadowStepDistance: 0
+  parrySound: {fileID: 0}
+  parryVFXPrefab: {fileID: 0}
