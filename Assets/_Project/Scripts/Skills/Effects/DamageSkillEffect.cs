@@ -171,6 +171,9 @@ public class DamageSkillEffect : BaseSkillEffect
 
         Vector2 direction = (target.transform.position - transform.position).normalized;
         rb.AddForce(direction * knockbackForce, ForceMode2D.Impulse);
+
+        // Spawn directional knockback VFX
+        KnockbackVFX.Spawn(target.bounds.center, direction);
     }
 
     private void OnDrawGizmosSelected()

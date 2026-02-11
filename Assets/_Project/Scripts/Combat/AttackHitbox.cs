@@ -190,6 +190,9 @@ public class AttackHitbox : MonoBehaviour
         }
 
         targetRb.AddForce(knockDir * attackData.knockbackForce, ForceMode2D.Impulse);
+
+        // Spawn directional knockback VFX
+        KnockbackVFX.Spawn(target.bounds.center, knockDir);
     }
 
     private void SpawnImpactVFX(Collider2D target)
