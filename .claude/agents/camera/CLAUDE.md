@@ -46,7 +46,7 @@ Assets/_Project/Scripts/Camera/
 ├── ParallaxBackgroundManager.cs     # Parallax layer management
 ├── ParallaxLayer.cs                 # Individual layer behavior
 ├── BossRoomTrigger.cs               # Boss arena camera lock
-└── CameraBoundsTrigger.cs           # Zone-based bounds
+└── CameraBoundsTriggers.cs          # Zone-based bounds
 ```
 
 ---
