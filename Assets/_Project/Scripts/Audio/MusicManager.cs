@@ -80,6 +80,12 @@ public class MusicManager : MonoBehaviour
         isDucked = current == GameManager.GameState.Paused;
         ApplyVolume();
 
+        if (current == GameManager.GameState.GameOver)
+        {
+            Stop();
+            return;
+        }
+
         if (current == GameManager.GameState.Playing && previous != GameManager.GameState.Paused)
         {
             if (gameplayMusic != null && audioSource.clip != gameplayMusic)
