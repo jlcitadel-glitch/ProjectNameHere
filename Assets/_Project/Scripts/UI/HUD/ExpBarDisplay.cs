@@ -233,6 +233,14 @@ namespace ProjectName.UI
         }
 
         /// <summary>
+        /// Sets the label format string. Use {0} for current and {1} for max.
+        /// </summary>
+        public void SetLabelFormat(string format)
+        {
+            labelFormat = format;
+        }
+
+        /// <summary>
         /// Sets the progress immediately without animation.
         /// </summary>
         public void SetProgressImmediate(float progress)

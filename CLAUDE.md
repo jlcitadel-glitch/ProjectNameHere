@@ -31,13 +31,14 @@ Assets/_Project/
 │   ├── Abilities/       # Dash, DoubleJump, PowerUp system
 │   ├── Camera/          # Camera controller, parallax, bounds
 │   ├── Enemies/         # AI state machines, combat, sensors, spawning
+│   ├── Environment/     # Platforms, hazards, interactables, terrain
 │   ├── VFX/             # Fog, particles, precipitation, atmosphere
 │   ├── Audio/           # SFXManager, MusicManager
 │   ├── Systems/         # GameManager, SaveManager, WindManager
 │   └── UI/              # UIManager, menus, HUD
 ├── Art/                 # Sprites, Animations, Materials, Textures
 ├── Audio/               # Music, Ambience, SFX
-├── Prefabs/             # Player, Abilities, Effects, Enemies, UI
+├── Prefabs/             # Player, Abilities, Effects, Enemies, Environment, UI
 └── Settings/            # Input, Physics, Rendering
 ```
 

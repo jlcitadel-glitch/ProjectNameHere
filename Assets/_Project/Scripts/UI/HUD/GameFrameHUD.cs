@@ -240,7 +240,7 @@ namespace ProjectName.UI
             if (waveText == null) return;
 
             int wave = waveManager != null && waveManager.CurrentWave > 0 ? waveManager.CurrentWave : 1;
-            waveText.text = $"Wave {wave}";
+            waveText.text = $"Wave <font=\"{NumFont}\">{wave}</font>";
         }
 
         /// <summary>
@@ -321,6 +321,9 @@ namespace ProjectName.UI
         private static readonly Color MpBlue = new Color(0.1f, 0.227f, 0.502f, 1f);
         private static readonly Color ExpGold = new Color(0.812f, 0.710f, 0.231f, 1f);
 
+        // Font with lining numerals for number clarity (Cinzel uses old-style hanging figures)
+        private const string NumFont = "LiberationSans SDF";
+
         private static Sprite _whiteSprite;
         private static Sprite WhiteSprite
         {
@@ -394,7 +397,7 @@ namespace ProjectName.UI
             var waveTextGo = MakeRect("WaveText", waveGo.transform);
             Stretch(waveTextGo);
             var waveTmp = waveTextGo.AddComponent<TextMeshProUGUI>();
-            waveTmp.text = "Wave 1";
+            waveTmp.text = $"Wave <font=\"{NumFont}\">1</font>";
             waveTmp.fontSize = 20;
             waveTmp.alignment = TextAlignmentOptions.Center;
             waveTmp.color = AgedGold;
@@ -444,15 +447,14 @@ namespace ProjectName.UI
             rowRect.offsetMin = new Vector2(12, 10);
             rowRect.offsetMax = new Vector2(-12, -10);
 
-            // --- Level display (left, 70px wide, recessed) ---
+            // --- Level display (anchor-based, same gap to HP as HP-to-MP) ---
             var levelGo = MakeRect("LevelDisplay", row.transform);
             var levelComp = levelGo.AddComponent<LevelDisplay>();
             var levelRect = levelGo.GetComponent<RectTransform>();
             levelRect.anchorMin = new Vector2(0, 0);
-            levelRect.anchorMax = new Vector2(0, 1);
-            levelRect.pivot = new Vector2(0, 0.5f);
-            levelRect.anchoredPosition = Vector2.zero;
-            levelRect.sizeDelta = new Vector2(70, 0);
+            levelRect.anchorMax = new Vector2(0.055f, 1);
+            levelRect.offsetMin = new Vector2(4, 0);
+            levelRect.offsetMax = new Vector2(-4, 0);
             hud.levelDisplay = levelComp;
 
             // Level recess frame
@@ -480,12 +482,13 @@ namespace ProjectName.UI
             levelTextRect.offsetMin = new Vector2(2, 2);
             levelTextRect.offsetMax = new Vector2(-2, -2);
             var levelTmp = levelTextGo.AddComponent<TextMeshProUGUI>();
-            levelTmp.text = "Lv. 1";
-            levelTmp.fontSize = 22;
+            levelTmp.text = $"Lv. <font=\"{NumFont}\">1</font>";
+            levelTmp.fontSize = 24;
             levelTmp.alignment = TextAlignmentOptions.Center;
             levelTmp.color = AgedGold;
             FontManager.EnsureFont(levelTmp);
             levelComp.SetReferences(levelTmp);
+            levelComp.SetLevelFormat($"Lv. <font=\"{NumFont}\">{{0}}</font>");
 
             // --- Three half-width recessed resource bars (left side) ---
             hud.healthBar = BuildHBar(row.transform, "HealthBarGroup",
@@ -555,14 +558,14 @@ namespace ProjectName.UI
             labelRect.offsetMax = new Vector2(-6, -2);
             var labelTmp = label.AddComponent<TextMeshProUGUI>();
             labelTmp.text = $"{labelPrefix} 100/100";
-            labelTmp.fontSize = 16;
+            labelTmp.fontSize = 24;
             labelTmp.alignment = TextAlignmentOptions.Center;
             labelTmp.color = BoneWhite;
             FontManager.EnsureFont(labelTmp);
 
             barComp.SetReferences(fillImg, bgImg, labelTmp);
             barComp.ConfigureForRuntime(fillColor, InnerBgColor);
-            barComp.SetLabelFormat($"{labelPrefix} {{0}}/{{1}}");
+            barComp.SetLabelFormat($"{labelPrefix} <font=\"{NumFont}\">{{0}}/{{1}}</font>");
             return barComp;
         }
 
@@ -621,13 +624,14 @@ namespace ProjectName.UI
             labelRect.offsetMin = new Vector2(6, 2);
             labelRect.offsetMax = new Vector2(-6, -2);
             var labelTmp = label.AddComponent<TextMeshProUGUI>();
-            labelTmp.text = "0/0 XP";
-            labelTmp.fontSize = 16;
+            labelTmp.text = $"XP <font=\"{NumFont}\">0/0</font>";
+            labelTmp.fontSize = 24;
             labelTmp.alignment = TextAlignmentOptions.Center;
             labelTmp.color = BoneWhite;
             FontManager.EnsureFont(labelTmp);
 
             expComp.SetReferences(fillImg, bgImg, labelTmp);
+            expComp.SetLabelFormat($"XP <font=\"{NumFont}\">{{0}}/{{1}}</font>");
             expComp.SetProgressImmediate(0f);
         }
 
@@ -672,15 +676,15 @@ namespace ProjectName.UI
         {
             var slot = new SkillHotbar.HotbarSlot();
 
-            // Root slot object (56x56)
+            // Root slot object (60x60, matches bar height)
             var slotGo = MakeRect(name, parent);
             var slotRect = slotGo.GetComponent<RectTransform>();
-            slotRect.sizeDelta = new Vector2(56, 56);
+            slotRect.sizeDelta = new Vector2(60, 60);
             slot.slotRect = slotRect;
 
             var layoutElem = slotGo.AddComponent<LayoutElement>();
-            layoutElem.preferredWidth = 56;
-            layoutElem.preferredHeight = 56;
+            layoutElem.preferredWidth = 60;
+            layoutElem.preferredHeight = 60;
 
             var canvasGroup = slotGo.AddComponent<CanvasGroup>();
             slot.canvasGroup = canvasGroup;

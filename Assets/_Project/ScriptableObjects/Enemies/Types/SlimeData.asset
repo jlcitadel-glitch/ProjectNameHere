@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: SlimeData
   m_EditorClassIdentifier:
   enemyName: Slime
-  enemyType: 0
+  enemyType: 3
   maxHealth: 30
   invulnerabilityDuration: 0.1
   moveSpeed: 3
@@ -33,6 +33,11 @@ MonoBehaviour:
   experienceValue: 10
   dropPrefabs: []
   dropChance: 0.5
+  hopForce: 7
+  hopHorizontalSpeed: 2.5
+  hopCooldown: 1
+  hopChaseCooldown: 0.5
+  hopFallGravityMultiplier: 2.5
   idleSound: {fileID: 0}
   alertSound: {fileID: 0}
   attackSound: {fileID: 0}

@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "Read(M:\\Video Game Development\\ProjectNameHere/**)",
+      "Edit(M:\\Video Game Development\\ProjectNameHere/**)",
+      "Write(M:\\Video Game Development\\ProjectNameHere/**)",
+      "mcp__ide__getDiagnostics",
+      "Bash(bd list:*)",
+      "Bash(bd ready:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nAdd 6 keycap skill slots to bottom bar and halve resource bar widths\n\nBars now occupy ~15.5% width each \\(left side\\) with 6 keycap-style\nskill hotbar slots filling the right ~45%. Increased font sizes for\nbar labels \\(13→16\\) and level text \\(20→22\\) for legibility.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push:*)"
+    ]
+  }
+}

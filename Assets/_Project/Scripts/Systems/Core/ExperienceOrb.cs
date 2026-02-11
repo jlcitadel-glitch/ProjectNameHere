@@ -28,8 +28,8 @@ public class ExperienceOrb : MonoBehaviour
 
     [Header("Glow")]
     [SerializeField] private float pulseSpeed = 3f;
-    [SerializeField] private float pulseMin = 0.3f;
-    [SerializeField] private float pulseMax = 0.8f;
+    [SerializeField] private float pulseMin = 0.6f;
+    [SerializeField] private float pulseMax = 1f;
     [SerializeField] private float attractBrightness = 1f;
     [SerializeField] private float attractScaleBoost = 1.3f;
 
@@ -85,7 +85,7 @@ public class ExperienceOrb : MonoBehaviour
         {
             coreRenderer = gameObject.AddComponent<SpriteRenderer>();
             coreRenderer.sprite = CreateSoftCircleSprite(16);
-            coreRenderer.color = new Color(0f, 0.808f, 0.82f, 1f); // Spectral Cyan (matches XP bar)
+            coreRenderer.color = new Color(0f, 0.92f, 1f, 1f); // Vivid cyan (matches XP bar)
             coreRenderer.sortingLayerName = "Foreground";
             coreRenderer.sortingOrder = 10;
         }
@@ -307,7 +307,7 @@ public class ExperienceOrb : MonoBehaviour
         main.startLifetime = burstLifetime;
         main.startSpeed = burstSpeed;
         main.startSize = new ParticleSystem.MinMaxCurve(0.03f, 0.08f);
-        main.startColor = new Color(0f, 0.808f, 0.82f, 1f); // Spectral Cyan
+        main.startColor = new Color(0f, 0.92f, 1f, 1f); // Vivid cyan
         main.simulationSpace = ParticleSystemSimulationSpace.World;
         main.loop = false;
         main.playOnAwake = true;
@@ -330,8 +330,8 @@ public class ExperienceOrb : MonoBehaviour
         Gradient grad = new Gradient();
         grad.SetKeys(
             new GradientColorKey[] {
-                new GradientColorKey(new Color(0f, 0.808f, 0.82f), 0f),
-                new GradientColorKey(new Color(0.3f, 0.9f, 0.92f), 1f)
+                new GradientColorKey(new Color(0f, 0.92f, 1f), 0f),
+                new GradientColorKey(new Color(0.4f, 1f, 1f), 1f)
             },
             new GradientAlphaKey[] {
                 new GradientAlphaKey(1f, 0f),
@@ -366,11 +366,11 @@ public class ExperienceOrb : MonoBehaviour
         GameObject glowObj = new GameObject("Glow");
         glowObj.transform.SetParent(transform, false);
         glowObj.transform.localPosition = Vector3.zero;
-        glowObj.transform.localScale = Vector3.one * 2.5f; // Larger than core
+        glowObj.transform.localScale = Vector3.one * 1.8f; // Subtle halo around core
 
         SpriteRenderer sr = glowObj.AddComponent<SpriteRenderer>();
-        sr.sprite = CreateSoftCircleSprite(32);
-        sr.color = new Color(0f, 0.6f, 0.65f, 0.6f); // Cyan glow
+        sr.sprite = CreateSoftCircleSprite(32, 128f, 2f);
+        sr.color = new Color(0f, 0.9f, 1f, 0.95f); // Bright cyan glow
         sr.sortingLayerName = "Foreground";
         sr.sortingOrder = 9;
 
@@ -397,7 +397,7 @@ public class ExperienceOrb : MonoBehaviour
         main.startLifetime = new ParticleSystem.MinMaxCurve(0.3f, 0.5f);
         main.startSpeed = 0f;
         main.startSize = new ParticleSystem.MinMaxCurve(0.05f, 0.1f);
-        main.startColor = new Color(0f, 0.808f, 0.82f, 0.8f);
+        main.startColor = new Color(0f, 0.92f, 1f, 0.95f);
         main.simulationSpace = ParticleSystemSimulationSpace.World;
         main.loop = true;
         main.playOnAwake = true;
@@ -417,12 +417,12 @@ public class ExperienceOrb : MonoBehaviour
         grad.SetKeys(
             new GradientColorKey[]
             {
-                new GradientColorKey(new Color(0f, 0.808f, 0.82f), 0f),
-                new GradientColorKey(new Color(0.3f, 0.9f, 0.92f), 1f)
+                new GradientColorKey(new Color(0f, 0.92f, 1f), 0f),
+                new GradientColorKey(new Color(0.4f, 1f, 1f), 1f)
             },
             new GradientAlphaKey[]
             {
-                new GradientAlphaKey(0.8f, 0f),
+                new GradientAlphaKey(1f, 0f),
                 new GradientAlphaKey(0f, 1f)
             }
         );
@@ -452,7 +452,7 @@ public class ExperienceOrb : MonoBehaviour
         return ps;
     }
 
-    private Sprite CreateSoftCircleSprite(int size)
+    private Sprite CreateSoftCircleSprite(int size, float pixelsPerUnit = 128f, float falloffPower = 3f)
     {
         Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
         tex.filterMode = FilterMode.Bilinear;
@@ -466,13 +466,13 @@ public class ExperienceOrb : MonoBehaviour
             {
                 float dist = Vector2.Distance(new Vector2(x, y), center);
                 float alpha = 1f - Mathf.Clamp01(dist / radius);
-                alpha = Mathf.Pow(alpha, 1.5f);
+                alpha = Mathf.Pow(alpha, falloffPower);
                 pixels[y * size + x] = new Color(1f, 1f, 1f, alpha);
             }
         }
 
         tex.SetPixels(pixels);
         tex.Apply();
-        return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
+        return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), pixelsPerUnit);
     }
 }

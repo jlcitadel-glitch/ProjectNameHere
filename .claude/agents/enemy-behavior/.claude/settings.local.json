@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(bd show:*)"
+      "Bash",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "Read(M:\\Video Game Development\\ProjectNameHere/**)",
+      "Edit(M:\\Video Game Development\\ProjectNameHere/**)",
+      "Write(M:\\Video Game Development\\ProjectNameHere/**)"
     ]
   }
 }

@@ -203,9 +203,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 1000000000000000}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Script: {fileID: 11500000, guid: a7d4227423400904496037cef1539f1c, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
   groundCheck: {fileID: 4000000000000001}
   groundCheckRadius: 0.2
   groundLayer:
@@ -215,9 +215,6 @@ MonoBehaviour:
   wallCheckDistance: 0.5
   ledgeCheck: {fileID: 4000000000000003}
   ledgeCheckDistance: 0.5
-  idleWaitTime: 1
-  turnAtLedges: 1
-  turnAtWalls: 1
 --- !u!114 &114000000000003
 MonoBehaviour:
   m_ObjectHideFlags: 0

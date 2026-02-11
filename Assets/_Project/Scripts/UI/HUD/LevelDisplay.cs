@@ -183,6 +183,14 @@ namespace ProjectName.UI
         }
 
         /// <summary>
+        /// Sets the level format string. Use {0} for the level number.
+        /// </summary>
+        public void SetLevelFormat(string format)
+        {
+            levelFormat = format;
+        }
+
+        /// <summary>
         /// Manually sets the displayed level.
         /// </summary>
         public void SetLevel(int level)
