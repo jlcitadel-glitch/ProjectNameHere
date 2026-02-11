@@ -2,6 +2,8 @@
 
 > Universal invariants for all agents. These are **always true** — not tasks to complete, but rules to follow. If you violate one, file a bead to fix it.
 
+**Scope:** These standards apply to Unity C# game code in `Assets/_Project/Scripts/` and prefab/asset configuration. Utility scripts (Python, shell, editor tools) follow general best practices but are not bound by Unity-specific rules.
+
 ## Unity 6 API Rules
 
 **Target:** Unity 6000.3.4f1. Use only Unity 6 supported APIs.
@@ -37,7 +39,7 @@ await Awaitable.WaitForSecondsAsync(1f);                    // CORRECT
 
 - Universal Render Pipeline (URP) 17.3.0
 - Particle shaders: `Universal Render Pipeline/Particles/Unlit`
-- 2D project — no 3D components unless explicitly justified
+- 2D project — no 3D components in game code unless explicitly justified
 
 ---
 
@@ -62,7 +64,7 @@ await Awaitable.WaitForSecondsAsync(1f);                    // CORRECT
 [SerializeField] private bool showGizmos = true;
 ```
 
-- `[SerializeField]` for tweakable values — never `public` fields
+- `[SerializeField]` for tweakable values — never `public` fields on MonoBehaviours (ScriptableObjects may use `public` fields for data exposure)
 - `[Header("Section")]` to group related fields
 - Extract magic numbers to serialized fields
 
@@ -125,7 +127,7 @@ public class ItemData : ScriptableObject
 ## Prefab Workflow
 
 - All reusable GameObjects **must** be prefabs
-- **Edit in Prefab Mode** — never modify scene instances directly
+- **Edit prefab assets directly** — never modify scene instances when the change belongs on the prefab
 - Scene contains prefab instances, not embedded objects
 - Component setup belongs on the prefab, not per-instance overrides
 
@@ -134,7 +136,7 @@ public class ItemData : ScriptableObject
 ## RPI Pattern (Research, Plan, Implement)
 
 1. **Research** — Explore codebase, understand existing patterns before changes. Run `bd ready` to check for related open tasks.
-2. **Plan** — Design approach, identify impacts, get user approval for non-trivial work. Create bd tasks for multi-step plans.
+2. **Plan** — Design approach, identify impacts, and **get user approval before writing any code**. Create bd tasks for multi-step plans. Do not skip this step.
 3. **Implement** — Write code following these standards. Update bd task status as you go.
 
 ---
@@ -200,8 +202,11 @@ Every agent session follows this sequence:
 
 1. Read `STANDARDS.md` (this file) for project invariants
 2. Read your agent CLAUDE.md for domain expertise
-3. Run `bd ready` — claim a task before starting work
-4. Follow RPI pattern during implementation
-5. End session per AGENTS.md landing protocol (`bd sync` + `git push`)
+3. Check `handoffs/<agent-name>.json` for prior session context
+4. Run `bd ready` — claim a task before starting work
+5. Follow RPI pattern during implementation
+6. Use Discovery Protocol for out-of-scope work found during implementation
+7. End session per AGENTS.md landing protocol (handoff + `bd sync` + `git push`)
+8. Run `bash scripts/witness_check.sh <bead-id>` after closing beads
 
 See [AGENTS.md](AGENTS.md) for the full beads workflow reference.

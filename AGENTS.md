@@ -44,21 +44,56 @@ bd duplicates --auto-merge          # Check for duplicate issues
 1. **File issues for remaining work** - Create bd issues for anything that needs follow-up
 2. **Run quality gates** (if code changed) - Verify in Unity Editor, check for null refs
 3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
+4. **Write handoff** - Write `handoffs/<agent-name>.json` per the schema in `handoffs/SCHEMA.md`, then append to `handoffs/activity.jsonl`:
+   ```
+   $(date -Iseconds)|<AGENT>|session_end|<bead_id>|<status>|<summary>
+   ```
+5. **PUSH TO REMOTE** - This is MANDATORY:
    ```bash
    git pull --rebase
    bd sync
    git push
    git status  # MUST show "up to date with origin"
    ```
-5. **Verify** - All changes committed AND pushed, all bd tasks updated
-6. **Hand off** - Provide context summary for next session
+6. **Verify** - All changes committed AND pushed, all bd tasks updated
+7. **Hand off** - Provide context summary for next session
 
 **CRITICAL RULES:**
 - Work is NOT complete until `git push` succeeds
 - NEVER stop before pushing - that leaves work stranded locally
 - NEVER say "ready to push when you are" - YOU must push
 - If push fails, resolve and retry until it succeeds
+
+## Session Handoff (GUPP-Lite)
+
+Session handoffs ensure context survives across agent sessions.
+
+### On Session End
+
+1. Write `handoffs/<agent-name>.json` following the schema in [`handoffs/SCHEMA.md`](handoffs/SCHEMA.md)
+2. Append to `handoffs/activity.jsonl`:
+   ```
+   $(date -Iseconds)|<AGENT>|session_end|<bead_id>|<status>|<summary>
+   ```
+3. The handoff file is overwritten each session (latest state only)
+
+### On Session Start
+
+1. Check for `handoffs/<agent-name>.json` — if present, read it for prior context
+2. If resuming the same bead, pick up from `remaining` and `next_steps`
+3. If starting new work, note the prior handoff for awareness then proceed normally
+
+### Activity Log
+
+The `handoffs/activity.jsonl` file is an append-only log of all agent activity:
+
+```
+TIMESTAMP|AGENT|EVENT|BEAD_ID|STATUS|MESSAGE
+```
+
+Events: `session_start`, `session_end`, `discovery`
+
+---
 
 ## Task Organization
 
@@ -87,6 +122,63 @@ When your task touches another agent's domain:
 1. Create a bd issue in their area with clear context
 2. Link it as a dependency if your work is blocked
 3. Include file paths and expected behavior in the description
+
+## Discovery Protocol
+
+When encountering out-of-scope work during a task, **do not context-switch**. Instead:
+
+1. Continue your current task — do not stop or pivot
+2. File a bead: `bd create "Discovered: <title>" -p <priority> -l agent:<target>`
+3. Set dependencies if needed: `bd dep add <new-id> <current-id>`
+4. Note the discovery in your current bead: `bd comments add <current-id> "Discovered: <new-id> - <desc>"`
+5. Log it: append to `handoffs/activity.jsonl`:
+   ```
+   $(date -Iseconds)|<AGENT>|discovery|<current-bead>|in_progress|Filed <new-id>: <title>
+   ```
+6. Record the new bead ID in your handoff JSON `beads_created` array
+7. Return to your current task
+
+This ensures nothing is lost while keeping agents focused on their primary work.
+
+---
+
+## Witness Check
+
+After closing a bead, run the witness check script to validate closure:
+
+```bash
+bash scripts/witness_check.sh <bead-id>
+```
+
+The script verifies:
+1. A matching handoff JSON exists for the bead
+2. Bead status matches handoff status
+3. Files listed in `files_touched` appear in recent git history
+4. CI passes (if available)
+
+If any check fails, the script reopens the bead with a comment explaining the failure. Run this as part of the landing protocol after `bd close`.
+
+---
+
+## Status Report
+
+Generate a cross-agent coordination report:
+
+```bash
+bash scripts/agent_status_report.sh
+```
+
+The report includes:
+- Bead overview (open/closed/blocked counts)
+- Agent handoff status (last session time and status per agent)
+- Stale beads (open for 3+ days)
+- Orphaned handoffs (handoff says in_progress but bead is closed)
+- Recent activity (last 24h from activity log)
+- Recently closed beads (last 7 days)
+
+Use this to monitor project health and identify coordination issues.
+
+---
 
 ## Unity-Specific Notes
 
