@@ -20,6 +20,12 @@ public class ManaSystem : MonoBehaviour
     public float ManaPercent => maxMana > 0f ? currentMana / maxMana : 0f;
     public bool IsFull => currentMana >= maxMana;
     public bool IsEmpty => currentMana <= 0f;
+    public float RegenRate => regenRate;
+
+    /// <summary>
+    /// Sets the mana regeneration rate. Used by PassiveSkillTracker for mana_mastery.
+    /// </summary>
+    public void SetRegenRate(float newRate) { regenRate = Mathf.Max(0f, newRate); }
 
     /// <summary>
     /// Fired when mana changes. Provides current and max values.

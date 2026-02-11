@@ -35,6 +35,7 @@ public class PlayerSkillController : MonoBehaviour
     private string[] hotbarSkillIds;
     private SkillCooldownTracker cooldownTracker;
     private Animator animator;
+    private SkillExecutor skillExecutor;
     private bool isCasting;
     private float castEndTime;
     private string pendingSkillId;
@@ -57,6 +58,7 @@ public class PlayerSkillController : MonoBehaviour
         hotbarSkillIds = new string[hotbarSlots];
         cooldownTracker = gameObject.AddComponent<SkillCooldownTracker>();
         animator = GetComponent<Animator>();
+        skillExecutor = GetComponent<SkillExecutor>();
 
         if (manaSystem == null)
             manaSystem = GetComponent<ManaSystem>();
@@ -297,14 +299,18 @@ public class PlayerSkillController : MonoBehaviour
             audioSource.PlayOneShot(skillInstance.skillData.castSound);
         }
 
-        // Spawn skill prefab
-        if (skillInstance.skillData?.skillPrefab != null)
+        // Execute skill via SkillExecutor (handles all 19 skills inline)
+        if (skillExecutor != null)
         {
-            SpawnSkillPrefab(skillInstance);
+            skillExecutor.Execute(skillInstance);
         }
-
-        // Apply skill effects
-        ApplySkillEffects(skillInstance);
+        else
+        {
+            // Fallback to original path (prefab + effects)
+            if (skillInstance.skillData?.skillPrefab != null)
+                SpawnSkillPrefab(skillInstance);
+            ApplySkillEffects(skillInstance);
+        }
 
         if (logSkillUse)
             Debug.Log($"[PlayerSkillController] Used skill: {skillInstance.SkillName} (Lv.{skillInstance.currentLevel})");

@@ -43,6 +43,14 @@ public class StatSystem : MonoBehaviour
     public float SpeedMultiplier => 1f + (Agility * 0.01f);
     public float CritChance => Mathf.Min(0.5f, Agility * 0.005f);
 
+    /// <summary>
+    /// Returns total crit chance including passive and buff bonuses, capped at 75%.
+    /// </summary>
+    public float GetTotalCritChance(float passiveBonus, float buffBonus)
+    {
+        return Mathf.Min(0.75f, CritChance + passiveBonus + buffBonus);
+    }
+
     // Events
     public event Action OnStatsChanged;
     public event Action<int> OnStatPointsChanged;
