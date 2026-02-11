@@ -742,6 +742,18 @@ public class EnemyController : MonoBehaviour, IDamageable
     }
 
     /// <summary>
+    /// Stuns the enemy for the given duration. Called by ParrySystem on successful parry.
+    /// </summary>
+    public void ApplyStun(float duration)
+    {
+        if (isDead)
+            return;
+
+        stunTimer = duration;
+        SetState(EnemyState.Stunned);
+    }
+
+    /// <summary>
     /// Flips the enemy to face the specified direction.
     /// </summary>
     public void FaceDirection(float direction)

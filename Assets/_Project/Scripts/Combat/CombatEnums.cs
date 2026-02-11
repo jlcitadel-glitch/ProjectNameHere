@@ -21,5 +21,6 @@ public enum CombatState
     Idle,
     WindUp,
     Attacking,
-    Recovery
+    Recovery,
+    Parrying
 }

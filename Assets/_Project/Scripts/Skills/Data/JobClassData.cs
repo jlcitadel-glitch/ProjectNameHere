@@ -88,6 +88,10 @@ public class JobClassData : ScriptableObject
     [Tooltip("AGI gained per level from class growth")]
     public int agiPerLevel = 1;
 
+    [Header("Parry")]
+    [Tooltip("Parry behavior for this class")]
+    public ParryData parryData;
+
     [Header("Appearance")]
     [Tooltip("Animator controller for this class (base or override)")]
     public RuntimeAnimatorController characterAnimator;

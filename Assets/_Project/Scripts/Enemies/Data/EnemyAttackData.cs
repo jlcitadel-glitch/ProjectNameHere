@@ -39,6 +39,10 @@ public class EnemyAttackData : ScriptableObject
     [Tooltip("Maximum range for this attack to be selected")]
     public float maxRange = 2f;
 
+    [Header("Parry")]
+    [Tooltip("Whether this attack can be parried")]
+    public bool isParryable = true;
+
     [Header("Animation")]
     public string animationTrigger = "Attack";
 
