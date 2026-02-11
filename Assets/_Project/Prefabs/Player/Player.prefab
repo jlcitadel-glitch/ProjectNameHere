@@ -22,6 +22,7 @@ GameObject:
   - component: {fileID: 8891234567890123460}
   - component: {fileID: 4400000000000000001}
   - component: {fileID: 4400000000000000002}
+  - component: {fileID: 4400000000000000003}
   m_Layer: 6
   m_Name: Player
   m_TagString: Player
@@ -245,6 +246,22 @@ MonoBehaviour:
         m_CallState: 2
     m_ActionId: a1b2c3d4-5678-90ab-cdef-0123456789ab
     m_ActionName: 'Player/SwitchWeapon[/Keyboard/tab,/XInputControllerWindows/rightShoulder]'
+  - m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 1305642785171897839}
+        m_TargetAssemblyTypeName: PlayerControllerScript, Assembly-CSharp
+        m_MethodName: Parry
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument:
+          m_BoolArgument: 0
+        m_CallState: 2
+    m_ActionId: c1d2e3f4-a5b6-7c8d-9e0f-1a2b3c4d5e6f
+    m_ActionName: 'Player/Parry[/Keyboard/f,/XInputControllerWindows/leftTrigger]'
   - m_PersistentCalls:
       m_Calls: []
     m_ActionId: 9dead772-f917-444c-9c57-feabf86e4627
@@ -491,6 +508,19 @@ MonoBehaviour:
   hitParticleSize: 0.06
   screenFlashAlpha: 0.12
   screenFlashDuration: 0.1
+--- !u!114 &4400000000000000003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2553238395389881092}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2668360310f9446ea2e5d771f87e68aa, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  debugLogging: 0
 --- !u!1 &6872185932980887859
 GameObject:
   m_ObjectHideFlags: 0
