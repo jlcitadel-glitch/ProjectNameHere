@@ -12,7 +12,7 @@ using ProjectName.UI;
 public class Wave100Controller : MonoBehaviour
 {
     [Header("Milestone Settings")]
-    [SerializeField] private int milestoneWave = 5; // TODO: restore to 100 after testing
+    [SerializeField] private int milestoneWave = 100;
 
     [Header("Cutscene References")]
     [SerializeField] private CutsceneManager cutsceneManager;
