@@ -408,5 +408,13 @@ namespace ProjectName.UI
         {
             SetSlotSkill(index, null);
         }
+
+        /// <summary>
+        /// Allows the runtime UI builder to wire slot references before Start() runs.
+        /// </summary>
+        public void SetRuntimeSlots(HotbarSlot[] runtimeSlots)
+        {
+            slots = runtimeSlots;
+        }
     }
 }
