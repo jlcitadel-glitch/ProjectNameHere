@@ -20,6 +20,8 @@ GameObject:
   - component: {fileID: 8891234567890123458}
   - component: {fileID: 8891234567890123459}
   - component: {fileID: 8891234567890123460}
+  - component: {fileID: 4400000000000000001}
+  - component: {fileID: 4400000000000000002}
   m_Layer: 6
   m_Name: Player
   m_TagString: Player
@@ -450,6 +452,45 @@ MonoBehaviour:
   baseMana: 50
   manaPerLevel: 3
   debugLogging: 0
+--- !u!114 &4400000000000000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2553238395389881092}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 724571b7b6b44d35979d105ce2aec48a, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  trailColor: {r: 0.6, g: 0.85, b: 1, a: 0.8}
+  fadeColor: {r: 0.3, g: 0.5, b: 0.8, a: 0}
+  emissionRate: 40
+  particleLifetime: 0.3
+  particleSize: 0.12
+  maxParticles: 30
+--- !u!114 &4400000000000000002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2553238395389881092}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 52d5d024c4af41a6a51bc17b7b2f0d41, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  flashDuration: 0.1
+  flashColor: {r: 1, g: 1, b: 1, a: 1}
+  hitColor: {r: 0.9, g: 0.15, b: 0.15, a: 1}
+  hitParticleCount: 10
+  hitParticleSpeed: 2.5
+  hitParticleLifetime: 0.3
+  hitParticleSize: 0.06
+  screenFlashAlpha: 0.12
+  screenFlashDuration: 0.1
 --- !u!1 &6872185932980887859
 GameObject:
   m_ObjectHideFlags: 0
