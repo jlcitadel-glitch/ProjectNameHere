@@ -1,0 +1,58 @@
+{
+  "$schema": "handoff-v1",
+  "agent": "vfx",
+  "bead_id": "ProjectNameHere-yga",
+  "status": "completed",
+  "timestamp": "2026-02-10T12:00:00-05:00",
+  "session_summary": "Created 6 combat VFX scripts, 3 prefabs, wired all enemy/attack data assets and Player prefab",
+  "done": [
+    "EnemyDeathVFX: radial burst particles on enemy kill",
+    "DashTrailVFX: particle trail during dash (on Player prefab)",
+    "PlayerHurtVFX: sprite flash + hit particles + screen flash on damage (on Player prefab)",
+    "SkillHitVFX: generic impact burst for skill/melee hits",
+    "EnemySpawnVFX: upward materialization burst on spawn",
+    "KnockbackVFX: directional cone burst with static Spawn() API, integrated into AttackHitbox and DamageSkillEffect",
+    "Created 3 standalone VFX prefabs in Prefabs/Effects/",
+    "Added DashTrailVFX and PlayerHurtVFX components to Player.prefab",
+    "Wired EnemyDeathVFX and EnemySpawnVFX to all 8 EnemyData assets",
+    "Wired SkillHitVFX to all 11 player AttackData and 7 enemy EnemyAttackData assets"
+  ],
+  "remaining": [],
+  "decisions": [
+    "Used runtime particle system creation (not prefab particle systems) to match existing PowerUpVFX pattern",
+    "KnockbackVFX uses static Spawn() API instead of prefab — already auto-integrated into combat code",
+    "All VFX use URP Particles/Unlit shader with Sprites/Default fallback",
+    "Kept particle counts conservative for performance (8-20 per burst)"
+  ],
+  "files_touched": [
+    "Assets/_Project/Scripts/VFX/EnemyDeathVFX.cs",
+    "Assets/_Project/Scripts/VFX/DashTrailVFX.cs",
+    "Assets/_Project/Scripts/VFX/PlayerHurtVFX.cs",
+    "Assets/_Project/Scripts/VFX/SkillHitVFX.cs",
+    "Assets/_Project/Scripts/VFX/EnemySpawnVFX.cs",
+    "Assets/_Project/Scripts/VFX/KnockbackVFX.cs",
+    "Assets/_Project/Scripts/Combat/AttackHitbox.cs",
+    "Assets/_Project/Scripts/Skills/Effects/DamageSkillEffect.cs",
+    "Assets/_Project/Prefabs/Effects/EnemyDeathVFX.prefab",
+    "Assets/_Project/Prefabs/Effects/SkillHitVFX.prefab",
+    "Assets/_Project/Prefabs/Effects/EnemySpawnVFX.prefab",
+    "Assets/_Project/Prefabs/Player/Player.prefab",
+    "Assets/_Project/ScriptableObjects/Enemies/Types/*.asset",
+    "Assets/_Project/ScriptableObjects/Enemies/Attacks/*.asset",
+    "Assets/_Project/Data/Combat/Attacks/*.asset"
+  ],
+  "beads_created": [
+    "ProjectNameHere-yga",
+    "ProjectNameHere-crb",
+    "ProjectNameHere-aro",
+    "ProjectNameHere-kia",
+    "ProjectNameHere-ajf",
+    "ProjectNameHere-jzf"
+  ],
+  "next_steps": [
+    "Playtest VFX in-editor to verify visuals and performance",
+    "Tune particle colors per-enemy if needed (EnemyDeathVFX is tintable via Inspector)",
+    "Consider adding DynamicFogSystem implementation (currently empty placeholder)",
+    "Add VFX for status effects/buffs/debuffs when buff system matures"
+  ]
+}
