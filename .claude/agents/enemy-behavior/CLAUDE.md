@@ -45,14 +45,17 @@ Assets/_Project/Scripts/Enemies/
 ├── Core/
 │   ├── EnemyController.cs         # State machine coordinator
 │   ├── BossController.cs          # Phase system
-│   └── EnemyEnums.cs              # EnemyState, EnemyType, DetectionType
+│   ├── EnemyEnums.cs              # EnemyState, EnemyType, DetectionType
+│   ├── EnemyHitFlash.cs           # Damage flash visual feedback
+│   └── EnemyDiagnostic.cs         # Runtime diagnostic logging
 ├── Data/
 │   ├── EnemyData.cs               # ScriptableObject: stats, audio, VFX, rewards
 │   └── EnemyAttackData.cs         # ScriptableObject: attack timing, hitbox, projectile
 ├── Movement/
 │   ├── BaseEnemyMovement.cs       # Abstract: ground/wall/ledge detection
 │   ├── GroundPatrolMovement.cs    # Back-and-forth patrol with idle pauses
-│   └── FlyingMovement.cs          # Sinusoidal hover, smooth chase, zero gravity
+│   ├── FlyingMovement.cs          # Sinusoidal hover, smooth chase, zero gravity
+│   └── HoppingMovement.cs         # Jump-based movement pattern
 ├── Combat/
 │   ├── EnemyCombat.cs             # Attack execution: select, phase, spawn
 │   ├── EnemyAttackHitbox.cs       # Trigger-based melee damage
@@ -64,12 +67,15 @@ Assets/_Project/Scripts/Enemies/
 │   ├── WaveConfig.cs              # ScriptableObject: enemy pool, scaling, boss config
 │   ├── EnemySpawnManager.cs       # Instantiation, tracking, death events
 │   ├── EnemyStatModifier.cs       # Wave-based stat scaling
-│   ├── WaveScaler.cs              # Scaling formulas
-│   └── SurvivalArena.cs           # Arena-specific setup
+│   ├── WaveScaler.cs              # Scaling formulas (post-100 acceleration)
+│   ├── SurvivalArena.cs           # Arena-specific setup
+│   └── Wave100Controller.cs       # Wave 100 milestone cutscene + boss sequence
 └── Editor/
     ├── EnemySetupWizard.cs        # Editor tool for prefab creation
     ├── ArenaSetupWizard.cs        # Editor tool for arena setup
-    └── EnemySpriteGenerator.cs    # Placeholder sprite generator
+    ├── CreateGuardianBoss.cs      # Guardian boss prefab generator
+    ├── CreateAllEnemies.cs        # Bulk enemy prefab generator
+    └── DebugWaveSkip.cs           # Debug tool for skipping waves
 ```
 
 ---
@@ -166,11 +172,19 @@ public enum DetectionType { Radius, Cone, LineOfSight }
 ## Wave Scaling
 
 ```
-HP:     baseStat * (1 + (wave - 1) * 0.15)
-Damage: baseStat * (1 + (wave - 1) * 0.10)
-Speed:  baseStat * (1 + (wave - 1) * 0.05)
+Waves 1–100:
+  HP:     baseStat * (1 + (wave - 1) * 0.15)
+  Damage: baseStat * (1 + (wave - 1) * 0.10)
+  Speed:  baseStat * (1 + (wave - 1) * 0.05)
+
+Waves 101+ (post-milestone acceleration — rates doubled):
+  HP:     baseStat * (1 + 99 * 0.15 + (wave - 100) * 0.30)
+  Damage: baseStat * (1 + 99 * 0.10 + (wave - 100) * 0.20)
+  Speed:  baseStat * (1 + 99 * 0.05 + (wave - 100) * 0.10)
+
 Count:  Min(base + (wave - 1) * increase, maxAlive)
 Boss waves: every bossWaveInterval waves
+Wave 100: special milestone (cutscene + boss + credits via Wave100Controller)
 ```
 
 ---

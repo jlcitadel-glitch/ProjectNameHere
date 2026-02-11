@@ -27,15 +27,17 @@ python ci/run_all.py
 ```
 Assets/_Project/
 ├── Scripts/
-│   ├── Player/          # PlayerControllerScript - core movement
 │   ├── Abilities/       # Dash, DoubleJump, PowerUp system
-│   ├── Camera/          # Camera controller, parallax, bounds
-│   ├── Enemies/         # AI state machines, combat, sensors, spawning
-│   ├── Environment/     # Platforms, hazards, interactables, terrain
-│   ├── VFX/             # Fog, particles, precipitation, atmosphere
 │   ├── Audio/           # SFXManager, MusicManager
-│   ├── Systems/         # GameManager, SaveManager, WindManager
-│   └── UI/              # UIManager, menus, HUD
+│   ├── Camera/          # Camera controller, parallax, bounds
+│   ├── Combat/          # CombatController, ParrySystem, AttackData
+│   ├── Editor/          # TilemapSetupTool
+│   ├── Enemies/         # AI state machines, combat, sensors, spawning
+│   ├── Player/          # PlayerControllerScript, PlayerAppearance
+│   ├── Skills/          # Skill trees, effects, execution
+│   ├── Systems/         # GameManager, SaveManager, HealthSystem, etc.
+│   ├── UI/              # UIManager, menus, HUD, skill trees
+│   └── VFX/             # Fog, particles, precipitation, hit effects
 ├── Art/                 # Sprites, Animations, Materials, Textures
 ├── Audio/               # Music, Ambience, SFX
 ├── Prefabs/             # Player, Abilities, Effects, Enemies, Environment, UI

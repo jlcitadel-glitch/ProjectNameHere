@@ -42,7 +42,8 @@ When you find work outside your current task: **do not context-switch.** File a 
 
 ```
 Assets/_Project/Scripts/Player/
-└── PlayerControllerScript.cs    # Main movement and input
+├── PlayerControllerScript.cs    # Main movement and input
+└── PlayerAppearance.cs          # Visual customization (sprites, colors)
 
 Assets/_Project/Scripts/Abilities/
 ├── DashAbility.cs               # Dash ability component

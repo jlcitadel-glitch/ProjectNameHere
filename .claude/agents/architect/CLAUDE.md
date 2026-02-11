@@ -51,63 +51,87 @@ When you find work outside your current task: **do not context-switch.** File a 
 ## Current System Map
 
 ```
-PlayerControllerScript
-    ├── Input (InputSystem)
-    ├── Movement (physics-based)
-    ├── Jumping (coyote + buffer)
+Player
+    ├── PlayerControllerScript (Input, movement, jumping)
+    ├── PlayerAppearance (visual customization)
     └── Abilities
         ├── DashAbility (component)
-        └── DoubleJumpAbility (component)
+        ├── DoubleJumpAbility (component)
+        ├── PowerUpManager (state tracker)
+        └── PowerUpPickup (collectible trigger)
+
+Combat System
+    ├── CombatController (attack execution, combos)
+    ├── AttackHitbox (trigger-based melee damage)
+    ├── Projectile + ProjectileVisual (ranged attacks)
+    ├── ParrySystem + ParryType (parry mechanics)
+    └── Data: AttackData, WeaponData, ParryData, CombatEnums
+
+Skills System
+    ├── Core: SkillManager, PlayerSkillController, SkillInstance, SkillCooldownTracker
+    ├── Data: SkillData, SkillTreeData, SkillEffectData, JobClassData
+    ├── Effects: BaseSkillEffect → Damage, Buff, Heal, Projectile
+    ├── Execution: SkillExecutor, SkillProjectile, ActiveBuffTracker, PassiveSkillTracker
+    └── Enums: SkillType, JobTier, DamageType
 
 Camera System
     ├── AdvancedCameraController (follow, look-ahead, bounds)
-    ├── ParallaxBackgroundManager (layers by Z-depth)
+    ├── ParallaxBackgroundManager + ParallaxLayer (Z-depth layers)
     ├── BossRoomTrigger
     └── CameraBoundsTrigger
 
-Ability Unlock System
-    ├── PowerUpPickup (trigger)
-    └── PowerUpManager (state tracker)
-
 VFX System
-    ├── ParticleFogSystem
+    ├── ParticleFogSystem, DynamicFogSystem
     ├── AtmosphericAnimator
-    └── Precipitation (zone-based, preset-driven)
+    ├── Precipitation (zone-based, preset-driven)
+    ├── ScreenFlash, SelfDestructVFX
+    └── Hit/State VFX: BossVFX, LevelUpVFX, PowerUpVFX, EnemyDeathVFX,
+        DashTrailVFX, PlayerHurtVFX, SkillHitVFX, EnemySpawnVFX, KnockbackVFX
 
 Enemy System
     ├── EnemyController (state machine coordinator)
-    ├── BaseEnemyMovement → GroundPatrolMovement, FlyingMovement
+    ├── BaseEnemyMovement → GroundPatrolMovement, FlyingMovement, HoppingMovement
     ├── EnemyCombat + EnemyAttackHitbox + EnemyProjectile
     ├── EnemySensors (Radius, Cone, LineOfSight)
+    ├── EnemyHitFlash, EnemyDiagnostic
     ├── BossController (phase system)
-    └── WaveManager + WaveConfig (spawning)
+    ├── Data: EnemyData, EnemyAttackData
+    └── Spawning: WaveManager, WaveConfig, EnemySpawnManager,
+        WaveScaler, EnemyStatModifier, SurvivalArena, Wave100Controller
 
 Systems
     ├── GameManager (state machine, time control)
-    ├── SaveManager (PlayerPrefs + JSON)
+    ├── HealthSystem, ManaSystem, StatSystem, LevelSystem
+    ├── SaveManager (versioned JSON, save slots)
+    ├── ExperienceOrb, HighscoreManager
     ├── WindManager (global wind for VFX/physics)
-    └── SystemsBootstrap (auto-creates managers)
+    ├── SceneLoader, SystemsBootstrap
+    └── Cutscene: CutsceneManager, CutsceneData, CutsceneUI
 
 Audio
     ├── SFXManager (static, volume-scaled)
     ├── MusicManager (singleton, ducking)
     └── UISoundBank (ScriptableObject)
+
+UI
+    ├── Core: UIManager, UIStyleGuide, GothicFrameStyle, FontManager, FocusManager
+    ├── Menus: MainMenu, PauseMenu, OptionsMenu, CharacterCreation,
+        Credits, Highscores, SaveSlotUI
+    ├── HUD: HealthDisplay, ManaDisplay, PlayerStatBars, ResourceBarDisplay,
+        ExpBarDisplay, LevelDisplay, BossHealthBar, NotificationSystem,
+        DamageNumberSpawner, CastBar, WeaponIndicator, ComboCounter,
+        LowHealthVignette, GameFrameHUD, DeathScreen
+    ├── Skills: SkillTreePanel, SkillTreeController, SkillNodeUI,
+        SkillConnectionLine, SkillTooltip, SkillHotbar, JobAdvancementPopup
+    ├── Stats: StatMenuController
+    ├── Components: TabbedMenuController, UIButtonSounds, UIAnimatedSprite,
+        DisplaySettingsPanel
+    └── Systems: DisplaySettings, SafeAreaHandler, AdaptiveCanvasScaler
 ```
 
 ### Recommended Future Systems
 
 ```
-Combat System (proposed)
-    ├── HealthSystem (component)
-    ├── HitboxController
-    ├── AttackData (ScriptableObject)
-    └── DamageReceiver (interface)
-
-Save System v2 (proposed)
-    ├── Binary serialization
-    ├── Multiple save slots
-    └── CheckpointTrigger
-
 Audio System v2 (proposed)
     ├── AudioManager (unified)
     ├── SoundBank (ScriptableObject)

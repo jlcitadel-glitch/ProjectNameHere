@@ -43,14 +43,27 @@ When you find work outside your current task: **do not context-switch.** File a 
 ```
 Assets/_Project/Scripts/VFX/
 ├── ParticleFogSystem.cs             # Rolling fog with Perlin noise turbulence
+├── DynamicFogSystem.cs              # Dynamic fog control
 ├── AtmosphericAnimator.cs           # Sprite drift, pulse, rotation
+├── ScreenFlash.cs                   # Screen-wide flash effect
+├── SelfDestructVFX.cs               # Auto-destroy after particle lifetime
+├── BossVFXController.cs             # Boss-specific visual effects
+├── LevelUpVFXController.cs          # Level-up celebration VFX
+├── PowerUpVFX.cs                    # Power-up pickup effects
+├── EnemyDeathVFX.cs                 # Enemy death particles
+├── EnemySpawnVFX.cs                 # Enemy spawn-in effects
+├── DashTrailVFX.cs                  # Player dash trail
+├── PlayerHurtVFX.cs                 # Player damage feedback
+├── SkillHitVFX.cs                   # Skill impact effects
+├── KnockbackVFX.cs                  # Knockback visual feedback
 └── Precipitation/
     ├── PrecipitationPreset.cs       # ScriptableObject config
     ├── PrecipitationController.cs   # Runtime particle control
+    ├── PrecipitationLayer.cs        # Individual particle layer
     ├── PrecipitationZone.cs         # Zone-based activation
     ├── IndoorZone.cs                # Culls precipitation indoors
     └── Editor/
-        └── PrecipitationPresetFactory.cs  # Sample preset generator
+        └── PrecipitationPresetEditor.cs  # Custom inspector
 
 Assets/_Project/ScriptableObjects/Precipitation/  # Preset assets
 ```

@@ -44,11 +44,25 @@ When you find work outside your current task: **do not context-switch.** File a 
 Assets/_Project/Scripts/Systems/
 ├── Core/
 │   ├── GameManager.cs              # Game state machine
-│   ├── SaveManager.cs              # Save/load system
+│   ├── SaveManager.cs              # Save/load system (versioned JSON, save slots)
+│   ├── HealthSystem.cs             # HP component (damage, heal, death events)
+│   ├── ManaSystem.cs               # Mana component (spend, regen)
+│   ├── StatSystem.cs               # Stat allocation (STR, AGI, etc.)
+│   ├── LevelSystem.cs              # XP + level progression
+│   ├── ExperienceOrb.cs            # Collectible XP orbs
+│   ├── HighscoreManager.cs         # Local highscore persistence
+│   ├── HighscoreEntry.cs           # Highscore data structure
+│   ├── SaveSlotInfo.cs             # Save slot metadata
+│   ├── SceneLoader.cs              # Scene transition helper
 │   ├── SystemsBootstrap.cs         # Auto-creates managers at runtime
 │   └── WindManager.cs              # Global wind for VFX/physics
+├── Cutscene/
+│   ├── CutsceneData.cs             # ScriptableObject: cutscene beats
+│   ├── CutsceneManager.cs          # Coroutine-driven cutscene playback
+│   └── CutsceneUI.cs               # Canvas overlay for cutscene dialogue
 ├── Editor/
-│   └── SystemsSetupWizard.cs       # Editor tool for setup
+│   ├── SystemsSetupWizard.cs       # Editor tool for setup
+│   └── ExperienceOrbSetup.cs       # Editor tool for XP orb prefabs
 └── Input/
     └── (InputSystem assets)
 ```

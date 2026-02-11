@@ -40,7 +40,7 @@ When you find work outside your current task: **do not context-switch.** File a 
 
 ## Quick Reference
 
-**Owned Directories:** `Scripts/Environment/`, `Prefabs/Environment/`, `ScriptableObjects/Environment/`
+**Owned Directories:** `Prefabs/Environment/`, `Scripts/Editor/TilemapSetupTool.cs`
 **Physics:** All movement via Rigidbody2D (Kinematic for platforms, triggers for hazards/zones)
 **Key Patterns:** CompositeCollider2D tilemaps, PlatformEffector2D one-ways, trigger-based interactions
 

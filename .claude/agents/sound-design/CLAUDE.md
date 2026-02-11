@@ -47,8 +47,10 @@ Assets/_Project/Scripts/Audio/
 
 Assets/_Project/Scripts/UI/Core/
 ├── UISoundBank.cs               # ScriptableObject — all UI sound clips + volumes
-├── UIButtonSounds.cs            # Component — auto-plays sounds on UI interaction
 └── UIManager.cs                 # Singleton — owns UI AudioSource, references UISoundBank
+
+Assets/_Project/Scripts/UI/Components/
+└── UIButtonSounds.cs            # Component — auto-plays sounds on UI interaction
 
 Assets/_Project/Audio/
 ├── Music/                       # Background music tracks
