@@ -35,8 +35,10 @@ namespace ProjectName.UI
 
         private float scrollPosition;
         private bool isScrolling;
+        private System.Action onCompleteCallback;
 
         public event System.Action OnBackPressed;
+        public event System.Action OnCreditsFinished;
 
         private void Awake()
         {
@@ -79,13 +81,46 @@ namespace ProjectName.UI
             if (scrollPosition > contentHeight + viewportHeight)
             {
                 isScrolling = false;
+                HandleCreditsFinished();
             }
+        }
+
+        /// <summary>
+        /// Shows the credits with a completion callback. Used for in-game triggering
+        /// (e.g., after wave 100 boss defeat). When the callback is set, both the
+        /// back button and scroll completion invoke it.
+        /// </summary>
+        public void Show(System.Action onComplete)
+        {
+            onCompleteCallback = onComplete;
+            gameObject.SetActive(true);
         }
 
         private void HandleBack()
         {
             UIManager.Instance?.PlayCancelSound();
+
+            if (onCompleteCallback != null)
+            {
+                var callback = onCompleteCallback;
+                onCompleteCallback = null;
+                callback.Invoke();
+                return;
+            }
+
             OnBackPressed?.Invoke();
+        }
+
+        private void HandleCreditsFinished()
+        {
+            OnCreditsFinished?.Invoke();
+
+            if (onCompleteCallback != null)
+            {
+                var callback = onCompleteCallback;
+                onCompleteCallback = null;
+                callback.Invoke();
+            }
         }
 
         private void OnDestroy()

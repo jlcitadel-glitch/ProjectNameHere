@@ -39,13 +39,16 @@ public class EnemyStatModifier : MonoBehaviour
         EnemyData clonedData = Instantiate(controller.Data);
         clonedData.name = controller.Data.name + "_Wave" + wave;
 
-        // Scale stats
-        clonedData.maxHealth = WaveScaler.ScaleStat(clonedData.maxHealth, wave, config.healthScalePerWave);
-        clonedData.contactDamage = WaveScaler.ScaleStat(clonedData.contactDamage, wave, config.damageScalePerWave);
-        clonedData.moveSpeed = WaveScaler.ScaleStat(clonedData.moveSpeed, wave, config.speedScalePerWave);
-        clonedData.chaseSpeed = WaveScaler.ScaleStat(clonedData.chaseSpeed, wave, config.speedScalePerWave);
-        clonedData.experienceValue = Mathf.RoundToInt(
-            WaveScaler.ScaleStat(clonedData.experienceValue, wave, config.healthScalePerWave));
+        // Scale stats using accelerated multiplier (doubles rate after wave 100)
+        float healthMult = WaveScaler.GetStatMultiplier(wave, config.healthScalePerWave);
+        float damageMult = WaveScaler.GetStatMultiplier(wave, config.damageScalePerWave);
+        float speedMult = WaveScaler.GetStatMultiplier(wave, config.speedScalePerWave);
+
+        clonedData.maxHealth *= healthMult;
+        clonedData.contactDamage *= damageMult;
+        clonedData.moveSpeed *= speedMult;
+        clonedData.chaseSpeed *= speedMult;
+        clonedData.experienceValue = Mathf.RoundToInt(clonedData.experienceValue * healthMult);
 
         // Assign the cloned data to EnemyController via reflection
         // (enemyData is a private serialized field)

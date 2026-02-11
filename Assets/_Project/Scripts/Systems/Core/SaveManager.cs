@@ -11,7 +11,7 @@ public class SaveManager : MonoBehaviour
 
     private const string SAVE_KEY_PREFIX = "GameSave_Slot_";
     private const string LEGACY_SAVE_KEY = "GameSave";
-    private const int CURRENT_SAVE_VERSION = 4;
+    private const int CURRENT_SAVE_VERSION = 5;
     private const int MAX_SAVE_SLOTS = 5;
 
     [Header("Settings")]
@@ -66,6 +66,9 @@ public class SaveManager : MonoBehaviour
 
         // Death tracking
         public int deathCount;
+
+        // Wave 100 milestone
+        public bool hasSeenWave100Cutscene;
 
         // Metadata
         public string saveTimestamp;
@@ -372,6 +375,17 @@ public class SaveManager : MonoBehaviour
         PlayerPrefs.SetString(GetSlotKey(activeSlotIndex), json);
         PlayerPrefs.Save();
 
+        // Record highscore on every save
+        if (HighscoreManager.Instance != null && currentSaveData.maxWaveReached > 0)
+        {
+            HighscoreManager.Instance.RecordScore(
+                currentSaveData.characterName,
+                currentSaveData.startingClass,
+                currentSaveData.maxWaveReached,
+                currentSaveData.playTime
+            );
+        }
+
         Debug.Log($"[SaveManager] Game saved to slot {activeSlotIndex}. Play time: {FormatPlayTime(currentSaveData.playTime)}");
         OnSaveCompleted?.Invoke();
     }
@@ -619,6 +633,12 @@ public class SaveManager : MonoBehaviour
         if (data.saveVersion < 4)
         {
             data.deathCount = 0;
+        }
+
+        // Migration from version 4 to 5: Add wave 100 milestone flag
+        if (data.saveVersion < 5)
+        {
+            data.hasSeenWave100Cutscene = false;
         }
 
         data.saveVersion = CURRENT_SAVE_VERSION;

@@ -34,10 +34,18 @@ public class WaveManager : MonoBehaviour
     public int CurrentWave => currentWave;
     public float RestTimer { get; private set; }
 
+    private bool wavePaused;
+
     public event Action<int> OnWaveStarted;
     public event Action<int> OnWaveCleared;
     public event Action<int, int> OnEnemyCountChanged; // alive, total
     public event Action<float> OnRestTimerUpdated; // seconds remaining
+
+    /// <summary>
+    /// Fired when a special/milestone wave is reached (e.g., wave 100).
+    /// Listeners should call PauseWaveProgression() to intercept the normal flow.
+    /// </summary>
+    public event Action<int> OnSpecialWaveReached;
 
     /// <summary>
     /// Begin the wave loop, optionally starting from a specific wave number.
@@ -117,6 +125,35 @@ public class WaveManager : MonoBehaviour
         TransitionToSpawning();
     }
 
+    /// <summary>
+    /// Pauses wave progression. Call from OnSpecialWaveReached handlers
+    /// to intercept the wave loop (e.g., for cutscenes).
+    /// Call ResumeWaveProgression() to continue the loop afterward.
+    /// </summary>
+    public void PauseWaveProgression()
+    {
+        wavePaused = true;
+
+        if (debugLogging)
+            Debug.Log($"[WaveManager] Wave progression paused at wave {currentWave}");
+    }
+
+    /// <summary>
+    /// Resumes wave progression after a pause. Continues with normal spawning.
+    /// </summary>
+    public void ResumeWaveProgression()
+    {
+        if (!wavePaused)
+            return;
+
+        wavePaused = false;
+
+        if (debugLogging)
+            Debug.Log($"[WaveManager] Wave progression resumed at wave {currentWave}");
+
+        ContinueSpawning();
+    }
+
     private void TransitionToSpawning()
     {
         currentState = WaveState.Spawning;
@@ -124,6 +161,22 @@ public class WaveManager : MonoBehaviour
         // Reset spawn point tracking so all points are available for the new wave
         spawnManager.ResetSpawnPoints();
 
+        // Notify listeners of special wave before normal spawn logic
+        OnSpecialWaveReached?.Invoke(currentWave);
+
+        // If a listener paused progression (e.g., Wave100Controller), halt here
+        if (wavePaused)
+        {
+            if (debugLogging)
+                Debug.Log($"[WaveManager] Wave {currentWave} intercepted by special wave handler");
+            return;
+        }
+
+        ContinueSpawning();
+    }
+
+    private void ContinueSpawning()
+    {
         // Check if this is a boss wave
         bool isBossWave = waveConfig.bossWaveInterval > 0
             && waveConfig.bossPrefab != null

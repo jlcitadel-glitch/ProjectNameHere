@@ -189,9 +189,40 @@ namespace ProjectName.UI
                 {
                     subtitleText.text = message;
                 }
+
+                // Record highscore from live game state
+                RecordHighscore();
             }
 
             Show();
+        }
+
+        private void RecordHighscore()
+        {
+            if (HighscoreManager.Instance == null || SaveManager.Instance == null)
+                return;
+
+            var saveData = SaveManager.Instance.CurrentSave;
+            if (saveData == null)
+                return;
+
+            // Use live wave from WaveManager if available (may be higher than saved max)
+            int liveWave = 0;
+            var waveManager = FindAnyObjectByType<WaveManager>();
+            if (waveManager != null)
+            {
+                liveWave = waveManager.CurrentWave;
+            }
+
+            int maxWave = Mathf.Max(liveWave, saveData.maxWaveReached);
+            float totalPlayTime = SaveManager.Instance.GetTotalPlayTime();
+
+            HighscoreManager.Instance.RecordScore(
+                saveData.characterName,
+                saveData.startingClass,
+                maxWave,
+                totalPlayTime
+            );
         }
 
         private string GetDeathMessage(int deathCount)

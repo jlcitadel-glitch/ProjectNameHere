@@ -20,7 +20,8 @@ namespace ProjectName.UI
             ConfirmOverwrite,
             ConfirmDelete,
             CharacterCreation,
-            Credits
+            Credits,
+            Highscores
         }
 
         [Header("Panels")]
@@ -61,6 +62,11 @@ namespace ProjectName.UI
         [SerializeField] private GameObject creditsPanel;
         [SerializeField] private CreditsController creditsController;
 
+        [Header("Highscores")]
+        [SerializeField] private Button highscoresButton;
+        [SerializeField] private GameObject highscoresPanel;
+        [SerializeField] private HighscoresController highscoresController;
+
         [Header("Character Creation")]
         [SerializeField] private CharacterCreationController characterCreation;
 
@@ -97,7 +103,9 @@ namespace ProjectName.UI
             EnsureSceneLoader();
             EnsureDisplaySettings();
             EnsureMusicManager();
+            EnsureHighscoreManager();
             EnsureCharacterCreation();
+            EnsureHighscoresPanel();
             AddButtonSounds();
             AdjustMainMenuLayout();
 
@@ -105,6 +113,12 @@ namespace ProjectName.UI
             if (creditsController != null)
             {
                 creditsController.OnBackPressed += () => ShowMainMenu();
+            }
+
+            // Wire highscores back button
+            if (highscoresController != null)
+            {
+                highscoresController.OnBackPressed += () => ShowMainMenu();
             }
 
             ShowMainMenu();
@@ -189,6 +203,29 @@ namespace ProjectName.UI
 
             var go = new GameObject("SaveManager");
             go.AddComponent<SaveManager>();
+        }
+
+        private void EnsureHighscoreManager()
+        {
+            if (HighscoreManager.Instance != null)
+                return;
+
+            var go = new GameObject("HighscoreManager");
+            go.AddComponent<HighscoreManager>();
+        }
+
+        private void EnsureHighscoresPanel()
+        {
+            if (highscoresController != null)
+                return;
+
+            var safeArea = transform.Find("SafeArea");
+            Transform uiParent = safeArea != null ? safeArea : transform;
+
+            highscoresController = HighscoresController.CreateRuntimeUI(uiParent);
+            highscoresPanel = highscoresController.gameObject;
+
+            highscoresController.OnBackPressed += () => ShowMainMenu();
         }
 
         private void EnsureCharacterCreation()
@@ -349,6 +386,24 @@ namespace ProjectName.UI
                 if (found != null) optionsBackButton = found.GetComponent<Button>();
             }
 
+            // Find highscores elements
+            if (highscoresPanel == null)
+            {
+                var found = parent.Find("HighscoresPanel");
+                if (found != null) highscoresPanel = found.gameObject;
+            }
+
+            if (highscoresPanel != null && highscoresController == null)
+            {
+                highscoresController = highscoresPanel.GetComponent<HighscoresController>();
+            }
+
+            if (highscoresButton == null && mainMenuPanel != null)
+            {
+                var found = mainMenuPanel.transform.Find("HighscoresButton");
+                if (found != null) highscoresButton = found.GetComponent<Button>();
+            }
+
             // Find character creation controller
             if (characterCreation == null)
             {
@@ -402,6 +457,9 @@ namespace ProjectName.UI
             if (creditsButton != null)
                 creditsButton.onClick.AddListener(OnCreditsClicked);
 
+            if (highscoresButton != null)
+                highscoresButton.onClick.AddListener(OnHighscoresClicked);
+
             // Character creation events
             if (characterCreation != null)
             {
@@ -448,6 +506,7 @@ namespace ProjectName.UI
             if (overwriteConfirmPanel != null) overwriteConfirmPanel.SetActive(false);
             if (deleteConfirmPanel != null) deleteConfirmPanel.SetActive(false);
             if (creditsPanel != null) creditsPanel.SetActive(false);
+            if (highscoresPanel != null) highscoresPanel.SetActive(false);
             if (characterCreation != null) characterCreation.gameObject.SetActive(false);
 
             SetSelected(mainMenuFirstSelected);
@@ -467,6 +526,7 @@ namespace ProjectName.UI
             if (overwriteConfirmPanel != null) overwriteConfirmPanel.SetActive(false);
             if (deleteConfirmPanel != null) deleteConfirmPanel.SetActive(false);
             if (creditsPanel != null) creditsPanel.SetActive(false);
+            if (highscoresPanel != null) highscoresPanel.SetActive(false);
             if (characterCreation != null) characterCreation.gameObject.SetActive(false);
 
             RefreshSaveSlots();
@@ -487,6 +547,7 @@ namespace ProjectName.UI
             if (overwriteConfirmPanel != null) overwriteConfirmPanel.SetActive(false);
             if (deleteConfirmPanel != null) deleteConfirmPanel.SetActive(false);
             if (creditsPanel != null) creditsPanel.SetActive(false);
+            if (highscoresPanel != null) highscoresPanel.SetActive(false);
             if (characterCreation != null) characterCreation.gameObject.SetActive(false);
 
             SetSelected(optionsFirstSelected ?? optionsBackButton?.gameObject);
@@ -504,8 +565,26 @@ namespace ProjectName.UI
             if (optionsPanel != null) optionsPanel.SetActive(false);
             if (overwriteConfirmPanel != null) overwriteConfirmPanel.SetActive(false);
             if (deleteConfirmPanel != null) deleteConfirmPanel.SetActive(false);
+            if (highscoresPanel != null) highscoresPanel.SetActive(false);
             if (characterCreation != null) characterCreation.gameObject.SetActive(false);
             if (creditsPanel != null) creditsPanel.SetActive(true);
+        }
+
+        /// <summary>
+        /// Shows the highscores panel.
+        /// </summary>
+        public void ShowHighscores()
+        {
+            SetState(MainMenuState.Highscores);
+
+            if (mainMenuPanel != null) mainMenuPanel.SetActive(false);
+            if (saveSelectionPanel != null) saveSelectionPanel.SetActive(false);
+            if (optionsPanel != null) optionsPanel.SetActive(false);
+            if (overwriteConfirmPanel != null) overwriteConfirmPanel.SetActive(false);
+            if (deleteConfirmPanel != null) deleteConfirmPanel.SetActive(false);
+            if (creditsPanel != null) creditsPanel.SetActive(false);
+            if (characterCreation != null) characterCreation.gameObject.SetActive(false);
+            if (highscoresPanel != null) highscoresPanel.SetActive(true);
         }
 
         /// <summary>
@@ -645,6 +724,12 @@ namespace ProjectName.UI
         private void OnCreditsClicked()
         {
             ShowCredits();
+            UIManager.Instance?.PlaySelectSound();
+        }
+
+        private void OnHighscoresClicked()
+        {
+            ShowHighscores();
             UIManager.Instance?.PlaySelectSound();
         }
 
@@ -843,6 +928,9 @@ namespace ProjectName.UI
                 case MainMenuState.Credits:
                     ShowMainMenu();
                     break;
+                case MainMenuState.Highscores:
+                    ShowMainMenu();
+                    break;
                 case MainMenuState.CharacterCreation:
                     ShowSaveSelection();
                     break;
@@ -942,6 +1030,7 @@ namespace ProjectName.UI
             if (cancelDeleteButton != null) cancelDeleteButton.onClick.RemoveListener(OnCancelDeleteClicked);
             if (optionsBackButton != null) optionsBackButton.onClick.RemoveListener(OnOptionsBackClicked);
             if (creditsButton != null) creditsButton.onClick.RemoveListener(OnCreditsClicked);
+            if (highscoresButton != null) highscoresButton.onClick.RemoveListener(OnHighscoresClicked);
 
             if (characterCreation != null)
             {
