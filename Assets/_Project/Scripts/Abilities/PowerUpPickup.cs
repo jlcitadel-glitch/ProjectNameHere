@@ -12,6 +12,8 @@ public class PowerUpPickup : MonoBehaviour
     [SerializeField] PowerUpType powerUpType;
     [SerializeField] bool destroyOnPickup = true;
 
+    public PowerUpType Type => powerUpType;
+
     [Header("Debug")]
     [SerializeField] bool logDebug = false;
 
@@ -26,6 +28,11 @@ public class PowerUpPickup : MonoBehaviour
 
             if (destroyOnPickup)
             {
+                // Spawn collection VFX before destroying
+                PowerUpVFX vfx = GetComponent<PowerUpVFX>();
+                if (vfx != null)
+                    vfx.SpawnCollectionVFX();
+
                 Destroy(gameObject);
             }
         }
