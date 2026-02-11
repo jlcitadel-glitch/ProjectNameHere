@@ -1,0 +1,28 @@
+{
+  "$schema": "handoff-v1",
+  "agent": "sound-design",
+  "bead_id": "ProjectNameHere-o59",
+  "status": "completed",
+  "timestamp": "2026-02-10T23:00:00-05:00",
+  "session_summary": "Added game over SFX to DeathScreen, fixed PlaySound to use SFXManager, stopped music on GameOver",
+  "done": [
+    "Added gameOverSound serialized field to DeathScreen",
+    "Played gameOverSound after GameManager.GameOver() transition",
+    "Fixed DeathScreen.PlaySound to route through SFXManager.PlayOneShot (standards compliance)",
+    "Added MusicManager Stop() on GameState.GameOver so music doesn't clash with stinger"
+  ],
+  "remaining": [],
+  "decisions": [
+    "Placed game over SFX on DeathScreen rather than GameManager to keep GameManager as a pure state machine",
+    "Used SFXManager.PlayOneShot instead of raw audioSource.PlayOneShot for volume consistency"
+  ],
+  "files_touched": [
+    "Assets/_Project/Scripts/UI/HUD/DeathScreen.cs",
+    "Assets/_Project/Scripts/Audio/MusicManager.cs"
+  ],
+  "beads_created": [],
+  "next_steps": [
+    "Assign Game Over sound.m4a to gameOverSound field on DeathScreen in Unity Inspector",
+    "No remaining sound-design labeled beads — check bd ready for new work next session"
+  ]
+}
