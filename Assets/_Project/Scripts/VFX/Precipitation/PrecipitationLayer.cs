@@ -330,21 +330,27 @@ public class PrecipitationLayer : MonoBehaviour
         {
             Gizmos.color = new Color(0.5f, 0.5f, 1f, 0.3f);
             Gizmos.DrawWireCube(pos + Vector3.forward * backLayer.zOffset, new Vector3(2f, 0.5f, 0.1f));
+#if UNITY_EDITOR
             UnityEditor.Handles.Label(pos + Vector3.forward * backLayer.zOffset + Vector3.up * 0.5f, "Back");
+#endif
         }
 
         if (midLayer.enabled)
         {
             Gizmos.color = new Color(0.5f, 1f, 0.5f, 0.3f);
             Gizmos.DrawWireCube(pos, new Vector3(2f, 0.5f, 0.1f));
+#if UNITY_EDITOR
             UnityEditor.Handles.Label(pos + Vector3.up * 0.5f, "Mid");
+#endif
         }
 
         if (frontLayer.enabled)
         {
             Gizmos.color = new Color(1f, 0.5f, 0.5f, 0.3f);
             Gizmos.DrawWireCube(pos + Vector3.forward * frontLayer.zOffset, new Vector3(2f, 0.5f, 0.1f));
+#if UNITY_EDITOR
             UnityEditor.Handles.Label(pos + Vector3.forward * frontLayer.zOffset + Vector3.up * 0.5f, "Front");
+#endif
         }
     }
 }
