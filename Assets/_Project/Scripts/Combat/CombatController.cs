@@ -184,7 +184,7 @@ public class CombatController : MonoBehaviour
     {
         currentState = CombatState.WindUp;
         currentAttack = attack;
-        stateTimer = attack.windUpDuration;
+        stateTimer = attack.windUpDuration * GetAttackSpeedMultiplier();
 
         // Skip wind-up if duration is 0
         if (stateTimer <= 0f)
@@ -196,7 +196,7 @@ public class CombatController : MonoBehaviour
     private void EnterAttackingState()
     {
         currentState = CombatState.Attacking;
-        stateTimer = currentAttack.activeDuration;
+        stateTimer = currentAttack.activeDuration * GetAttackSpeedMultiplier();
 
         SpawnHitbox();
 
@@ -212,7 +212,7 @@ public class CombatController : MonoBehaviour
     private void EnterRecoveryState()
     {
         currentState = CombatState.Recovery;
-        stateTimer = currentAttack.recoveryDuration;
+        stateTimer = currentAttack.recoveryDuration * GetAttackSpeedMultiplier();
         comboWindowTimer = currentAttack.comboWindowDuration;
     }
 
@@ -716,6 +716,21 @@ public class CombatController : MonoBehaviour
         if (statSystem == null) statSystem = GetComponent<StatSystem>();
 
         return statSystem != null ? statSystem.CritChance : 0f;
+    }
+
+    /// <summary>
+    /// Returns the AGI-based crit damage multiplier (base 2x + 1% per AGI).
+    /// </summary>
+    public float GetCritDamageMultiplier()
+    {
+        if (statSystem == null) statSystem = GetComponent<StatSystem>();
+        return statSystem != null ? statSystem.CritDamageMultiplier : 2f;
+    }
+
+    private float GetAttackSpeedMultiplier()
+    {
+        if (statSystem == null) statSystem = GetComponent<StatSystem>();
+        return statSystem != null ? statSystem.AttackSpeedMultiplier : 1f;
     }
 
     public void ReportHit(AttackData attack, Collider2D target)

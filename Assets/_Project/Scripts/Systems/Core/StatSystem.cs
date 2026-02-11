@@ -40,8 +40,9 @@ public class StatSystem : MonoBehaviour
     public float MeleeDamageMultiplier => 1f + (Strength * 0.02f);
     public float BonusMaxMana => Intelligence * 3f;
     public float SkillDamageMultiplier => 1f + (Intelligence * 0.02f);
-    public float SpeedMultiplier => 1f + (Agility * 0.01f);
+    public float AttackSpeedMultiplier => 1f / (1f + Agility * 0.01f);
     public float CritChance => Mathf.Min(0.5f, Agility * 0.005f);
+    public float CritDamageMultiplier => 2f + (Agility * 0.01f);
 
     /// <summary>
     /// Returns total crit chance including passive and buff bonuses, capped at 75%.

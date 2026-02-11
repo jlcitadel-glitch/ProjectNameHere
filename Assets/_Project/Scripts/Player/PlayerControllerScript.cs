@@ -247,10 +247,9 @@ public class PlayerControllerScript : MonoBehaviour
             return;
         }
 
-        // Horizontal movement (apply combat and stat multipliers)
+        // Horizontal movement (apply combat multiplier)
         float moveMultiplier = combatController != null ? combatController.GetMovementMultiplier() : 1f;
-        float agiMultiplier = statSystem != null ? statSystem.SpeedMultiplier : 1f;
-        rb.linearVelocity = new Vector2(horizontal * speed * moveMultiplier * agiMultiplier, rb.linearVelocity.y);
+        rb.linearVelocity = new Vector2(horizontal * speed * moveMultiplier, rb.linearVelocity.y);
 
         // Flip character based on movement direction
         if (horizontal > 0)

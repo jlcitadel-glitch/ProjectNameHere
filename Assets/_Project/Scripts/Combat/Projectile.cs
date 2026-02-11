@@ -144,7 +144,8 @@ public class Projectile : MonoBehaviour
         float critChance = owner != null ? owner.GetCritChance() : 0f;
         if (critChance > 0f && Random.value < critChance)
         {
-            finalDamage *= 2f;
+            float critMult = owner != null ? owner.GetCritDamageMultiplier() : 2f;
+            finalDamage *= critMult;
         }
 
         // Prefer IDamageable for custom damage handling (knockback resistance, etc.)

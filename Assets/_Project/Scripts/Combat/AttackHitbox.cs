@@ -107,7 +107,8 @@ public class AttackHitbox : MonoBehaviour
         float critChance = owner != null ? owner.GetCritChance() : 0f;
         if (critChance > 0f && Random.value < critChance)
         {
-            finalDamage *= 2f;
+            float critMult = owner != null ? owner.GetCritDamageMultiplier() : 2f;
+            finalDamage *= critMult;
             isCritical = true;
         }
 

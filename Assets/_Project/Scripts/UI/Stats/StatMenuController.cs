@@ -425,9 +425,9 @@ namespace ProjectName.UI
             if (skillDamageText != null)
                 skillDamageText.text = $"Skill Dmg: x{statSystem.SkillDamageMultiplier:F2}";
             if (speedText != null)
-                speedText.text = $"Speed: x{statSystem.SpeedMultiplier:F2}";
+                speedText.text = $"Atk Spd: x{(1f / statSystem.AttackSpeedMultiplier):F2}";
             if (critChanceText != null)
-                critChanceText.text = $"Crit: {statSystem.CritChance * 100f:F1}%";
+                critChanceText.text = $"Crit: {statSystem.CritChance * 100f:F1}% (x{statSystem.CritDamageMultiplier:F2})";
 
             // Enable/disable allocate buttons based on available points
             bool hasPoints = statSystem.AvailableStatPoints > 0;
@@ -710,8 +710,8 @@ namespace ProjectName.UI
             PositionGridRow(agiRow, gridY);
             var agiTmp = BuildStatCell(agiRow.transform, "StatVal", "AGI: 1", 0f, 0.18f);
             var agiBtn = BuildAllocateButton(agiRow.transform, "+", 0.18f, 0.25f);
-            var spdTmp = BuildStatCell(agiRow.transform, "Speed", "Speed: x1.01", 0.28f, 0.56f);
-            var critTmp = BuildStatCell(agiRow.transform, "Crit", "Crit: 0.5%", 0.58f, 0.95f);
+            var spdTmp = BuildStatCell(agiRow.transform, "AtkSpd", "Atk Spd: x1.01", 0.28f, 0.56f);
+            var critTmp = BuildStatCell(agiRow.transform, "Crit", "Crit: 0.5% (x2.01)", 0.58f, 0.95f);
 
             // --- Wire up StatMenuController component ---
             var controller = canvasGo.AddComponent<StatMenuController>();

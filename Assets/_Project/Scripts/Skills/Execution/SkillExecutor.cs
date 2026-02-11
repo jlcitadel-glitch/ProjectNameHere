@@ -135,8 +135,9 @@ public class SkillExecutor : MonoBehaviour
         // Crit roll
         bool isCrit = RollCrit(extraCritBonus);
         float critDamageMult = 1f + (passiveTracker != null ? passiveTracker.PassiveCritDamageBonus : 0f);
+        float baseCritMult = statSystem != null ? statSystem.CritDamageMultiplier : 2f;
         if (isCrit)
-            finalDamage *= (2f * critDamageMult);
+            finalDamage *= (baseCritMult * critDamageMult);
 
         DamageType dmgType = skill.skillData.damageType;
 
@@ -183,8 +184,9 @@ public class SkillExecutor : MonoBehaviour
             bool isCrit = RollCrit();
             float hitDamage = perHitDamage;
             float critDamageMult = 1f + (passiveTracker != null ? passiveTracker.PassiveCritDamageBonus : 0f);
+            float baseCritMult = statSystem != null ? statSystem.CritDamageMultiplier : 2f;
             if (isCrit)
-                hitDamage *= (2f * critDamageMult);
+                hitDamage *= (baseCritMult * critDamageMult);
 
             CreateMeleeHitbox(spawnPos, new Vector2(2f, 1.5f), facing, hitDamage, dmgType, isCrit, 0.1f);
 
@@ -211,8 +213,9 @@ public class SkillExecutor : MonoBehaviour
 
         bool isCrit = RollCrit();
         float critDamageMult = 1f + (passiveTracker != null ? passiveTracker.PassiveCritDamageBonus : 0f);
+        float baseCritMult = statSystem != null ? statSystem.CritDamageMultiplier : 2f;
         if (isCrit)
-            finalDamage *= (2f * critDamageMult);
+            finalDamage *= (baseCritMult * critDamageMult);
 
         var projectile = SkillProjectile.Create(spawnPos, direction);
         projectile.Initialize(finalDamage, skill.skillData.damageType, isCrit,
@@ -234,8 +237,9 @@ public class SkillExecutor : MonoBehaviour
 
         bool isCrit = RollCrit();
         float critDamageMult = 1f + (passiveTracker != null ? passiveTracker.PassiveCritDamageBonus : 0f);
+        float baseCritMult = statSystem != null ? statSystem.CritDamageMultiplier : 2f;
         if (isCrit)
-            finalDamage *= (2f * critDamageMult);
+            finalDamage *= (baseCritMult * critDamageMult);
 
         Collider2D[] hits = Physics2D.OverlapCircleAll(center, radius, enemyLayers);
 
@@ -356,7 +360,8 @@ public class SkillExecutor : MonoBehaviour
         float statMult = GetStatMultiplier(skill);
         float buffMult = buffTracker != null ? buffTracker.TotalAttackMultiplier : 1f;
         float critDamageMult = 1f + (passiveTracker != null ? passiveTracker.PassiveCritDamageBonus : 0f);
-        float finalDamage = baseDamage * statMult * buffMult * 2f * critDamageMult; // Auto-crit
+        float baseCritMult = statSystem != null ? statSystem.CritDamageMultiplier : 2f;
+        float finalDamage = baseDamage * statMult * buffMult * baseCritMult * critDamageMult; // Auto-crit
 
         DamageType dmgType = skill.skillData.damageType;
 
@@ -409,10 +414,11 @@ public class SkillExecutor : MonoBehaviour
 
         bool isCrit = RollCrit();
         float critDamageMult = 1f + (passiveTracker != null ? passiveTracker.PassiveCritDamageBonus : 0f);
+        float baseCritMult = statSystem != null ? statSystem.CritDamageMultiplier : 2f;
         if (isCrit)
         {
-            hitDamage *= (2f * critDamageMult);
-            dotTotal *= (2f * critDamageMult);
+            hitDamage *= (baseCritMult * critDamageMult);
+            dotTotal *= (baseCritMult * critDamageMult);
         }
 
         // Collect enemies hit by initial melee
