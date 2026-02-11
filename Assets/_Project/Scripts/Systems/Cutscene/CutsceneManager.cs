@@ -4,7 +4,7 @@ using UnityEngine;
 
 /// <summary>
 /// Plays a CutsceneData sequence beat-by-beat.
-/// Uses GameManager.StartCutscene() / EndCutscene() for state management.
+/// Can optionally manage GameManager state (StartCutscene/EndCutscene).
 /// Supports skip by holding Space for 1 second.
 /// </summary>
 public class CutsceneManager : MonoBehaviour
@@ -22,6 +22,7 @@ public class CutsceneManager : MonoBehaviour
     private bool isPlaying;
     private bool skipRequested;
     private float skipHoldTimer;
+    private bool shouldManageGameState;
 
     public bool IsPlaying => isPlaying;
 
@@ -61,8 +62,11 @@ public class CutsceneManager : MonoBehaviour
 
     /// <summary>
     /// Plays a cutscene data sequence. Invokes onComplete when finished or skipped.
+    /// When manageGameState is true (default), automatically calls
+    /// GameManager.StartCutscene/EndCutscene. Set to false when the caller
+    /// manages GameManager state externally (e.g., Wave100Controller).
     /// </summary>
-    public void PlayCutscene(CutsceneData data, Action onComplete = null)
+    public void PlayCutscene(CutsceneData data, Action onComplete = null, bool manageGameState = true)
     {
         if (data == null || data.beats == null || data.beats.Length == 0)
         {
@@ -79,6 +83,7 @@ public class CutsceneManager : MonoBehaviour
             return;
         }
 
+        shouldManageGameState = manageGameState;
         playbackCoroutine = StartCoroutine(PlaybackCoroutine(data, onComplete));
     }
 
@@ -102,8 +107,11 @@ public class CutsceneManager : MonoBehaviour
         skipRequested = false;
         skipHoldTimer = 0f;
 
-        // Enter cutscene state
-        GameManager.Instance?.StartCutscene();
+        // Enter cutscene state (only if managing state)
+        if (shouldManageGameState)
+        {
+            GameManager.Instance?.StartCutscene();
+        }
 
         if (cutsceneUI != null)
         {
@@ -188,7 +196,10 @@ public class CutsceneManager : MonoBehaviour
             cutsceneUI.Hide();
         }
 
-        // Return to playing state
-        GameManager.Instance?.EndCutscene();
+        // Return to playing state (only if managing state)
+        if (shouldManageGameState)
+        {
+            GameManager.Instance?.EndCutscene();
+        }
     }
 }

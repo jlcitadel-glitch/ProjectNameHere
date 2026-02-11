@@ -154,6 +154,24 @@ public class WaveManager : MonoBehaviour
         ContinueSpawning();
     }
 
+    /// <summary>
+    /// Marks the current wave as completed after a milestone sequence.
+    /// Fires OnWaveCleared, advances to the next wave, and starts the rest phase.
+    /// Use this instead of ResumeWaveProgression when the milestone handler
+    /// already ran the wave's content (e.g., spawned and defeated the boss).
+    /// </summary>
+    public void CompleteMilestoneWave()
+    {
+        wavePaused = false;
+
+        if (debugLogging)
+            Debug.Log($"[WaveManager] Milestone wave {currentWave} completed — advancing to next wave");
+
+        OnWaveCleared?.Invoke(currentWave);
+        currentWave++;
+        TransitionToRest();
+    }
+
     private void TransitionToSpawning()
     {
         currentState = WaveState.Spawning;

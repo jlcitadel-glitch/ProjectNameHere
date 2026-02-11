@@ -7,11 +7,12 @@ using ProjectName.UI;
 /// Orchestrates the wave 100 milestone event: pre-boss cutscene, boss fight,
 /// post-defeat cutscene, power absorption, credits roll, then resume gameplay.
 /// Listens to WaveManager.OnSpecialWaveReached and intercepts the milestone wave.
+/// Manages GameManager state directly to avoid state flicker between phases.
 /// </summary>
 public class Wave100Controller : MonoBehaviour
 {
     [Header("Milestone Settings")]
-    [SerializeField] private int milestoneWave = 100;
+    [SerializeField] private int milestoneWave = 5; // TODO: restore to 100 after testing
 
     [Header("Cutscene References")]
     [SerializeField] private CutsceneManager cutsceneManager;
@@ -85,10 +86,14 @@ public class Wave100Controller : MonoBehaviour
         sequenceActive = true;
 
         // --- PRE-BOSS CUTSCENE ---
+        // We manage GameManager state ourselves (manageGameState: false)
+        // to avoid state flicker between phases.
+        GameManager.Instance?.StartCutscene();
+
         if (preBossCutscene != null && cutsceneManager != null)
         {
             bool cutsceneDone = false;
-            cutsceneManager.PlayCutscene(preBossCutscene, () => cutsceneDone = true);
+            cutsceneManager.PlayCutscene(preBossCutscene, () => cutsceneDone = true, manageGameState: false);
 
             while (!cutsceneDone)
                 yield return null;
@@ -108,6 +113,10 @@ public class Wave100Controller : MonoBehaviour
         {
             bossController = spawnManager.SpawnEnemy(bossPrefab, milestoneWave, waveConfig);
         }
+        else
+        {
+            Debug.LogWarning("[Wave100Controller] No boss prefab configured — skipping boss fight.");
+        }
 
         // Wait for boss to be defeated
         if (bossController != null)
@@ -122,13 +131,13 @@ public class Wave100Controller : MonoBehaviour
         if (debugLogging)
             Debug.Log("[Wave100Controller] Boss defeated — playing post-defeat cutscene.");
 
-        GameManager.Instance?.ExitBossFight();
-
         // --- POST-DEFEAT CUTSCENE ---
+        GameManager.Instance?.StartCutscene();
+
         if (postDefeatCutscene != null && cutsceneManager != null)
         {
             bool cutsceneDone = false;
-            cutsceneManager.PlayCutscene(postDefeatCutscene, () => cutsceneDone = true);
+            cutsceneManager.PlayCutscene(postDefeatCutscene, () => cutsceneDone = true, manageGameState: false);
 
             while (!cutsceneDone)
                 yield return null;
@@ -145,14 +154,13 @@ public class Wave100Controller : MonoBehaviour
             if (debugLogging)
                 Debug.Log("[Wave100Controller] Rolling credits.");
 
-            GameManager.Instance?.StartCutscene();
+            // Stay in Cutscene state for credits (already in Cutscene from post-defeat)
             creditsController.Show(() => creditsDone = true);
 
             while (!creditsDone)
                 yield return null;
 
             creditsController.gameObject.SetActive(false);
-            GameManager.Instance?.EndCutscene();
         }
 
         // --- SAVE MILESTONE FLAG ---
@@ -165,12 +173,20 @@ public class Wave100Controller : MonoBehaviour
             SaveManager.Instance.Save();
         }
 
-        if (debugLogging)
-            Debug.Log($"[Wave100Controller] Milestone sequence complete — resuming at wave {milestoneWave}.");
-
         // --- RESUME GAMEPLAY ---
+        // Return to Playing state before resuming the wave loop
+        GameManager.Instance?.EndCutscene();
+
+        if (debugLogging)
+            Debug.Log($"[Wave100Controller] Milestone sequence complete — advancing past wave {milestoneWave}.");
+
         sequenceActive = false;
-        waveManager.ResumeWaveProgression();
+
+        // Use CompleteMilestoneWave instead of ResumeWaveProgression to:
+        // 1. Fire OnWaveCleared (so SurvivalArena saves progress)
+        // 2. Advance currentWave (avoids double-boss-spawn since wave 5 is a boss wave)
+        // 3. Start the rest phase for the next wave
+        waveManager.CompleteMilestoneWave();
     }
 
     private void ApplyPowerAbsorption()
