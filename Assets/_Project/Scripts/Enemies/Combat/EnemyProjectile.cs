@@ -184,7 +184,7 @@ public class EnemyProjectile : MonoBehaviour
         rb.linearVelocity = direction * attackData.projectileSpeed;
 
         // Switch to enemy layer so it can hit enemies instead of the player
-        gameObject.layer = LayerMask.NameToLayer("PlayerHurtbox");
+        gameObject.layer = LayerMask.NameToLayer("PlayerAttack");
         if (gameObject.layer == -1)
         {
             gameObject.layer = 0;

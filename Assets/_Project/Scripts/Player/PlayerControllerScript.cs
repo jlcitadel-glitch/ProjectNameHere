@@ -60,6 +60,7 @@ public class PlayerControllerScript : MonoBehaviour
     private DashAbility dashAbility;
     private CombatController combatController;
     private StatSystem statSystem;
+    private ParrySystem parrySystem;
 
     // Double-tap dash detection
     private float lastTapTime;
@@ -98,6 +99,7 @@ public class PlayerControllerScript : MonoBehaviour
         doubleJumpAbility = GetComponent<DoubleJumpAbility>();
         dashAbility = GetComponent<DashAbility>();
         combatController = GetComponent<CombatController>();
+        parrySystem = GetComponent<ParrySystem>();
         statSystem = GetComponent<StatSystem>();
         if (statSystem == null)
         {
@@ -150,6 +152,8 @@ public class PlayerControllerScript : MonoBehaviour
             dashAbility = GetComponent<DashAbility>();
         if (combatController == null)
             combatController = GetComponent<CombatController>();
+        if (parrySystem == null)
+            parrySystem = GetComponent<ParrySystem>();
         if (statSystem == null)
             statSystem = GetComponent<StatSystem>();
 
@@ -371,6 +375,15 @@ public class PlayerControllerScript : MonoBehaviour
         if (IsDead) return;
         combatController?.OnWeaponSwitch(context);
     }
+
+    public void Parry(InputAction.CallbackContext context)
+    {
+        if (IsDead) return;
+        if (context.performed)
+        {
+            parrySystem?.StartParry();
+        }
+    }
     #endregion
 
     private void PerformJump()
@@ -426,6 +439,7 @@ public class PlayerControllerScript : MonoBehaviour
         doubleJumpAbility = GetComponent<DoubleJumpAbility>();
         dashAbility = GetComponent<DashAbility>();
         combatController = GetComponent<CombatController>();
+        parrySystem = GetComponent<ParrySystem>();
         statSystem = GetComponent<StatSystem>();
     }
 
