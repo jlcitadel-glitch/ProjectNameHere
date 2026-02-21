@@ -24,6 +24,16 @@ bd.db
 # Must not be committed as paths would be wrong in other clones
 redirect
 
+# Dolt database (local-only, not committed to git)
+dolt/
+dolt-access.lock
+
+# Ephemeral SQLite store (wisps/molecules)
+ephemeral.sqlite3
+
+# Daemon socket start lock
+bd.sock.startlock
+
 # Merge artifacts (temporary files from 3-way merge)
 beads.base.jsonl
 beads.base.meta.json
