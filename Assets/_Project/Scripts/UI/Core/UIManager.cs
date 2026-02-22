@@ -48,6 +48,10 @@ namespace ProjectName.UI
         // Cached input action for pause
         private InputAction pauseAction;
 
+        // Tracks how many overlay menus (stat menu, skill tree, etc.) are currently open.
+        // When > 0, Escape should close the overlay rather than toggling pause.
+        private int overlayMenuCount;
+
         public UIStyleGuide StyleGuide => styleGuide;
         public UISoundBank SoundBank => soundBank;
 
@@ -174,6 +178,10 @@ namespace ProjectName.UI
 
         private void OnPauseInput(InputAction.CallbackContext context)
         {
+            // Don't toggle pause while an overlay menu is handling Escape
+            if (overlayMenuCount > 0)
+                return;
+
             // Only respond if game state allows pausing
             if (GameManager.Instance != null)
             {
@@ -190,6 +198,9 @@ namespace ProjectName.UI
         private void Update()
         {
             // Fallback keyboard input for pause if no InputAction is bound
+            if (overlayMenuCount > 0)
+                return;
+
             if (pauseAction == null && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
             {
                 if (GameManager.Instance != null)
@@ -510,6 +521,25 @@ namespace ProjectName.UI
             {
                 soundBank = Resources.Load<UISoundBank>("UISoundBank");
             }
+        }
+
+        /// <summary>
+        /// Call when an overlay menu (stat menu, skill tree) opens.
+        /// While any overlay is open, Escape will not trigger pause.
+        /// </summary>
+        public void RegisterOverlayMenu()
+        {
+            overlayMenuCount++;
+        }
+
+        /// <summary>
+        /// Call when an overlay menu closes.
+        /// </summary>
+        public void UnregisterOverlayMenu()
+        {
+            overlayMenuCount--;
+            if (overlayMenuCount < 0)
+                overlayMenuCount = 0;
         }
 
         /// <summary>

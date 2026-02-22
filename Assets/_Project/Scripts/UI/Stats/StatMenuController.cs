@@ -339,13 +339,23 @@ namespace ProjectName.UI
 
             RefreshDisplay();
 
+            // Register with UIManager so Escape closes this menu, not pause
+            if (UIManager.Instance != null)
+            {
+                UIManager.Instance.RegisterOverlayMenu();
+            }
+
             if (pauseGameWhenOpen)
             {
                 Time.timeScale = 0f;
             }
 
             // Switch to UI input
-            if (playerInput != null)
+            if (UIManager.Instance != null)
+            {
+                UIManager.Instance.SwitchToUIInput();
+            }
+            else if (playerInput != null)
             {
                 playerInput.SwitchCurrentActionMap("UI");
             }
@@ -378,8 +388,18 @@ namespace ProjectName.UI
                 Time.timeScale = 1f;
             }
 
+            // Unregister overlay before switching input so UIManager knows we're done
+            if (UIManager.Instance != null)
+            {
+                UIManager.Instance.UnregisterOverlayMenu();
+            }
+
             // Switch back to gameplay input
-            if (playerInput != null)
+            if (UIManager.Instance != null)
+            {
+                UIManager.Instance.SwitchToGameplayInput();
+            }
+            else if (playerInput != null)
             {
                 playerInput.SwitchCurrentActionMap("Player");
             }

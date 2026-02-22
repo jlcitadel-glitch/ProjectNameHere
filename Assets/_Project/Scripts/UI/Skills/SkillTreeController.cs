@@ -227,6 +227,12 @@ namespace ProjectName.UI
                 skillTreePanel.LoadTree(SkillManager.Instance.CurrentJob.skillTree);
             }
 
+            // Register with UIManager so Escape closes this menu, not pause
+            if (UIManager.Instance != null)
+            {
+                UIManager.Instance.RegisterOverlayMenu();
+            }
+
             // Freeze time if configured (without triggering pause menu)
             if (pauseGameWhenOpen)
             {
@@ -278,6 +284,12 @@ namespace ProjectName.UI
             if (pauseGameWhenOpen)
             {
                 Time.timeScale = 1f;
+            }
+
+            // Unregister overlay before switching input so UIManager knows we're done
+            if (UIManager.Instance != null)
+            {
+                UIManager.Instance.UnregisterOverlayMenu();
             }
 
             // Switch back to gameplay input
