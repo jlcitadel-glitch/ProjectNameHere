@@ -2,18 +2,20 @@ using UnityEngine;
 
 /// <summary>
 /// Applies visual appearance from JobClassData to the player.
-/// Reads the current job from SkillManager and sets the animator controller and default sprite.
-/// Add this component to the Player prefab.
+/// Uses the LayeredSpriteController for modular body part rendering
+/// and falls back to a direct SpriteRenderer if no layered system is present.
 /// </summary>
 public class PlayerAppearance : MonoBehaviour
 {
-    private SpriteRenderer spriteRenderer;
+    private LayeredSpriteController layeredSprite;
+    private SpriteRenderer fallbackRenderer;
     private Animator animator;
     private RuntimeAnimatorController originalAnimator;
 
     private void Awake()
     {
-        spriteRenderer = GetComponent<SpriteRenderer>();
+        layeredSprite = GetComponent<LayeredSpriteController>();
+        fallbackRenderer = GetComponent<SpriteRenderer>();
         animator = GetComponent<Animator>();
 
         if (animator != null)
@@ -45,38 +47,81 @@ public class PlayerAppearance : MonoBehaviour
 
     /// <summary>
     /// Applies the visual appearance defined by the given job class data.
-    /// Falls back to the original animator if the job has no custom one or if the custom one is broken.
+    /// Swaps the animator controller and updates layered body parts if a
+    /// defaultAppearance config is set on the job.
     /// </summary>
     public void ApplyAppearance(JobClassData jobData)
     {
         if (jobData == null)
             return;
 
+        // Swap animator controller
         if (animator != null)
         {
             if (jobData.characterAnimator != null)
             {
                 animator.runtimeAnimatorController = jobData.characterAnimator;
 
-                // Safety: if the controller didn't actually apply, revert
                 if (animator.runtimeAnimatorController == null)
                 {
                     Debug.LogWarning($"[PlayerAppearance] Controller from {jobData.jobName} failed to apply, reverting.");
                     animator.runtimeAnimatorController = originalAnimator;
                 }
             }
-            // No custom animator - keep original (don't re-assign to avoid resetting state)
         }
 
-        // Apply default sprite only if no animator is driving the sprite
-        if (spriteRenderer != null && jobData.defaultSprite != null)
+        // Apply layered appearance if available
+        if (layeredSprite != null && jobData.defaultAppearance != null)
+        {
+            ApplyConfig(jobData.defaultAppearance);
+        }
+
+        // Fallback: set sprite directly if no layered system or no appearance config
+        if (layeredSprite == null && fallbackRenderer != null && jobData.defaultSprite != null)
         {
             if (animator == null || animator.runtimeAnimatorController == null)
             {
-                spriteRenderer.sprite = jobData.defaultSprite;
+                fallbackRenderer.sprite = jobData.defaultSprite;
             }
         }
 
-        Debug.Log($"[PlayerAppearance] Applied: {jobData.jobName}, Controller: {animator?.runtimeAnimatorController?.name ?? "null"}");
+        Debug.Log($"[PlayerAppearance] Applied: {jobData.jobName}, Controller: {animator?.runtimeAnimatorController?.name ?? "null"}, Layered: {layeredSprite != null}");
+    }
+
+    /// <summary>
+    /// Applies a CharacterAppearanceConfig to the layered sprite system.
+    /// </summary>
+    public void ApplyConfig(CharacterAppearanceConfig config)
+    {
+        if (layeredSprite == null || config == null)
+            return;
+
+        layeredSprite.SetPart(BodyPartSlot.Body, config.body);
+        layeredSprite.SetPart(BodyPartSlot.Head, config.head);
+        layeredSprite.SetPart(BodyPartSlot.Hair, config.hair);
+        layeredSprite.SetPart(BodyPartSlot.Torso, config.torso);
+        layeredSprite.SetPart(BodyPartSlot.Legs, config.legs);
+        layeredSprite.SetPart(BodyPartSlot.WeaponBehind, config.weaponBehind);
+        layeredSprite.SetPart(BodyPartSlot.WeaponFront, config.weaponFront);
+
+        if (config.body != null && config.body.supportsTinting)
+            layeredSprite.SetTint(BodyPartSlot.Body, config.skinTint);
+        if (config.head != null && config.head.supportsTinting)
+            layeredSprite.SetTint(BodyPartSlot.Head, config.skinTint);
+        if (config.hair != null && config.hair.supportsTinting)
+            layeredSprite.SetTint(BodyPartSlot.Hair, config.hairTint);
+        if (config.torso != null && config.torso.supportsTinting)
+            layeredSprite.SetTint(BodyPartSlot.Torso, config.armorPrimaryTint);
+        if (config.legs != null && config.legs.supportsTinting)
+            layeredSprite.SetTint(BodyPartSlot.Legs, config.armorSecondaryTint);
+    }
+
+    /// <summary>
+    /// Sets a single body part on the layered system.
+    /// </summary>
+    public void SetPart(BodyPartSlot slot, BodyPartData part)
+    {
+        if (layeredSprite != null)
+            layeredSprite.SetPart(slot, part);
     }
 }

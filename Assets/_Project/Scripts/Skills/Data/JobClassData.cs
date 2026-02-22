@@ -93,6 +93,9 @@ public class JobClassData : ScriptableObject
     public ParryData parryData;
 
     [Header("Appearance")]
+    [Tooltip("Default layered appearance config for this job class")]
+    public CharacterAppearanceConfig defaultAppearance;
+
     [Tooltip("Animator controller for this class (base or override)")]
     public RuntimeAnimatorController characterAnimator;
 

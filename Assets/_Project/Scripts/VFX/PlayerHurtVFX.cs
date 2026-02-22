@@ -23,7 +23,8 @@ public class PlayerHurtVFX : MonoBehaviour
     [SerializeField] private float screenFlashDuration = 0.1f;
 
     private HealthSystem healthSystem;
-    private SpriteRenderer spriteRenderer;
+    private LayeredSpriteController layeredSprite;
+    private SpriteRenderer fallbackRenderer;
     private Color originalColor;
     private float flashTimer;
     private bool isFlashing;
@@ -31,7 +32,8 @@ public class PlayerHurtVFX : MonoBehaviour
     private void Awake()
     {
         healthSystem = GetComponent<HealthSystem>();
-        spriteRenderer = GetComponent<SpriteRenderer>();
+        layeredSprite = GetComponent<LayeredSpriteController>();
+        fallbackRenderer = GetComponent<SpriteRenderer>();
     }
 
     private void OnEnable()
@@ -49,9 +51,12 @@ public class PlayerHurtVFX : MonoBehaviour
             healthSystem.OnDamageTaken -= HandleDamageTaken;
         }
 
-        if (isFlashing && spriteRenderer != null)
+        if (isFlashing)
         {
-            spriteRenderer.color = originalColor;
+            if (layeredSprite != null)
+                layeredSprite.RestoreAllTints();
+            else if (fallbackRenderer != null)
+                fallbackRenderer.color = originalColor;
             isFlashing = false;
         }
     }
@@ -64,7 +69,10 @@ public class PlayerHurtVFX : MonoBehaviour
         flashTimer -= Time.deltaTime;
         if (flashTimer <= 0f)
         {
-            spriteRenderer.color = originalColor;
+            if (layeredSprite != null)
+                layeredSprite.RestoreAllTints();
+            else if (fallbackRenderer != null)
+                fallbackRenderer.color = originalColor;
             isFlashing = false;
         }
     }
@@ -78,15 +86,23 @@ public class PlayerHurtVFX : MonoBehaviour
 
     private void FlashSprite()
     {
-        if (spriteRenderer == null)
+        if (layeredSprite != null)
+        {
+            layeredSprite.FlashAll(flashColor);
+            flashTimer = flashDuration;
+            isFlashing = true;
+            return;
+        }
+
+        if (fallbackRenderer == null)
             return;
 
         if (!isFlashing)
         {
-            originalColor = spriteRenderer.color;
+            originalColor = fallbackRenderer.color;
         }
 
-        spriteRenderer.color = flashColor;
+        fallbackRenderer.color = flashColor;
         flashTimer = flashDuration;
         isFlashing = true;
     }
