@@ -745,7 +745,12 @@ namespace ProjectName.UI
                 : "";
             if (SaveManager.Instance != null)
             {
-                SaveManager.Instance.CreateNewGame(slotIndex, charName, startingClass, 0);
+                // Capture appearance data if the player customized it
+                CharacterAppearanceSaveData appearanceData = null;
+                if (characterCreation.BuiltAppearance != null)
+                    appearanceData = CharacterAppearanceSaveData.FromConfig(characterCreation.BuiltAppearance);
+
+                SaveManager.Instance.CreateNewGame(slotIndex, charName, startingClass, 0, appearanceData);
             }
 
             StartNewGame(slotIndex);

@@ -53,9 +53,9 @@ public class LPCSetupWizard : EditorWindow
     // Body parts to download (folder path relative to spritesheets/)
     private static readonly PartDef[] BODY_PARTS = new PartDef[]
     {
-        new PartDef("body",  BodyPartSlot.Body,  "body/bodies/male",  "light"),
-        new PartDef("head",  BodyPartSlot.Head,  "head/heads/human_male", "light"),
-        new PartDef("hair",  BodyPartSlot.Hair,  "hair/long",         null),
+        new PartDef("body",  BodyPartSlot.Body,  "body/bodies/male",       "light"),
+        new PartDef("head",  BodyPartSlot.Head,  "head/heads/human/male",  "light"),
+        new PartDef("hair",  BodyPartSlot.Hair,  "hair/long/adult",        null),
     };
 
     private string skinColor = "light";
@@ -175,9 +175,9 @@ public class LPCSetupWizard : EditorWindow
         // Update BODY_PARTS with current skin color / body type
         var parts = new PartDef[]
         {
-            new PartDef("body",  BodyPartSlot.Body,  $"body/bodies/{bodyType}",      skinColor),
-            new PartDef("head",  BodyPartSlot.Head,  $"head/heads/human_{bodyType}",  skinColor),
-            new PartDef("hair",  BodyPartSlot.Hair,  "hair/long",                     null),
+            new PartDef("body",  BodyPartSlot.Body,  $"body/bodies/{bodyType}",       skinColor),
+            new PartDef("head",  BodyPartSlot.Head,  $"head/heads/human/{bodyType}",  skinColor),
+            new PartDef("hair",  BodyPartSlot.Hair,  "hair/long/adult",               null),
         };
 
         int downloaded = 0;

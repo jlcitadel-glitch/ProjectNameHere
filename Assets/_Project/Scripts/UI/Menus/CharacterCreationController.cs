@@ -14,7 +14,8 @@ namespace ProjectName.UI
         public enum CreationStep
         {
             NameEntry,
-            ClassSelection
+            ClassSelection,
+            AppearanceCustomization
         }
 
         [Header("Name Entry")]
@@ -46,6 +47,22 @@ namespace ProjectName.UI
         [SerializeField] private JobClassData mageData;
         [SerializeField] private JobClassData rogueData;
 
+        [Header("Appearance Customization")]
+        [SerializeField] private GameObject appearancePanel;
+        [SerializeField] private BodyPartRegistry bodyPartRegistry;
+        [SerializeField] private Button appearanceBackButton;
+        [SerializeField] private Button appearanceConfirmButton;
+        [SerializeField] private Button hairPrevButton;
+        [SerializeField] private Button hairNextButton;
+        [SerializeField] private TMP_Text hairNameText;
+        [SerializeField] private Image skinColorPreview;
+        [SerializeField] private Button skinPrevButton;
+        [SerializeField] private Button skinNextButton;
+        [SerializeField] private Image hairColorPreview;
+        [SerializeField] private Button hairColorPrevButton;
+        [SerializeField] private Button hairColorNextButton;
+        private UILayeredSpritePreview appearancePreview;
+
         // Animated preview components (added at runtime)
         private UIAnimatedSprite warriorAnimSprite;
         private UIAnimatedSprite mageAnimSprite;
@@ -58,11 +75,39 @@ namespace ProjectName.UI
         private CreationStep currentStep;
         private bool classSpritesLoaded;
 
+        // Appearance selection state
+        private BodyPartData[] availableHairStyles;
+        private int selectedHairIndex;
+        private CharacterAppearanceConfig builtAppearance;
+
+        private static readonly Color[] SkinTonePresets = new Color[]
+        {
+            new Color(1f, 0.87f, 0.75f),       // Light
+            new Color(0.96f, 0.80f, 0.64f),     // Fair
+            new Color(0.84f, 0.67f, 0.50f),     // Medium
+            new Color(0.70f, 0.49f, 0.32f),     // Tan
+            new Color(0.55f, 0.36f, 0.22f),     // Brown
+            new Color(0.40f, 0.26f, 0.16f),     // Dark
+        };
+        private int selectedSkinToneIndex;
+
+        private static readonly Color[] HairColorPresets = new Color[]
+        {
+            new Color(0.15f, 0.12f, 0.10f),     // Black
+            new Color(0.45f, 0.30f, 0.15f),     // Brown
+            new Color(0.85f, 0.65f, 0.25f),     // Blonde
+            new Color(0.75f, 0.25f, 0.10f),     // Red
+            new Color(0.55f, 0.55f, 0.55f),     // Grey
+            Color.white,                          // White
+        };
+        private int selectedHairColorIndex;
+
         // Results
         public string CharacterName => characterName;
         public JobClassData SelectedClass => selectedClass;
         public int TargetSlotIndex => targetSlotIndex;
         public CreationStep CurrentStep => currentStep;
+        public CharacterAppearanceConfig BuiltAppearance => builtAppearance;
 
         public event Action OnCreationComplete;
         public event Action OnCreationCancelled;
@@ -97,6 +142,23 @@ namespace ProjectName.UI
             if (classConfirmButton != null)
                 classConfirmButton.onClick.AddListener(OnClassConfirm);
 
+            // Appearance customization
+            if (appearanceBackButton != null)
+                appearanceBackButton.onClick.AddListener(OnAppearanceBack);
+            if (appearanceConfirmButton != null)
+                appearanceConfirmButton.onClick.AddListener(OnAppearanceConfirm);
+            if (hairPrevButton != null)
+                hairPrevButton.onClick.AddListener(() => CycleHair(-1));
+            if (hairNextButton != null)
+                hairNextButton.onClick.AddListener(() => CycleHair(1));
+            if (skinPrevButton != null)
+                skinPrevButton.onClick.AddListener(() => CycleSkinTone(-1));
+            if (skinNextButton != null)
+                skinNextButton.onClick.AddListener(() => CycleSkinTone(1));
+            if (hairColorPrevButton != null)
+                hairColorPrevButton.onClick.AddListener(() => CycleHairColor(-1));
+            if (hairColorNextButton != null)
+                hairColorNextButton.onClick.AddListener(() => CycleHairColor(1));
         }
 
         /// <summary>
@@ -370,8 +432,18 @@ namespace ProjectName.UI
                 return;
 
             UIManager.Instance?.PlayConfirmSound();
-            HideAllPanels();
-            OnCreationComplete?.Invoke();
+
+            // If appearance customization is available, go there; otherwise complete
+            if (HasAppearanceOptions())
+            {
+                ShowAppearanceCustomization();
+            }
+            else
+            {
+                builtAppearance = null;
+                HideAllPanels();
+                OnCreationComplete?.Invoke();
+            }
         }
 
         private void OnClassBack()
@@ -380,6 +452,130 @@ namespace ProjectName.UI
             ShowNameEntry(targetSlotIndex);
             if (nameInputField != null)
                 nameInputField.text = characterName;
+        }
+
+        #endregion
+
+        #region Appearance Customization
+
+        private bool HasAppearanceOptions()
+        {
+            if (bodyPartRegistry == null || bodyPartRegistry.allParts == null)
+                return false;
+
+            // Need at least a body part to show anything
+            var bodyParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Body);
+            return bodyParts.Length > 0;
+        }
+
+        private void ShowAppearanceCustomization()
+        {
+            currentStep = CreationStep.AppearanceCustomization;
+            SetPanelActive(classSelectionPanel, false);
+            SetPanelActive(appearancePanel, true);
+
+            // Gather available hair styles
+            availableHairStyles = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Hair);
+            selectedHairIndex = 0;
+            selectedSkinToneIndex = 0;
+            selectedHairColorIndex = 0;
+
+            // Build initial appearance config from job default or first available parts
+            builtAppearance = ScriptableObject.CreateInstance<CharacterAppearanceConfig>();
+
+            if (selectedClass != null && selectedClass.defaultAppearance != null)
+            {
+                // Start from job default
+                var def = selectedClass.defaultAppearance;
+                builtAppearance.body = def.body;
+                builtAppearance.head = def.head;
+                builtAppearance.hair = def.hair;
+                builtAppearance.torso = def.torso;
+                builtAppearance.legs = def.legs;
+                builtAppearance.weaponBehind = def.weaponBehind;
+                builtAppearance.weaponFront = def.weaponFront;
+                builtAppearance.skinTint = def.skinTint;
+                builtAppearance.hairTint = def.hairTint;
+                builtAppearance.armorPrimaryTint = def.armorPrimaryTint;
+                builtAppearance.armorSecondaryTint = def.armorSecondaryTint;
+            }
+            else
+            {
+                // Use first available parts per slot
+                var bodyParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Body);
+                var headParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Head);
+                if (bodyParts.Length > 0) builtAppearance.body = bodyParts[0];
+                if (headParts.Length > 0) builtAppearance.head = headParts[0];
+                if (availableHairStyles.Length > 0) builtAppearance.hair = availableHairStyles[0];
+                builtAppearance.skinTint = SkinTonePresets[0];
+                builtAppearance.hairTint = HairColorPresets[0];
+            }
+
+            RefreshAppearancePreview();
+            UpdateAppearanceUI();
+        }
+
+        private void CycleHair(int direction)
+        {
+            if (availableHairStyles == null || availableHairStyles.Length == 0) return;
+
+            selectedHairIndex = (selectedHairIndex + direction + availableHairStyles.Length) % availableHairStyles.Length;
+            builtAppearance.hair = availableHairStyles[selectedHairIndex];
+            UIManager.Instance?.PlayNavigateSound();
+            RefreshAppearancePreview();
+            UpdateAppearanceUI();
+        }
+
+        private void CycleSkinTone(int direction)
+        {
+            selectedSkinToneIndex = (selectedSkinToneIndex + direction + SkinTonePresets.Length) % SkinTonePresets.Length;
+            builtAppearance.skinTint = SkinTonePresets[selectedSkinToneIndex];
+            UIManager.Instance?.PlayNavigateSound();
+            RefreshAppearancePreview();
+            UpdateAppearanceUI();
+        }
+
+        private void CycleHairColor(int direction)
+        {
+            selectedHairColorIndex = (selectedHairColorIndex + direction + HairColorPresets.Length) % HairColorPresets.Length;
+            builtAppearance.hairTint = HairColorPresets[selectedHairColorIndex];
+            UIManager.Instance?.PlayNavigateSound();
+            RefreshAppearancePreview();
+            UpdateAppearanceUI();
+        }
+
+        private void RefreshAppearancePreview()
+        {
+            if (appearancePreview != null)
+                appearancePreview.ApplyConfig(builtAppearance);
+        }
+
+        private void UpdateAppearanceUI()
+        {
+            if (hairNameText != null && builtAppearance.hair != null)
+                hairNameText.text = !string.IsNullOrEmpty(builtAppearance.hair.displayName)
+                    ? builtAppearance.hair.displayName
+                    : builtAppearance.hair.partId;
+
+            if (skinColorPreview != null)
+                skinColorPreview.color = builtAppearance.skinTint;
+
+            if (hairColorPreview != null)
+                hairColorPreview.color = builtAppearance.hairTint;
+        }
+
+        private void OnAppearanceBack()
+        {
+            UIManager.Instance?.PlayCancelSound();
+            SetPanelActive(appearancePanel, false);
+            ShowClassSelection();
+        }
+
+        private void OnAppearanceConfirm()
+        {
+            UIManager.Instance?.PlayConfirmSound();
+            HideAllPanels();
+            OnCreationComplete?.Invoke();
         }
 
         #endregion
@@ -394,6 +590,7 @@ namespace ProjectName.UI
         {
             SetPanelActive(nameEntryPanel, false);
             SetPanelActive(classSelectionPanel, false);
+            SetPanelActive(appearancePanel, false);
         }
 
         #region Runtime UI Builder
@@ -420,7 +617,9 @@ namespace ProjectName.UI
 
             BuildNamePanel(ctrl, rootGo.transform);
             BuildClassPanel(ctrl, rootGo.transform);
+            BuildAppearancePanel(ctrl, rootGo.transform);
             FindJobData(ctrl);
+            FindBodyPartRegistry(ctrl);
             LoadClassPreviewSprites(ctrl);
 
             // Awake already ran with null refs (no-op), so bind listeners now
@@ -510,6 +709,90 @@ namespace ProjectName.UI
             var confirmTmp = ctrl.classConfirmButton.GetComponentInChildren<TextMeshProUGUI>();
             if (confirmTmp != null) confirmTmp.fontSize = 28f;
             ctrl.classConfirmButton.interactable = false;
+        }
+
+        private static void BuildAppearancePanel(CharacterCreationController ctrl, Transform parent)
+        {
+            var panel = MakeDarkPanel(parent, "AppearancePanel");
+            panel.SetActive(false);
+            ctrl.appearancePanel = panel;
+
+            var content = MakeContentColumn(panel.transform);
+            // Widen for preview + controls side by side
+            var contentRt = content.GetComponent<RectTransform>();
+            contentRt.sizeDelta = new Vector2(800f, 0f);
+
+            MakeLabel(content.transform, "Customize Appearance", 36f);
+            MakeSpacer(content.transform, 10f);
+
+            // Preview area
+            var previewGo = MakeUIObject("CharacterPreview", content.transform);
+            var previewLayout = previewGo.AddComponent<LayoutElement>();
+            previewLayout.preferredHeight = 300f;
+            previewLayout.preferredWidth = 200f;
+            var previewBg = previewGo.AddComponent<Image>();
+            previewBg.color = new Color(0.12f, 0.12f, 0.15f, 1f);
+            ctrl.appearancePreview = previewGo.AddComponent<UILayeredSpritePreview>();
+
+            MakeSpacer(content.transform, 15f);
+
+            // Hair style selector
+            MakeLabel(content.transform, "Hair Style", 24f);
+            var hairRow = MakeHRow(content.transform, 15f, 45f);
+            ctrl.hairPrevButton = MakeButton(hairRow.transform, "<", 50f, 40f);
+            ctrl.hairNameText = MakeLabel(hairRow.transform, "Default", 22f);
+            ctrl.hairNameText.GetComponent<LayoutElement>().preferredWidth = 200f;
+            ctrl.hairNextButton = MakeButton(hairRow.transform, ">", 50f, 40f);
+
+            MakeSpacer(content.transform, 10f);
+
+            // Skin tone selector
+            MakeLabel(content.transform, "Skin Tone", 24f);
+            var skinRow = MakeHRow(content.transform, 15f, 45f);
+            ctrl.skinPrevButton = MakeButton(skinRow.transform, "<", 50f, 40f);
+            var skinPreviewGo = MakeUIObject("SkinPreview", skinRow.transform);
+            var skinPreviewImg = skinPreviewGo.AddComponent<Image>();
+            skinPreviewImg.color = SkinTonePresets[0];
+            var skinPreviewLayout = skinPreviewGo.AddComponent<LayoutElement>();
+            skinPreviewLayout.preferredWidth = 60f;
+            skinPreviewLayout.preferredHeight = 35f;
+            ctrl.skinColorPreview = skinPreviewImg;
+            ctrl.skinNextButton = MakeButton(skinRow.transform, ">", 50f, 40f);
+
+            MakeSpacer(content.transform, 10f);
+
+            // Hair color selector
+            MakeLabel(content.transform, "Hair Color", 24f);
+            var hairColorRow = MakeHRow(content.transform, 15f, 45f);
+            ctrl.hairColorPrevButton = MakeButton(hairColorRow.transform, "<", 50f, 40f);
+            var hairColorPreviewGo = MakeUIObject("HairColorPreview", hairColorRow.transform);
+            var hairColorPreviewImg = hairColorPreviewGo.AddComponent<Image>();
+            hairColorPreviewImg.color = HairColorPresets[0];
+            var hairColorPreviewLayout = hairColorPreviewGo.AddComponent<LayoutElement>();
+            hairColorPreviewLayout.preferredWidth = 60f;
+            hairColorPreviewLayout.preferredHeight = 35f;
+            ctrl.hairColorPreview = hairColorPreviewImg;
+            ctrl.hairColorNextButton = MakeButton(hairColorRow.transform, ">", 50f, 40f);
+
+            MakeSpacer(content.transform, 20f);
+
+            // Nav buttons
+            var navRow = MakeHRow(content.transform, 20f, 65f);
+            ctrl.appearanceBackButton = MakeButton(navRow.transform, "Back", 220f, 60f);
+            var backTmp = ctrl.appearanceBackButton.GetComponentInChildren<TextMeshProUGUI>();
+            if (backTmp != null) backTmp.fontSize = 28f;
+            ctrl.appearanceConfirmButton = MakeButton(navRow.transform, "Start Game", 280f, 60f);
+            var confirmTmp = ctrl.appearanceConfirmButton.GetComponentInChildren<TextMeshProUGUI>();
+            if (confirmTmp != null) confirmTmp.fontSize = 28f;
+        }
+
+        private static void FindBodyPartRegistry(CharacterCreationController ctrl)
+        {
+            if (ctrl.bodyPartRegistry != null) return;
+
+            var registries = Resources.FindObjectsOfTypeAll<BodyPartRegistry>();
+            if (registries.Length > 0)
+                ctrl.bodyPartRegistry = registries[0];
         }
 
         /// <summary>
@@ -1052,6 +1335,14 @@ namespace ProjectName.UI
             if (rogueButton != null) rogueButton.onClick.RemoveAllListeners();
             if (classBackButton != null) classBackButton.onClick.RemoveAllListeners();
             if (classConfirmButton != null) classConfirmButton.onClick.RemoveAllListeners();
+            if (appearanceBackButton != null) appearanceBackButton.onClick.RemoveAllListeners();
+            if (appearanceConfirmButton != null) appearanceConfirmButton.onClick.RemoveAllListeners();
+            if (hairPrevButton != null) hairPrevButton.onClick.RemoveAllListeners();
+            if (hairNextButton != null) hairNextButton.onClick.RemoveAllListeners();
+            if (skinPrevButton != null) skinPrevButton.onClick.RemoveAllListeners();
+            if (skinNextButton != null) skinNextButton.onClick.RemoveAllListeners();
+            if (hairColorPrevButton != null) hairColorPrevButton.onClick.RemoveAllListeners();
+            if (hairColorNextButton != null) hairColorNextButton.onClick.RemoveAllListeners();
         }
     }
 }

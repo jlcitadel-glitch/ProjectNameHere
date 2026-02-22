@@ -11,6 +11,12 @@ public class PlayerAppearance : MonoBehaviour
     private SpriteRenderer fallbackRenderer;
     private Animator animator;
     private RuntimeAnimatorController originalAnimator;
+    private CharacterAppearanceConfig currentConfig;
+
+    /// <summary>
+    /// The currently applied appearance config, or null if using fallback rendering.
+    /// </summary>
+    public CharacterAppearanceConfig CurrentConfig => currentConfig;
 
     private void Awake()
     {
@@ -110,6 +116,12 @@ public class PlayerAppearance : MonoBehaviour
     {
         if (layeredSprite == null || config == null)
             return;
+
+        currentConfig = config;
+
+        // Disable root SpriteRenderer when layered system is active
+        if (fallbackRenderer != null)
+            fallbackRenderer.enabled = false;
 
         layeredSprite.SetPart(BodyPartSlot.Body, config.body);
         layeredSprite.SetPart(BodyPartSlot.Head, config.head);

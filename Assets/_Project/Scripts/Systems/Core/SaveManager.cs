@@ -11,11 +11,15 @@ public class SaveManager : MonoBehaviour
 
     private const string SAVE_KEY_PREFIX = "GameSave_Slot_";
     private const string LEGACY_SAVE_KEY = "GameSave";
-    private const int CURRENT_SAVE_VERSION = 5;
+    private const int CURRENT_SAVE_VERSION = 6;
     private const int MAX_SAVE_SLOTS = 5;
 
     [Header("Settings")]
     [SerializeField] private int activeSlotIndex = 0;
+
+    [Header("Character System")]
+    [Tooltip("Registry for resolving body part IDs during save/load")]
+    [SerializeField] private BodyPartRegistry bodyPartRegistry;
 
     public int ActiveSlotIndex => activeSlotIndex;
 
@@ -69,6 +73,9 @@ public class SaveManager : MonoBehaviour
 
         // Wave 100 milestone
         public bool hasSeenWave100Cutscene;
+
+        // Character appearance (v6)
+        public CharacterAppearanceSaveData appearanceData;
 
         // Metadata
         public string saveTimestamp;
@@ -197,6 +204,17 @@ public class SaveManager : MonoBehaviour
             data.characterName = currentSaveData.characterName;
             data.startingClass = currentSaveData.startingClass;
             data.appearanceIndex = currentSaveData.appearanceIndex;
+            data.appearanceData = currentSaveData.appearanceData;
+        }
+
+        // Capture current appearance from player (overrides carried-over data if layered system is active)
+        if (player != null)
+        {
+            var playerAppearance = player.GetComponent<PlayerAppearance>();
+            if (playerAppearance != null && playerAppearance.CurrentConfig != null)
+            {
+                data.appearanceData = CharacterAppearanceSaveData.FromConfig(playerAppearance.CurrentConfig);
+            }
         }
 
         // Carry over death count
@@ -324,6 +342,14 @@ public class SaveManager : MonoBehaviour
     /// </summary>
     public void CreateNewGame(int slotIndex, string characterName, string startingClass, int appearanceIndex)
     {
+        CreateNewGame(slotIndex, characterName, startingClass, appearanceIndex, null);
+    }
+
+    /// <summary>
+    /// Creates a new game with character creation data including custom appearance.
+    /// </summary>
+    public void CreateNewGame(int slotIndex, string characterName, string startingClass, int appearanceIndex, CharacterAppearanceSaveData appearance)
+    {
         SetActiveSlot(slotIndex);
 
         // Clear any existing save data for this slot
@@ -338,6 +364,7 @@ public class SaveManager : MonoBehaviour
         currentSaveData.characterName = !string.IsNullOrEmpty(characterName) ? characterName : "Hero";
         currentSaveData.startingClass = startingClass ?? "";
         currentSaveData.appearanceIndex = appearanceIndex;
+        currentSaveData.appearanceData = appearance;
         currentSaveData.currentWave = 1;
         sessionStartTime = Time.realtimeSinceStartup;
 
@@ -536,11 +563,20 @@ public class SaveManager : MonoBehaviour
             statSystem.ApplySaveData(currentSaveData.statData);
         }
 
-        // Apply player appearance from job class
+        // Apply player appearance — saved custom appearance takes priority over job default
         var playerAppearance = player.GetComponent<PlayerAppearance>();
-        if (playerAppearance != null && SkillManager.Instance?.CurrentJob != null)
+        if (playerAppearance != null)
         {
-            playerAppearance.ApplyAppearance(SkillManager.Instance.CurrentJob);
+            if (currentSaveData.appearanceData != null && currentSaveData.appearanceData.HasAnyParts() && bodyPartRegistry != null)
+            {
+                var config = currentSaveData.appearanceData.ToConfig(bodyPartRegistry);
+                if (config != null)
+                    playerAppearance.ApplyConfig(config);
+            }
+            else if (SkillManager.Instance?.CurrentJob != null)
+            {
+                playerAppearance.ApplyAppearance(SkillManager.Instance.CurrentJob);
+            }
         }
 
         Debug.Log("[SaveManager] Save data applied to game world.");
@@ -578,11 +614,20 @@ public class SaveManager : MonoBehaviour
             statSystem.ApplySaveData(currentSaveData.statData);
         }
 
-        // Apply player appearance from job class
+        // Apply player appearance — saved custom appearance takes priority over job default
         var playerAppearance = player.GetComponent<PlayerAppearance>();
-        if (playerAppearance != null && SkillManager.Instance?.CurrentJob != null)
+        if (playerAppearance != null)
         {
-            playerAppearance.ApplyAppearance(SkillManager.Instance.CurrentJob);
+            if (currentSaveData.appearanceData != null && currentSaveData.appearanceData.HasAnyParts() && bodyPartRegistry != null)
+            {
+                var config = currentSaveData.appearanceData.ToConfig(bodyPartRegistry);
+                if (config != null)
+                    playerAppearance.ApplyConfig(config);
+            }
+            else if (SkillManager.Instance?.CurrentJob != null)
+            {
+                playerAppearance.ApplyAppearance(SkillManager.Instance.CurrentJob);
+            }
         }
 
         Debug.Log($"[SaveManager] New game data applied - Class: {currentSaveData.startingClass}, Name: {currentSaveData.characterName}");
@@ -639,6 +684,12 @@ public class SaveManager : MonoBehaviour
         if (data.saveVersion < 5)
         {
             data.hasSeenWave100Cutscene = false;
+        }
+
+        // Migration from version 5 to 6: Add character appearance data
+        if (data.saveVersion < 6)
+        {
+            data.appearanceData = null; // null = use job default appearance
         }
 
         data.saveVersion = CURRENT_SAVE_VERSION;
