@@ -143,6 +143,7 @@ public class UILayeredSpritePreview : MonoBehaviour
     /// </summary>
     public void Clear()
     {
+        if (layerImages == null) return;
         foreach (var slot in layerImages.Keys)
             SetPart(slot, null);
     }
