@@ -223,14 +223,20 @@ namespace ProjectName.UI
 
         private void UpdateBarPositions()
         {
+            // Counter-flip bars so they remain stable when the player flips via localScale.x
+            float parentScaleX = transform.localScale.x;
+            float counterScaleX = parentScaleX != 0f ? Mathf.Sign(parentScaleX) : 1f;
+
             if (healthBarContainer != null)
             {
                 healthBarContainer.transform.rotation = Quaternion.identity;
+                healthBarContainer.transform.localScale = new Vector3(counterScaleX, 1f, 1f);
             }
 
             if (manaBarContainer != null)
             {
                 manaBarContainer.transform.rotation = Quaternion.identity;
+                manaBarContainer.transform.localScale = new Vector3(counterScaleX, 1f, 1f);
             }
         }
 
