@@ -7,7 +7,8 @@ namespace ProjectName.UI
 {
     /// <summary>
     /// Manages display settings: resolution, window mode, aspect ratio.
-    /// Persists settings via PlayerPrefs.
+    /// Merges common resolution presets (720p, 1080p, 1440p, 4K, ultrawide)
+    /// with hardware-detected resolutions. Persists settings via PlayerPrefs.
     /// </summary>
     public class DisplaySettings : MonoBehaviour
     {
@@ -21,6 +22,45 @@ namespace ProjectName.UI
         [Header("Settings")]
         [SerializeField] private bool applyOnStart = true;
         [SerializeField] private bool saveSettings = true;
+
+        [Header("Resolution Presets")]
+        [Tooltip("Merge common resolution presets (720p, 1080p, 1440p, 4K, ultrawide) with hardware-detected resolutions")]
+        [SerializeField] private bool includeCommonPresets = true;
+
+        // Common resolution presets (width x height) covering standard aspect ratios
+        private static readonly (int width, int height)[] commonPresets =
+        {
+            // 4:3
+            (1024, 768),
+            (1280, 960),
+            (1600, 1200),
+            // 16:10
+            (1280, 800),
+            (1920, 1200),
+            (2560, 1600),
+            // 16:9
+            (1280, 720),
+            (1920, 1080),
+            (2560, 1440),
+            (3840, 2160),
+            // 21:9 Ultrawide
+            (2560, 1080),
+            (3440, 1440),
+            (5120, 2160),
+            // 32:9 Super Ultrawide
+            (3840, 1080),
+            (5120, 1440),
+        };
+
+        // Friendly labels for well-known resolutions
+        private static readonly Dictionary<(int, int), string> resolutionLabels = new()
+        {
+            { (1280, 720), "720p" },
+            { (1920, 1080), "1080p" },
+            { (2560, 1440), "1440p" },
+            { (3840, 2160), "4K" },
+            { (5120, 2160), "5K UW" },
+        };
 
         // Current state
         private Resolution[] availableResolutions;
@@ -114,10 +154,42 @@ namespace ProjectName.UI
 
         private void CacheAvailableResolutions()
         {
-            // Get all available resolutions and remove duplicates
-            availableResolutions = Screen.resolutions
+            // Get all hardware-reported resolutions and remove duplicates (keep highest refresh rate)
+            var hardwareResolutions = Screen.resolutions
                 .GroupBy(r => new { r.width, r.height })
                 .Select(g => g.OrderByDescending(r => r.refreshRateRatio.value).First())
+                .ToList();
+
+            if (includeCommonPresets && hardwareResolutions.Count > 0)
+            {
+                // Determine max hardware resolution for capping presets
+                int maxWidth = hardwareResolutions.Max(r => r.width);
+                int maxHeight = hardwareResolutions.Max(r => r.height);
+
+                // Use native refresh rate for preset resolutions
+                RefreshRate nativeRefreshRate = Screen.currentResolution.refreshRateRatio;
+
+                // Track existing resolutions to avoid duplicates
+                var existing = new HashSet<(int, int)>(
+                    hardwareResolutions.Select(r => (r.width, r.height)));
+
+                foreach (var (width, height) in commonPresets)
+                {
+                    // Only add presets that fit within the monitor's max resolution
+                    if (width > maxWidth || height > maxHeight) continue;
+                    if (existing.Contains((width, height))) continue;
+
+                    var preset = new Resolution
+                    {
+                        width = width,
+                        height = height,
+                        refreshRateRatio = nativeRefreshRate
+                    };
+                    hardwareResolutions.Add(preset);
+                }
+            }
+
+            availableResolutions = hardwareResolutions
                 .OrderBy(r => r.width)
                 .ThenBy(r => r.height)
                 .ToArray();
@@ -183,7 +255,12 @@ namespace ProjectName.UI
         public string[] GetResolutionStrings()
         {
             return filteredResolutions
-                .Select(r => $"{r.width} x {r.height}")
+                .Select(r =>
+                {
+                    if (resolutionLabels.TryGetValue((r.width, r.height), out string label))
+                        return $"{r.width} x {r.height} ({label})";
+                    return $"{r.width} x {r.height}";
+                })
                 .ToArray();
         }
 
