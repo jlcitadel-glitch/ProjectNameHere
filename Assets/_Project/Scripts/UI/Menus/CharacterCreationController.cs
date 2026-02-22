@@ -530,11 +530,7 @@ namespace ProjectName.UI
         {
             // Lazy-find registry if not set (e.g. reused from AutoFindReferences)
             if (bodyPartRegistry == null)
-            {
-                var registries = Resources.FindObjectsOfTypeAll<BodyPartRegistry>();
-                if (registries.Length > 0)
-                    bodyPartRegistry = registries[0];
-            }
+                bodyPartRegistry = Resources.Load<BodyPartRegistry>("BodyPartRegistry");
 
             if (bodyPartRegistry == null || bodyPartRegistry.allParts == null)
                 return false;
@@ -866,9 +862,7 @@ namespace ProjectName.UI
         {
             if (ctrl.bodyPartRegistry != null) return;
 
-            var registries = Resources.FindObjectsOfTypeAll<BodyPartRegistry>();
-            if (registries.Length > 0)
-                ctrl.bodyPartRegistry = registries[0];
+            ctrl.bodyPartRegistry = Resources.Load<BodyPartRegistry>("BodyPartRegistry");
         }
 
         /// <summary>

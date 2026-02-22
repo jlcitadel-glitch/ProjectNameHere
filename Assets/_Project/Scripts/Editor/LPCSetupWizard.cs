@@ -612,13 +612,26 @@ public class LPCSetupWizard : EditorWindow
 
     private void CreateBodyPartRegistry(Dictionary<BodyPartSlot, BodyPartData> parts)
     {
-        string path = DATA_ROOT + "/BodyPartRegistry.asset";
+        // Place in Resources so it can be loaded at runtime via Resources.Load
+        string resourcesPath = "Assets/_Project/Resources";
+        string path = resourcesPath + "/BodyPartRegistry.asset";
+
+        // Also check old location and migrate if found
+        string oldPath = DATA_ROOT + "/BodyPartRegistry.asset";
         var registry = AssetDatabase.LoadAssetAtPath<BodyPartRegistry>(path);
         if (registry == null)
         {
-            registry = CreateInstance<BodyPartRegistry>();
-            EnsureDirectory(DATA_ROOT);
-            AssetDatabase.CreateAsset(registry, path);
+            registry = AssetDatabase.LoadAssetAtPath<BodyPartRegistry>(oldPath);
+            if (registry != null)
+            {
+                AssetDatabase.MoveAsset(oldPath, path);
+            }
+            else
+            {
+                registry = CreateInstance<BodyPartRegistry>();
+                EnsureDirectory(resourcesPath);
+                AssetDatabase.CreateAsset(registry, path);
+            }
         }
 
         // Collect all BodyPartData assets in the project
