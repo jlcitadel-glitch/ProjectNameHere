@@ -119,46 +119,114 @@ namespace ProjectName.UI
 
         private void SetupButtons()
         {
-            // Name entry
+            // Name entry — RemoveAllListeners before Add to be idempotent on reuse
             if (nameConfirmButton != null)
+            {
+                nameConfirmButton.onClick.RemoveAllListeners();
                 nameConfirmButton.onClick.AddListener(OnNameConfirm);
+            }
             if (nameBackButton != null)
+            {
+                nameBackButton.onClick.RemoveAllListeners();
                 nameBackButton.onClick.AddListener(OnNameBack);
+            }
             if (nameInputField != null)
             {
                 nameInputField.characterLimit = maxNameLength;
+                nameInputField.onSubmit.RemoveAllListeners();
                 nameInputField.onSubmit.AddListener(_ => OnNameConfirm());
             }
 
             // Class selection
             if (warriorButton != null)
+            {
+                warriorButton.onClick.RemoveAllListeners();
                 warriorButton.onClick.AddListener(() => SelectClass(warriorData));
+            }
             if (mageButton != null)
+            {
+                mageButton.onClick.RemoveAllListeners();
                 mageButton.onClick.AddListener(() => SelectClass(mageData));
+            }
             if (rogueButton != null)
+            {
+                rogueButton.onClick.RemoveAllListeners();
                 rogueButton.onClick.AddListener(() => SelectClass(rogueData));
+            }
             if (classBackButton != null)
+            {
+                classBackButton.onClick.RemoveAllListeners();
                 classBackButton.onClick.AddListener(OnClassBack);
+            }
             if (classConfirmButton != null)
+            {
+                classConfirmButton.onClick.RemoveAllListeners();
                 classConfirmButton.onClick.AddListener(OnClassConfirm);
+            }
 
             // Appearance customization
             if (appearanceBackButton != null)
+            {
+                appearanceBackButton.onClick.RemoveAllListeners();
                 appearanceBackButton.onClick.AddListener(OnAppearanceBack);
+            }
             if (appearanceConfirmButton != null)
+            {
+                appearanceConfirmButton.onClick.RemoveAllListeners();
                 appearanceConfirmButton.onClick.AddListener(OnAppearanceConfirm);
+            }
             if (hairPrevButton != null)
+            {
+                hairPrevButton.onClick.RemoveAllListeners();
                 hairPrevButton.onClick.AddListener(() => CycleHair(-1));
+            }
             if (hairNextButton != null)
+            {
+                hairNextButton.onClick.RemoveAllListeners();
                 hairNextButton.onClick.AddListener(() => CycleHair(1));
+            }
             if (skinPrevButton != null)
+            {
+                skinPrevButton.onClick.RemoveAllListeners();
                 skinPrevButton.onClick.AddListener(() => CycleSkinTone(-1));
+            }
             if (skinNextButton != null)
+            {
+                skinNextButton.onClick.RemoveAllListeners();
                 skinNextButton.onClick.AddListener(() => CycleSkinTone(1));
+            }
             if (hairColorPrevButton != null)
+            {
+                hairColorPrevButton.onClick.RemoveAllListeners();
                 hairColorPrevButton.onClick.AddListener(() => CycleHairColor(-1));
+            }
             if (hairColorNextButton != null)
+            {
+                hairColorNextButton.onClick.RemoveAllListeners();
                 hairColorNextButton.onClick.AddListener(() => CycleHairColor(1));
+            }
+        }
+
+        /// <summary>
+        /// Resets all creation state for a fresh run. Call before showing character creation
+        /// to ensure no stale data from a previous session.
+        /// </summary>
+        public void ResetState()
+        {
+            characterName = "";
+            selectedClass = null;
+            targetSlotIndex = -1;
+            currentStep = CreationStep.NameEntry;
+            classSpritesLoaded = false;
+            selectedHairIndex = 0;
+            selectedSkinToneIndex = 0;
+            selectedHairColorIndex = 0;
+            builtAppearance = null;
+
+            if (appearancePreview != null)
+                appearancePreview.Clear();
+
+            HideAllPanels();
         }
 
         /// <summary>

@@ -50,13 +50,26 @@ public class LPCSetupWizard : EditorWindow
         new AnimDef("hurt",      1, 0, false),  // single row, not directional
     };
 
-    // Body parts to download (folder path relative to spritesheets/)
-    private static readonly PartDef[] BODY_PARTS = new PartDef[]
+    // Hair styles to download (each becomes a separate BodyPartData with slot=Hair)
+    private static readonly string[] HAIR_STYLES = new string[]
     {
-        new PartDef("body",  BodyPartSlot.Body,  "body/bodies/male",       "light"),
-        new PartDef("head",  BodyPartSlot.Head,  "head/heads/human/male",  "light"),
-        new PartDef("hair",  BodyPartSlot.Hair,  "hair/long/adult",        null),
+        "long", "short", "bob", "pixie", "ponytail", "mohawk"
     };
+
+    // Body parts to download (folder path relative to spritesheets/)
+    private static readonly PartDef[] BODY_PARTS = BuildDefaultParts();
+
+    private static PartDef[] BuildDefaultParts()
+    {
+        var parts = new List<PartDef>
+        {
+            new PartDef("body",  BodyPartSlot.Body,  "body/bodies/male",       "light"),
+            new PartDef("head",  BodyPartSlot.Head,  "head/heads/human/male",  "light"),
+        };
+        foreach (var style in HAIR_STYLES)
+            parts.Add(new PartDef($"hair_{style}", BodyPartSlot.Hair, $"hair/{style}/adult", null));
+        return parts.ToArray();
+    }
 
     private string skinColor = "light";
     private string bodyType = "male";
@@ -173,12 +186,13 @@ public class LPCSetupWizard : EditorWindow
         statusMessage = "Downloading sprites...";
 
         // Update BODY_PARTS with current skin color / body type
-        var parts = new PartDef[]
+        var parts = new List<PartDef>
         {
             new PartDef("body",  BodyPartSlot.Body,  $"body/bodies/{bodyType}",       skinColor),
             new PartDef("head",  BodyPartSlot.Head,  $"head/heads/human/{bodyType}",  skinColor),
-            new PartDef("hair",  BodyPartSlot.Hair,  "hair/long/adult",               null),
         };
+        foreach (var style in HAIR_STYLES)
+            parts.Add(new PartDef($"hair_{style}", BodyPartSlot.Hair, $"hair/{style}/adult", null));
 
         int downloaded = 0;
 
@@ -401,7 +415,9 @@ public class LPCSetupWizard : EditorWindow
         }
 
         // Create the BodyPartData asset
-        string assetPath = $"{DATA_ROOT}/BodyParts/{partName}_{skinColor}.asset";
+        // Hair parts don't use skinColor suffix (they have no color variant)
+        string assetSuffix = (slot == BodyPartSlot.Hair) ? "" : $"_{skinColor}";
+        string assetPath = $"{DATA_ROOT}/BodyParts/{partName}{assetSuffix}.asset";
         var bodyPart = AssetDatabase.LoadAssetAtPath<BodyPartData>(assetPath);
         if (bodyPart == null)
         {
@@ -409,8 +425,12 @@ public class LPCSetupWizard : EditorWindow
             AssetDatabase.CreateAsset(bodyPart, assetPath);
         }
 
-        bodyPart.partId = $"{partName}_{skinColor}";
-        bodyPart.displayName = partName.Substring(0, 1).ToUpper() + partName.Substring(1);
+        bodyPart.partId = $"{partName}{assetSuffix}";
+        // For hair parts named "hair_long", display as "Long"; otherwise capitalize first letter
+        if (slot == BodyPartSlot.Hair && partName.StartsWith("hair_"))
+            bodyPart.displayName = char.ToUpper(partName[5]) + partName.Substring(6);
+        else
+            bodyPart.displayName = char.ToUpper(partName[0]) + partName.Substring(1);
         bodyPart.slot = slot;
         bodyPart.frames = allFrames.ToArray();
         bodyPart.sortOrderOffset = 0;
@@ -774,11 +794,12 @@ public class LPCSetupWizard : EditorWindow
 
     private BodyPartSlot GuessSlot(string dirName)
     {
-        return dirName.ToLower() switch
+        string lower = dirName.ToLower();
+        if (lower.StartsWith("hair")) return BodyPartSlot.Hair;
+        return lower switch
         {
             "body" => BodyPartSlot.Body,
             "head" => BodyPartSlot.Head,
-            "hair" => BodyPartSlot.Hair,
             "torso" => BodyPartSlot.Torso,
             "legs" => BodyPartSlot.Legs,
             "weapon_behind" => BodyPartSlot.WeaponBehind,

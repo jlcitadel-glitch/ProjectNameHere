@@ -21,6 +21,16 @@ public class UILayeredSpritePreview : MonoBehaviour
 
     private void InitializeLayers()
     {
+        // Guard: if already initialized, destroy existing children to avoid duplicates
+        if (layerImages != null && layerImages.Count > 0)
+        {
+            foreach (var kvp in layerImages)
+            {
+                if (kvp.Value != null && kvp.Value.gameObject != null)
+                    Destroy(kvp.Value.gameObject);
+            }
+        }
+
         layerImages = new Dictionary<BodyPartSlot, Image>();
         currentParts = new Dictionary<BodyPartSlot, BodyPartData>();
 

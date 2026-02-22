@@ -230,15 +230,17 @@ namespace ProjectName.UI
 
         private void EnsureCharacterCreation()
         {
-            if (characterCreation != null)
-                return;
+            if (characterCreation == null)
+            {
+                var safeArea = transform.Find("SafeArea");
+                Transform uiParent = safeArea != null ? safeArea : transform;
 
-            var safeArea = transform.Find("SafeArea");
-            Transform uiParent = safeArea != null ? safeArea : transform;
+                characterCreation = CharacterCreationController.CreateRuntimeUI(uiParent);
+            }
 
-            characterCreation = CharacterCreationController.CreateRuntimeUI(uiParent);
-
-            // Wire events (Awake already ran, but characterCreation was null then)
+            // Always ensure exactly one subscription (safe to call on reuse)
+            characterCreation.OnCreationComplete -= OnCharacterCreationComplete;
+            characterCreation.OnCreationCancelled -= OnCharacterCreationCancelled;
             characterCreation.OnCreationComplete += OnCharacterCreationComplete;
             characterCreation.OnCreationCancelled += OnCharacterCreationCancelled;
         }
@@ -460,12 +462,7 @@ namespace ProjectName.UI
             if (highscoresButton != null)
                 highscoresButton.onClick.AddListener(OnHighscoresClicked);
 
-            // Character creation events
-            if (characterCreation != null)
-            {
-                characterCreation.OnCreationComplete += OnCharacterCreationComplete;
-                characterCreation.OnCreationCancelled += OnCharacterCreationCancelled;
-            }
+            // Character creation events are wired in EnsureCharacterCreation() to avoid double-subscription
         }
 
         private void SetupSaveSlots()
@@ -771,6 +768,7 @@ namespace ProjectName.UI
                     SetState(MainMenuState.CharacterCreation);
                     if (mainMenuPanel != null) mainMenuPanel.SetActive(false);
                     if (saveSelectionPanel != null) saveSelectionPanel.SetActive(false);
+                    characterCreation.ResetState();
                     characterCreation.gameObject.SetActive(true);
                     characterCreation.ShowNameEntry(slot.SlotIndex);
                 }
@@ -813,6 +811,7 @@ namespace ProjectName.UI
                     if (mainMenuPanel != null) mainMenuPanel.SetActive(false);
                     if (saveSelectionPanel != null) saveSelectionPanel.SetActive(false);
                     if (overwriteConfirmPanel != null) overwriteConfirmPanel.SetActive(false);
+                    characterCreation.ResetState();
                     characterCreation.gameObject.SetActive(true);
                     characterCreation.ShowNameEntry(pendingSlotIndex);
                 }
