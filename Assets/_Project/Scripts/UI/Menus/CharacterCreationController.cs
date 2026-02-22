@@ -273,7 +273,12 @@ namespace ProjectName.UI
 
             characterName = input;
             UIManager.Instance?.PlaySelectSound();
-            ShowClassSelection();
+
+            // Appearance before class so the customized character shows in class previews
+            if (HasAppearanceOptions())
+                ShowAppearanceCustomization();
+            else
+                ShowClassSelection();
         }
 
         private void OnNameBack()
@@ -500,26 +505,25 @@ namespace ProjectName.UI
                 return;
 
             UIManager.Instance?.PlayConfirmSound();
+            HideAllPanels();
+            OnCreationComplete?.Invoke();
+        }
 
-            // If appearance customization is available, go there; otherwise complete
+        private void OnClassBack()
+        {
+            UIManager.Instance?.PlayCancelSound();
+            SetPanelActive(classSelectionPanel, false);
+            // Go back to appearance if available, otherwise name entry
             if (HasAppearanceOptions())
             {
                 ShowAppearanceCustomization();
             }
             else
             {
-                builtAppearance = null;
-                HideAllPanels();
-                OnCreationComplete?.Invoke();
+                ShowNameEntry(targetSlotIndex);
+                if (nameInputField != null)
+                    nameInputField.text = characterName;
             }
-        }
-
-        private void OnClassBack()
-        {
-            UIManager.Instance?.PlayCancelSound();
-            ShowNameEntry(targetSlotIndex);
-            if (nameInputField != null)
-                nameInputField.text = characterName;
         }
 
         #endregion
@@ -543,37 +547,22 @@ namespace ProjectName.UI
         private void ShowAppearanceCustomization()
         {
             currentStep = CreationStep.AppearanceCustomization;
+            SetPanelActive(nameEntryPanel, false);
             SetPanelActive(classSelectionPanel, false);
             SetPanelActive(appearancePanel, true);
 
             // Gather available hair styles
             availableHairStyles = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Hair);
-            selectedHairIndex = 0;
-            selectedSkinToneIndex = 0;
-            selectedHairColorIndex = 0;
 
-            // Build initial appearance config from job default or first available parts
-            builtAppearance = ScriptableObject.CreateInstance<CharacterAppearanceConfig>();
+            // Only initialize appearance if not already built (preserve choices when navigating back)
+            if (builtAppearance == null)
+            {
+                selectedHairIndex = 0;
+                selectedSkinToneIndex = 0;
+                selectedHairColorIndex = 0;
 
-            if (selectedClass != null && selectedClass.defaultAppearance != null)
-            {
-                // Start from job default
-                var def = selectedClass.defaultAppearance;
-                builtAppearance.body = def.body;
-                builtAppearance.head = def.head;
-                builtAppearance.hair = def.hair;
-                builtAppearance.torso = def.torso;
-                builtAppearance.legs = def.legs;
-                builtAppearance.weaponBehind = def.weaponBehind;
-                builtAppearance.weaponFront = def.weaponFront;
-                builtAppearance.skinTint = def.skinTint;
-                builtAppearance.hairTint = def.hairTint;
-                builtAppearance.armorPrimaryTint = def.armorPrimaryTint;
-                builtAppearance.armorSecondaryTint = def.armorSecondaryTint;
-            }
-            else
-            {
-                // Use first available parts per slot
+                builtAppearance = ScriptableObject.CreateInstance<CharacterAppearanceConfig>();
+
                 var bodyParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Body);
                 var headParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Head);
                 if (bodyParts.Length > 0) builtAppearance.body = bodyParts[0];
@@ -640,14 +629,16 @@ namespace ProjectName.UI
         {
             UIManager.Instance?.PlayCancelSound();
             SetPanelActive(appearancePanel, false);
-            ShowClassSelection();
+            ShowNameEntry(targetSlotIndex);
+            if (nameInputField != null)
+                nameInputField.text = characterName;
         }
 
         private void OnAppearanceConfirm()
         {
             UIManager.Instance?.PlayConfirmSound();
-            HideAllPanels();
-            OnCreationComplete?.Invoke();
+            SetPanelActive(appearancePanel, false);
+            ShowClassSelection();
         }
 
         #endregion
