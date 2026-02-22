@@ -312,9 +312,12 @@ public class LPCSetupWizard : EditorWindow
             CreateAppearanceConfig(createdParts);
         }
 
+        // Create/update the BodyPartRegistry so save/load and character creation can resolve parts
+        CreateBodyPartRegistry(createdParts);
+
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
-        statusMessage = $"Created {createdParts.Count} body part assets + frame map + appearance config.";
+        statusMessage = $"Created {createdParts.Count} body part assets + frame map + appearance config + registry.";
     }
 
     private BodyPartData SliceBodyPart(string partName, BodyPartSlot slot, AnimationStateFrameMap frameMap)
@@ -587,6 +590,33 @@ public class LPCSetupWizard : EditorWindow
         Debug.Log($"[LPC Wizard] Created CharacterAppearanceConfig at {path}");
     }
 
+    private void CreateBodyPartRegistry(Dictionary<BodyPartSlot, BodyPartData> parts)
+    {
+        string path = DATA_ROOT + "/BodyPartRegistry.asset";
+        var registry = AssetDatabase.LoadAssetAtPath<BodyPartRegistry>(path);
+        if (registry == null)
+        {
+            registry = CreateInstance<BodyPartRegistry>();
+            EnsureDirectory(DATA_ROOT);
+            AssetDatabase.CreateAsset(registry, path);
+        }
+
+        // Collect all BodyPartData assets in the project
+        var allPartGuids = AssetDatabase.FindAssets("t:BodyPartData");
+        var allParts = new List<BodyPartData>();
+        foreach (var guid in allPartGuids)
+        {
+            var assetPath = AssetDatabase.GUIDToAssetPath(guid);
+            var part = AssetDatabase.LoadAssetAtPath<BodyPartData>(assetPath);
+            if (part != null)
+                allParts.Add(part);
+        }
+
+        registry.allParts = allParts.ToArray();
+        EditorUtility.SetDirty(registry);
+        Debug.Log($"[LPC Wizard] Created BodyPartRegistry at {path} ({allParts.Count} parts)");
+    }
+
     // ===== STEP 3: Setup Player Prefab =====
 
     private void SetupPlayerPrefab()
@@ -670,6 +700,9 @@ public class LPCSetupWizard : EditorWindow
 
         // Wire the default appearance config to JobClassData assets
         WireAppearanceToJobs();
+
+        // Wire BodyPartRegistry to SaveManager
+        WireRegistryToSaveManager();
     }
 
     private void WireAppearanceToJobs()
@@ -693,6 +726,27 @@ public class LPCSetupWizard : EditorWindow
         }
 
         AssetDatabase.SaveAssets();
+    }
+
+    private void WireRegistryToSaveManager()
+    {
+        string registryPath = DATA_ROOT + "/BodyPartRegistry.asset";
+        var registry = AssetDatabase.LoadAssetAtPath<BodyPartRegistry>(registryPath);
+        if (registry == null) return;
+
+        // Find the SaveManager in the scene or on a prefab
+        var saveManager = UnityEngine.Object.FindAnyObjectByType<SaveManager>();
+        if (saveManager != null)
+        {
+            var so = new SerializedObject(saveManager);
+            var prop = so.FindProperty("bodyPartRegistry");
+            if (prop != null && prop.objectReferenceValue == null)
+            {
+                prop.objectReferenceValue = registry;
+                so.ApplyModifiedProperties();
+                Debug.Log("[LPC Wizard] Wired BodyPartRegistry to SaveManager");
+            }
+        }
     }
 
     // ===== Helpers =====
