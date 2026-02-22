@@ -162,13 +162,13 @@ public class SaveManager : MonoBehaviour
                 }
             }
 
-            // Health integration (when PlayerHealth component exists)
-            // var health = player.GetComponent<PlayerHealth>();
-            // if (health != null)
-            // {
-            //     data.currentHealth = health.CurrentHealth;
-            //     data.maxHealth = health.MaxHealth;
-            // }
+            // Save current health
+            var healthSystem = player.GetComponent<HealthSystem>();
+            if (healthSystem != null)
+            {
+                data.currentHealth = Mathf.RoundToInt(healthSystem.CurrentHealth);
+                data.maxHealth = Mathf.RoundToInt(healthSystem.MaxHealth);
+            }
 
         }
 
@@ -531,12 +531,10 @@ public class SaveManager : MonoBehaviour
             playerController.RefreshAbilities();
         }
 
-        // Health integration (when PlayerHealth component exists)
-        // var health = player.GetComponent<PlayerHealth>();
-        // if (health != null)
-        // {
-        //     health.SetHealth(currentSaveData.currentHealth, currentSaveData.maxHealth);
-        // }
+        // Restore health — refill after stat scaling has set the correct maxHealth
+        var healthSystem = player.GetComponent<HealthSystem>();
+        if (healthSystem != null)
+            healthSystem.RefillHealth();
 
         // Apply skill system data
         if (SkillManager.Instance != null && currentSaveData.skillData != null)
@@ -629,6 +627,11 @@ public class SaveManager : MonoBehaviour
                 playerAppearance.ApplyAppearance(SkillManager.Instance.CurrentJob);
             }
         }
+
+        // New games always start at full health
+        var healthSystem = player.GetComponent<HealthSystem>();
+        if (healthSystem != null)
+            healthSystem.RefillHealth();
 
         Debug.Log($"[SaveManager] New game data applied - Class: {currentSaveData.startingClass}, Name: {currentSaveData.characterName}");
     }
