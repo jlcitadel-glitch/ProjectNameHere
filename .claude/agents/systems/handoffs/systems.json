@@ -1,63 +1,37 @@
 {
   "$schema": "handoff-v1",
   "agent": "systems",
-  "bead_id": "ProjectNameHere-tkb",
+  "bead_id": "ProjectNameHere-1xd",
   "status": "completed",
-  "timestamp": "2026-02-10T23:30:00-05:00",
-  "session_summary": "Implemented full parry system with Fighter/Mage/Rogue variants, created data assets, wired to Player prefab",
+  "timestamp": "2026-02-21T12:00:00-05:00",
+  "session_summary": "Fixed P0 bug: Escape key breaking after closing overlay menus (stat menu, skill tree). Added overlay menu registration to UIManager to prevent pause toggle while menus are open.",
   "done": [
-    "ParryType enum: ClassicParry, SpellMirror, ShadowStep",
-    "ParryData ScriptableObject: all timing/damage/effect values designer-editable",
-    "ParrySystem MonoBehaviour: core parry logic with class-specific behavior",
-    "CombatEnums: added Parrying state to CombatState",
-    "EnemyAttackData: added isParryable bool (default true)",
-    "EnemyAttackHitbox: parry check before damage + ApplyParryEffects helper (stun + counter-damage)",
-    "EnemyProjectile: parry check + ReflectProjectile for Mage spell mirror",
-    "PlayerControllerScript: Parry input callback, cached ParrySystem ref, RefreshAbilities updated",
-    "JobClassData: added parryData field",
-    "EnemyController: added ApplyStun(float duration) public method",
-    "InputSystem_Actions: added Parry action (F key / gamepad left trigger)",
-    "Created 3 ParryData assets: WarriorParry, MageParry, RogueParry",
-    "Wired ParryData assets to Warrior, Mage, Rogue JobClassData assets",
-    "Added ParrySystem component to Player prefab",
-    "Wired Parry input action event in PlayerInput on Player prefab"
+    "Added overlayMenuCount tracking to UIManager",
+    "Added RegisterOverlayMenu/UnregisterOverlayMenu public methods to UIManager",
+    "Guarded OnPauseInput and Update fallback with overlayMenuCount > 0 check",
+    "StatMenuController.Open() now calls UIManager.RegisterOverlayMenu()",
+    "StatMenuController.Close() now calls UIManager.UnregisterOverlayMenu()",
+    "StatMenuController input switching now routes through UIManager.SwitchToUIInput/SwitchToGameplayInput",
+    "SkillTreeController.Open() now calls UIManager.RegisterOverlayMenu()",
+    "SkillTreeController.Close() now calls UIManager.UnregisterOverlayMenu()",
+    "CI passes, committed and pushed"
   ],
   "remaining": [],
   "decisions": [
-    "Parry is a core combat mechanic, not a skill-tree skill — separate component + data asset",
-    "Single ParrySystem component handles all 3 variants via ParryType enum from data",
-    "Damage interception at EnemyAttackHitbox/EnemyProjectile OnTriggerEnter2D before ApplyDamage",
-    "Reflected projectiles switch to PlayerAttack layer (existing layer) to hit enemies",
-    "Shadow step repositions behind attacker using attacker facing direction",
-    "ParryData stored in ScriptableObjects/Combat/Parry/ (new folder)"
+    "Used counter (overlayMenuCount) instead of boolean to support multiple overlays open simultaneously",
+    "Overlay menus still manage Time.timeScale directly (not through GameManager) to avoid adding a new game state for menu-freeze",
+    "RegisterOverlayMenu is called before time freeze, UnregisterOverlayMenu before input switch back",
+    "StatMenuController now uses UIManager for input switching (was using playerInput directly before)"
   ],
   "files_touched": [
-    "Assets/_Project/Scripts/Combat/ParryType.cs",
-    "Assets/_Project/Scripts/Combat/Data/ParryData.cs",
-    "Assets/_Project/Scripts/Combat/ParrySystem.cs",
-    "Assets/_Project/Scripts/Combat/CombatEnums.cs",
-    "Assets/_Project/Scripts/Enemies/Data/EnemyAttackData.cs",
-    "Assets/_Project/Scripts/Enemies/Combat/EnemyAttackHitbox.cs",
-    "Assets/_Project/Scripts/Enemies/Combat/EnemyProjectile.cs",
-    "Assets/_Project/Scripts/Player/PlayerControllerScript.cs",
-    "Assets/_Project/Scripts/Skills/Data/JobClassData.cs",
-    "Assets/_Project/Scripts/Enemies/Core/EnemyController.cs",
-    "Assets/_Project/Settings/Input/InputSystem_Actions.inputactions",
-    "Assets/_Project/ScriptableObjects/Combat/Parry/WarriorParry.asset",
-    "Assets/_Project/ScriptableObjects/Combat/Parry/MageParry.asset",
-    "Assets/_Project/ScriptableObjects/Combat/Parry/RogueParry.asset",
-    "Assets/_Project/ScriptableObjects/Skills/Jobs/Warrior.asset",
-    "Assets/_Project/ScriptableObjects/Skills/Jobs/Mage.asset",
-    "Assets/_Project/ScriptableObjects/Skills/Jobs/Rogue.asset",
-    "Assets/_Project/Prefabs/Player/Player.prefab"
+    "Assets/_Project/Scripts/UI/Core/UIManager.cs",
+    "Assets/_Project/Scripts/UI/Stats/StatMenuController.cs",
+    "Assets/_Project/Scripts/UI/Skills/SkillTreeController.cs"
   ],
-  "beads_created": [
-    "ProjectNameHere-tkb"
-  ],
+  "beads_created": [],
   "next_steps": [
-    "Playtest each class parry in-editor: Fighter stun+counter, Mage reflect, Rogue shadow step",
-    "Add parry animations per class (currently no animation triggers)",
-    "Assign parrySound and parryVFXPrefab to the 3 ParryData assets when audio/VFX are ready",
-    "Consider adding parry to Beginner class (currently null parryData = no parry)"
+    "Playtest: Level up -> open stat menu -> press Escape -> verify menu closes cleanly without pause",
+    "Playtest: Open skill tree -> press Escape -> verify same clean close behavior",
+    "Consider centralizing Time.timeScale in GameManager for overlay menus (add a MenuOpen state) in a future pass"
   ]
 }

@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEditor;
+using UnityEditor.U2D.Sprites;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -424,26 +425,43 @@ public class LPCSetupWizard : EditorWindow
         var importer = AssetImporter.GetAtPath(assetPath) as TextureImporter;
         if (importer == null) return new Sprite[0];
 
+        // Use ISpriteEditorDataProvider (replaces obsolete importer.spritesheet)
+        var factory = new SpriteDataProviderFactories();
+        factory.Init();
+        var dataProvider = factory.GetSpriteEditorDataProviderFromObject(importer);
+        dataProvider.InitSpriteEditorDataProvider();
+
         // Build sprite rects
-        var rects = new List<SpriteMetaData>();
+        var spriteRects = new List<SpriteRect>();
         for (int row = 0; row < rows; row++)
         {
             for (int col = 0; col < cols; col++)
             {
-                var meta = new SpriteMetaData();
-                meta.name = $"{Path.GetFileNameWithoutExtension(assetPath)}_{row}_{col}";
-                meta.rect = new Rect(
-                    col * FRAME_SIZE,
-                    (rows - 1 - row) * FRAME_SIZE, // Unity textures are bottom-up
-                    FRAME_SIZE,
-                    FRAME_SIZE);
-                meta.alignment = (int)SpriteAlignment.BottomCenter;
-                meta.pivot = new Vector2(0.5f, 0f);
-                rects.Add(meta);
+                spriteRects.Add(new SpriteRect
+                {
+                    name = $"{Path.GetFileNameWithoutExtension(assetPath)}_{row}_{col}",
+                    spriteID = GUID.Generate(),
+                    rect = new Rect(
+                        col * FRAME_SIZE,
+                        (rows - 1 - row) * FRAME_SIZE, // Unity textures are bottom-up
+                        FRAME_SIZE,
+                        FRAME_SIZE),
+                    alignment = SpriteAlignment.BottomCenter,
+                    pivot = new Vector2(0.5f, 0f)
+                });
             }
         }
 
-        importer.spritesheet = rects.ToArray();
+        dataProvider.SetSpriteRects(spriteRects.ToArray());
+
+        // Register name-to-GUID mappings (required in Unity 6)
+        var nameFileIdProvider = dataProvider.GetDataProvider<ISpriteNameFileIdDataProvider>();
+        var nameFileIdPairs = spriteRects
+            .Select(s => new SpriteNameFileIdPair(s.name, s.spriteID))
+            .ToList();
+        nameFileIdProvider.SetNameFileIdPairs(nameFileIdPairs);
+
+        dataProvider.Apply();
         importer.SaveAndReimport();
 
         // Load all sprites from the asset
