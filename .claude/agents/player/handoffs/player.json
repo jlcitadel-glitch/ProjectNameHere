@@ -1,29 +1,22 @@
 {
   "agent": "player",
-  "bead": "ProjectNameHere-evp",
+  "bead": "ProjectNameHere-7ai",
   "status": "closed",
   "timestamp": "2026-02-22T00:00:00Z",
-  "summary": "LPC layered sprite character system Phase 1 complete. All 6 core scripts committed, LPCSetupWizard editor tool committed, body sprites imported, Player prefab updated with SortingGroup/AnimationFrameDriver/LayeredSpriteController.",
+  "summary": "Fixed LPCSetupWizard.SetupPlayerPrefab() to add PlayerAppearance component to Player prefab. The wizard now adds PlayerAppearance after LayeredSpriteController, following the same pattern as other components.",
   "completed": [
-    "LayeredSpriteController, AnimationFrameDriver, BodyPartSlot, BodyPartData, CharacterAppearanceConfig, AnimationStateFrameMap scripts",
-    "PlayerAppearance updated for layered/fallback rendering",
-    "PlayerHurtVFX updated for multi-layer flash",
-    "JobClassData extended with defaultAppearance field",
-    "LPCSetupWizard editor tool for automated setup",
-    "Fixed armor tint (armorPrimaryTint/armorSecondaryTint) not applied to Torso/Legs",
-    "Fixed wizard state names to match Player.controller (Attack1/2/3, Roll, Death, WallSlide, LedgeGrab)",
+    "Updated SetupPlayerPrefab() to add PlayerAppearance if missing",
     "CI passes (all 5 checks)"
   ],
   "remaining": [
-    "ProjectNameHere-7ai: Add PlayerAppearance component to Player prefab (P1 bug)",
     "ProjectNameHere-d0r: Import head and hair LPC sprite assets (P2)",
     "ProjectNameHere-eha: Create BodyPartData and CharacterAppearanceConfig assets (P2, blocked by d0r)",
     "ProjectNameHere-zei: Phase 2 save/load character appearance (P3, blocked by eha)",
     "ProjectNameHere-mlo: Phase 3 character creation UI (P4, blocked by zei)"
   ],
   "next_steps": [
-    "Fix PlayerAppearance missing from prefab (7ai) - either update wizard or add manually in Editor",
-    "Run LPCSetupWizard in Unity Editor to download head/hair sprites and create data assets",
-    "Test layered rendering in Play mode"
+    "Re-run LPCSetupWizard in Unity Editor to apply PlayerAppearance to prefab",
+    "Import head/hair sprites (d0r) then create data assets (eha)",
+    "Test layered rendering with job class switching in Play mode"
   ]
 }
