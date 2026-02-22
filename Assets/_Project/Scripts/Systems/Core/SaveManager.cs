@@ -21,6 +21,13 @@ public class SaveManager : MonoBehaviour
     [Tooltip("Registry for resolving body part IDs during save/load")]
     [SerializeField] private BodyPartRegistry bodyPartRegistry;
 
+    private BodyPartRegistry GetBodyPartRegistry()
+    {
+        if (bodyPartRegistry == null)
+            bodyPartRegistry = Resources.Load<BodyPartRegistry>("BodyPartRegistry");
+        return bodyPartRegistry;
+    }
+
     public int ActiveSlotIndex => activeSlotIndex;
 
     public event Action OnSaveCompleted;
@@ -565,9 +572,9 @@ public class SaveManager : MonoBehaviour
         var playerAppearance = player.GetComponent<PlayerAppearance>();
         if (playerAppearance != null)
         {
-            if (currentSaveData.appearanceData != null && currentSaveData.appearanceData.HasAnyParts() && bodyPartRegistry != null)
+            if (currentSaveData.appearanceData != null && currentSaveData.appearanceData.HasAnyParts() && GetBodyPartRegistry() != null)
             {
-                var config = currentSaveData.appearanceData.ToConfig(bodyPartRegistry);
+                var config = currentSaveData.appearanceData.ToConfig(GetBodyPartRegistry());
                 if (config != null)
                     playerAppearance.ApplyConfig(config);
             }
@@ -616,9 +623,9 @@ public class SaveManager : MonoBehaviour
         var playerAppearance = player.GetComponent<PlayerAppearance>();
         if (playerAppearance != null)
         {
-            if (currentSaveData.appearanceData != null && currentSaveData.appearanceData.HasAnyParts() && bodyPartRegistry != null)
+            if (currentSaveData.appearanceData != null && currentSaveData.appearanceData.HasAnyParts() && GetBodyPartRegistry() != null)
             {
-                var config = currentSaveData.appearanceData.ToConfig(bodyPartRegistry);
+                var config = currentSaveData.appearanceData.ToConfig(GetBodyPartRegistry());
                 if (config != null)
                     playerAppearance.ApplyConfig(config);
             }
