@@ -528,6 +528,14 @@ namespace ProjectName.UI
 
         private bool HasAppearanceOptions()
         {
+            // Lazy-find registry if not set (e.g. reused from AutoFindReferences)
+            if (bodyPartRegistry == null)
+            {
+                var registries = Resources.FindObjectsOfTypeAll<BodyPartRegistry>();
+                if (registries.Length > 0)
+                    bodyPartRegistry = registries[0];
+            }
+
             if (bodyPartRegistry == null || bodyPartRegistry.allParts == null)
                 return false;
 
