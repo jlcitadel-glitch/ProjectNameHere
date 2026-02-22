@@ -20,6 +20,12 @@ public class PlayerAppearance : MonoBehaviour
 
         if (animator != null)
             originalAnimator = animator.runtimeAnimatorController;
+
+        // Ensure the fallback renderer is enabled at startup so the character
+        // is visible even before a job appearance is applied. ApplyAppearance()
+        // will disable it later if a layered appearance config is available.
+        if (fallbackRenderer != null && layeredSprite != null)
+            fallbackRenderer.enabled = true;
     }
 
     private void Start()
@@ -74,14 +80,23 @@ public class PlayerAppearance : MonoBehaviour
         if (layeredSprite != null && jobData.defaultAppearance != null)
         {
             ApplyConfig(jobData.defaultAppearance);
-        }
 
-        // Fallback: set sprite directly if no layered system or no appearance config
-        if (layeredSprite == null && fallbackRenderer != null && jobData.defaultSprite != null)
+            // Disable root SpriteRenderer when layered system is active
+            if (fallbackRenderer != null)
+                fallbackRenderer.enabled = false;
+        }
+        else
         {
-            if (animator == null || animator.runtimeAnimatorController == null)
+            // No layered appearance — ensure root SpriteRenderer is enabled
+            // so the Animator can drive it as before
+            if (fallbackRenderer != null)
+                fallbackRenderer.enabled = true;
+
+            // If no animator controller, set the sprite directly
+            if (fallbackRenderer != null && jobData.defaultSprite != null)
             {
-                fallbackRenderer.sprite = jobData.defaultSprite;
+                if (animator == null || animator.runtimeAnimatorController == null)
+                    fallbackRenderer.sprite = jobData.defaultSprite;
             }
         }
 

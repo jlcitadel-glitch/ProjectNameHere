@@ -53,7 +53,7 @@ public class PlayerHurtVFX : MonoBehaviour
 
         if (isFlashing)
         {
-            if (layeredSprite != null)
+            if (UseLayeredFlash())
                 layeredSprite.RestoreAllTints();
             else if (fallbackRenderer != null)
                 fallbackRenderer.color = originalColor;
@@ -69,7 +69,7 @@ public class PlayerHurtVFX : MonoBehaviour
         flashTimer -= Time.deltaTime;
         if (flashTimer <= 0f)
         {
-            if (layeredSprite != null)
+            if (UseLayeredFlash())
                 layeredSprite.RestoreAllTints();
             else if (fallbackRenderer != null)
                 fallbackRenderer.color = originalColor;
@@ -84,9 +84,16 @@ public class PlayerHurtVFX : MonoBehaviour
         TriggerScreenFlash();
     }
 
+    private bool UseLayeredFlash()
+    {
+        // Use layered flash only when the layered system is actively rendering
+        // (fallback renderer disabled means layered appearance is applied)
+        return layeredSprite != null && fallbackRenderer != null && !fallbackRenderer.enabled;
+    }
+
     private void FlashSprite()
     {
-        if (layeredSprite != null)
+        if (UseLayeredFlash())
         {
             layeredSprite.FlashAll(flashColor);
             flashTimer = flashDuration;
