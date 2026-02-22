@@ -643,6 +643,13 @@ public class LPCSetupWizard : EditorWindow
                 Debug.Log("[LPC Wizard] Added LayeredSpriteController to Player");
             }
 
+            // Add PlayerAppearance if missing (bridges SkillManager job system to layered visuals)
+            if (prefabRoot.GetComponent<PlayerAppearance>() == null)
+            {
+                prefabRoot.AddComponent<PlayerAppearance>();
+                Debug.Log("[LPC Wizard] Added PlayerAppearance to Player");
+            }
+
             // Disable the root SpriteRenderer (don't remove it to avoid breaking other refs)
             var rootSR = prefabRoot.GetComponent<SpriteRenderer>();
             if (rootSR != null)
