@@ -68,6 +68,11 @@ namespace ProjectName.UI
         private UIAnimatedSprite mageAnimSprite;
         private UIAnimatedSprite rogueAnimSprite;
 
+        // Layered character previews for class cards
+        private UILayeredSpritePreview warriorLayeredPreview;
+        private UILayeredSpritePreview mageLayeredPreview;
+        private UILayeredSpritePreview rogueLayeredPreview;
+
         // Creation data
         private string characterName = "";
         private JobClassData selectedClass;
@@ -225,6 +230,12 @@ namespace ProjectName.UI
 
             if (appearancePreview != null)
                 appearancePreview.Clear();
+            if (warriorLayeredPreview != null)
+                warriorLayeredPreview.Clear();
+            if (mageLayeredPreview != null)
+                mageLayeredPreview.Clear();
+            if (rogueLayeredPreview != null)
+                rogueLayeredPreview.Clear();
 
             HideAllPanels();
         }
@@ -316,6 +327,9 @@ namespace ProjectName.UI
 
             // Set initial static previews from JobClassData
             SetInitialPreviews();
+
+            // Apply customized character appearance to class card previews
+            ApplyAppearanceToClassCards();
 
             // Disable confirm until a class is selected
             if (classConfirmButton != null)
@@ -473,6 +487,51 @@ namespace ProjectName.UI
                 previewImage.sprite = MakeCharacterSilhouette(body, accent);
                 previewImage.color = Color.white;
             }
+        }
+
+        /// <summary>
+        /// Applies the player's customized appearance to each class card's layered preview.
+        /// Merges the player's base appearance (body/head/hair/tints) with each class's
+        /// gear (torso/legs/weapons) when available.
+        /// </summary>
+        private void ApplyAppearanceToClassCards()
+        {
+            if (builtAppearance == null) return;
+
+            ApplyAppearanceToCard(warriorLayeredPreview, warriorPreviewImage, warriorData);
+            ApplyAppearanceToCard(mageLayeredPreview, magePreviewImage, mageData);
+            ApplyAppearanceToCard(rogueLayeredPreview, roguePreviewImage, rogueData);
+        }
+
+        private void ApplyAppearanceToCard(UILayeredSpritePreview preview, Image fallbackImage, JobClassData jobData)
+        {
+            if (preview == null || builtAppearance == null) return;
+
+            // Create a merged config: player's base appearance + class gear
+            var merged = ScriptableObject.CreateInstance<CharacterAppearanceConfig>();
+            merged.body = builtAppearance.body;
+            merged.head = builtAppearance.head;
+            merged.hair = builtAppearance.hair;
+            merged.skinTint = builtAppearance.skinTint;
+            merged.hairTint = builtAppearance.hairTint;
+
+            // Overlay class-specific gear if available
+            if (jobData != null && jobData.defaultAppearance != null)
+            {
+                var classAppearance = jobData.defaultAppearance;
+                if (classAppearance.torso != null) merged.torso = classAppearance.torso;
+                if (classAppearance.legs != null) merged.legs = classAppearance.legs;
+                if (classAppearance.weaponBehind != null) merged.weaponBehind = classAppearance.weaponBehind;
+                if (classAppearance.weaponFront != null) merged.weaponFront = classAppearance.weaponFront;
+                merged.armorPrimaryTint = classAppearance.armorPrimaryTint;
+                merged.armorSecondaryTint = classAppearance.armorSecondaryTint;
+            }
+
+            preview.ApplyConfig(merged);
+
+            // Hide fallback static image when layered preview is active
+            if (fallbackImage != null)
+                fallbackImage.enabled = false;
         }
 
         /// <summary>
@@ -743,14 +802,17 @@ namespace ProjectName.UI
             // Class cards row
             var classRow = MakeHRow(content.transform, 80f, 620f);
 
-            ctrl.warriorButton = MakeClassCard(classRow.transform, "Warrior", out var warriorImg);
+            ctrl.warriorButton = MakeClassCard(classRow.transform, "Warrior", out var warriorImg, out var warriorLP);
             ctrl.warriorPreviewImage = warriorImg;
+            ctrl.warriorLayeredPreview = warriorLP;
 
-            ctrl.mageButton = MakeClassCard(classRow.transform, "Mage", out var mageImg);
+            ctrl.mageButton = MakeClassCard(classRow.transform, "Mage", out var mageImg, out var mageLP);
             ctrl.magePreviewImage = mageImg;
+            ctrl.mageLayeredPreview = mageLP;
 
-            ctrl.rogueButton = MakeClassCard(classRow.transform, "Rogue", out var rogueImg);
+            ctrl.rogueButton = MakeClassCard(classRow.transform, "Rogue", out var rogueImg, out var rogueLP);
             ctrl.roguePreviewImage = rogueImg;
+            ctrl.rogueLayeredPreview = rogueLP;
 
             MakeSpacer(content.transform, 30f);
             ctrl.classNameText = MakeLabel(content.transform, "Which road will you travel?", 38f);
@@ -844,7 +906,7 @@ namespace ProjectName.UI
             ctrl.appearanceBackButton = MakeButton(navRow.transform, "Back", 220f, 60f);
             var backTmp = ctrl.appearanceBackButton.GetComponentInChildren<TextMeshProUGUI>();
             if (backTmp != null) backTmp.fontSize = 28f;
-            ctrl.appearanceConfirmButton = MakeButton(navRow.transform, "Start Game", 280f, 60f);
+            ctrl.appearanceConfirmButton = MakeButton(navRow.transform, "Next", 280f, 60f);
             var confirmTmp = ctrl.appearanceConfirmButton.GetComponentInChildren<TextMeshProUGUI>();
             if (confirmTmp != null) confirmTmp.fontSize = 28f;
         }
@@ -859,7 +921,8 @@ namespace ProjectName.UI
         /// <summary>
         /// Builds a class card: vertical container with preview image on top and button below.
         /// </summary>
-        private static Button MakeClassCard(Transform parent, string className, out Image previewImage)
+        private static Button MakeClassCard(Transform parent, string className,
+            out Image previewImage, out UILayeredSpritePreview layeredPreview)
         {
             var cardGo = MakeUIObject(className + "Card", parent);
             var cardLayout = cardGo.AddComponent<LayoutElement>();
@@ -881,7 +944,7 @@ namespace ProjectName.UI
             var containerLayout = imgContainer.AddComponent<LayoutElement>();
             containerLayout.preferredHeight = 520f;
 
-            // Preview image (fills container, preserves aspect ratio)
+            // Preview image (fills container, preserves aspect ratio) — fallback when no layered appearance
             var imgGo = MakeUIObject("Preview", imgContainer.transform);
             var img = imgGo.AddComponent<Image>();
             img.preserveAspect = true;
@@ -892,6 +955,15 @@ namespace ProjectName.UI
             imgRect.offsetMin = Vector2.zero;
             imgRect.offsetMax = Vector2.zero;
             previewImage = img;
+
+            // Layered character preview (on top of fallback image, stretched to fill)
+            var layeredGo = MakeUIObject("LayeredPreview", imgContainer.transform);
+            var layeredRect = layeredGo.GetComponent<RectTransform>();
+            layeredRect.anchorMin = Vector2.zero;
+            layeredRect.anchorMax = Vector2.one;
+            layeredRect.offsetMin = Vector2.zero;
+            layeredRect.offsetMax = Vector2.zero;
+            layeredPreview = layeredGo.AddComponent<UILayeredSpritePreview>();
 
             // Class button
             var btn = MakeButton(cardGo.transform, className, 400f, 80f);

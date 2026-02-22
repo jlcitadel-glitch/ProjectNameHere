@@ -28,11 +28,12 @@ public class StatSystem : MonoBehaviour
 
     // Component references
     private LevelSystem levelSystem;
+    private EquipmentManager equipmentManager;
 
-    // Total stats
-    public int Strength => baseStrength + allocatedStrength;
-    public int Intelligence => baseIntelligence + allocatedIntelligence;
-    public int Agility => baseAgility + allocatedAgility;
+    // Total stats (base + allocated + equipment)
+    public int Strength => baseStrength + allocatedStrength + GetEquipmentBonus(0);
+    public int Intelligence => baseIntelligence + allocatedIntelligence + GetEquipmentBonus(1);
+    public int Agility => baseAgility + allocatedAgility + GetEquipmentBonus(2);
     public int AvailableStatPoints => availableStatPoints;
 
     // Derived stats
@@ -56,9 +57,29 @@ public class StatSystem : MonoBehaviour
     public event Action OnStatsChanged;
     public event Action<int> OnStatPointsChanged;
 
+    /// <summary>
+    /// Returns equipment bonus for a stat. 0=STR, 1=INT, 2=AGI.
+    /// </summary>
+    private int GetEquipmentBonus(int statIndex)
+    {
+        if (equipmentManager == null)
+            equipmentManager = GetComponent<EquipmentManager>();
+        if (equipmentManager == null)
+            return 0;
+
+        return statIndex switch
+        {
+            0 => equipmentManager.GetTotalBonusSTR(),
+            1 => equipmentManager.GetTotalBonusINT(),
+            2 => equipmentManager.GetTotalBonusAGI(),
+            _ => 0
+        };
+    }
+
     private void Awake()
     {
         levelSystem = GetComponent<LevelSystem>();
+        equipmentManager = GetComponent<EquipmentManager>();
     }
 
     private void Start()

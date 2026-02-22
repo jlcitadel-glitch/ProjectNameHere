@@ -109,6 +109,9 @@ namespace ProjectName.UI
             // Ensure the skill tree exists for gameplay scenes
             EnsureSkillTree();
 
+            // Ensure the equipment menu exists for gameplay scenes
+            EnsureEquipmentMenu();
+
             // Ensure damage number spawner exists for gameplay scenes
             EnsureDamageNumberSpawner();
 
@@ -486,6 +489,19 @@ namespace ProjectName.UI
 
             SkillTreeController.CreateRuntimeUI();
             Debug.Log("[UIManager] Created runtime SkillTree");
+        }
+
+        private void EnsureEquipmentMenu()
+        {
+            if (IsMainMenuScene())
+                return;
+
+            var existing = FindObjectsByType<EquipmentMenuController>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            if (existing.Length > 0)
+                return;
+
+            EquipmentMenuController.CreateRuntimeUI();
+            Debug.Log("[UIManager] Created runtime EquipmentMenu");
         }
 
         private void EnsureDamageNumberSpawner()

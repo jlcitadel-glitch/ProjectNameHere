@@ -84,6 +84,9 @@ public class SaveManager : MonoBehaviour
         // Character appearance (v6)
         public CharacterAppearanceSaveData appearanceData;
 
+        // Equipment (v7)
+        public string[] equippedItemIds;
+
         // Metadata
         public string saveTimestamp;
 
@@ -222,6 +225,14 @@ public class SaveManager : MonoBehaviour
             {
                 data.appearanceData = CharacterAppearanceSaveData.FromConfig(playerAppearance.CurrentConfig);
             }
+        }
+
+        // Equipment save
+        if (player != null)
+        {
+            var equipmentManager = player.GetComponent<EquipmentManager>();
+            if (equipmentManager != null)
+                data.equippedItemIds = equipmentManager.GetEquippedIds();
         }
 
         // Carry over death count
@@ -584,6 +595,13 @@ public class SaveManager : MonoBehaviour
             }
         }
 
+        // Apply equipment
+        var equipmentManager = player.GetComponent<EquipmentManager>();
+        if (equipmentManager == null)
+            equipmentManager = player.AddComponent<EquipmentManager>();
+        if (currentSaveData.equippedItemIds != null && currentSaveData.equippedItemIds.Length > 0)
+            equipmentManager.LoadFromIds(currentSaveData.equippedItemIds);
+
         Debug.Log("[SaveManager] Save data applied to game world.");
     }
 
@@ -634,6 +652,13 @@ public class SaveManager : MonoBehaviour
                 playerAppearance.ApplyAppearance(SkillManager.Instance.CurrentJob);
             }
         }
+
+        // Equip starter gear for the chosen class
+        var equipmentManager = player.GetComponent<EquipmentManager>();
+        if (equipmentManager == null)
+            equipmentManager = player.AddComponent<EquipmentManager>();
+        if (SkillManager.Instance?.CurrentJob != null)
+            equipmentManager.EquipStarterGear(SkillManager.Instance.CurrentJob);
 
         // New games always start at full health
         var healthSystem = player.GetComponent<HealthSystem>();

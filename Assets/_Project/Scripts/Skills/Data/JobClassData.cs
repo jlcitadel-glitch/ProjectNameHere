@@ -108,6 +108,10 @@ public class JobClassData : ScriptableObject
     [Tooltip("Static fallback sprite when no animation is available")]
     public Sprite defaultSprite;
 
+    [Header("Starter Equipment")]
+    [Tooltip("Equipment given to new characters who select this class")]
+    public EquipmentData[] starterEquipment;
+
     /// <summary>
     /// Checks if a player meets the requirements to advance to this job.
     /// </summary>
