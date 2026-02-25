@@ -164,7 +164,8 @@ public static class CreateAllEnemies
         SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
         if (defaultSprite != null)
             sr.sprite = defaultSprite;
-        sr.sortingOrder = 1;
+        sr.sortingLayerName = "Ground";
+        sr.sortingOrder = 10;
 
         // Rigidbody2D
         Rigidbody2D rb = go.AddComponent<Rigidbody2D>();

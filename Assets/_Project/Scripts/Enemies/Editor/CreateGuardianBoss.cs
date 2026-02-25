@@ -42,7 +42,8 @@ public static class CreateGuardianBoss
         // --- SpriteRenderer with placeholder ---
         SpriteRenderer sr = bossGO.AddComponent<SpriteRenderer>();
         sr.sprite = CreatePlaceholderSprite();
-        sr.sortingOrder = 1;
+        sr.sortingLayerName = "Ground";
+        sr.sortingOrder = 10;
 
         // --- Rigidbody2D ---
         Rigidbody2D rb = bossGO.AddComponent<Rigidbody2D>();

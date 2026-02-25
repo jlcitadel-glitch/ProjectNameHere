@@ -202,6 +202,11 @@ EnemyPrefab
 └── AttackOrigin (child — auto-created if missing)
 ```
 
+**CRITICAL — SpriteRenderer setup for new prefabs:**
+- Material: `Sprites-Default` (built-in, NOT URP Sprite-Lit-Default)
+- Sorting Layer: `Ground` (layer 5), Order: `10`
+- Reference Bat.prefab or Slime.prefab for correct values
+
 ---
 
 ## Debugging Strategy (Proven Feb 2026)
@@ -225,6 +230,14 @@ Isolated changes with clear before/after verification.
 ---
 
 ## Common Issues
+
+### Enemy Invisible (Sprite Not Rendering)
+**Root cause:** SpriteRenderer using wrong material and/or sorting layer. New prefabs default to URP `Sprite-Lit-Default` material and `Default` sorting layer — both cause invisibility.
+**Required SpriteRenderer settings for all enemy prefabs:**
+- **Material:** Built-in `Sprites-Default` (`fileID: 10754, guid: 0000000000000000f000000000000000, type: 0`)
+- **Sorting Layer:** `Ground` (index 5, ID `1790128183`)
+- **Sorting Order:** `10`
+**Verify against:** Bat.prefab or Slime.prefab (known-good references).
 
 ### Enemy Not Moving (Frozen Despite Non-Zero Velocity)
 **Root cause:** Animator overrides physics position every frame. Animation clips with `Transform.localPosition` keyframes snap enemy back.

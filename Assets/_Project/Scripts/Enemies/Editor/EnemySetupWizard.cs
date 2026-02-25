@@ -444,6 +444,8 @@ public class EnemySetupWizard : EditorWindow
         {
             sr.sprite = enemySprite;
         }
+        sr.sortingLayerName = "Ground";
+        sr.sortingOrder = 10;
 
         // Add Rigidbody2D
         Rigidbody2D rb = enemyGO.AddComponent<Rigidbody2D>();
