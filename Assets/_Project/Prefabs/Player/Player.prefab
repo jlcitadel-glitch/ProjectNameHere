@@ -27,6 +27,7 @@ GameObject:
   - component: {fileID: 4007111283195755229}
   - component: {fileID: 4011588737219984215}
   - component: {fileID: 1570853246278437762}
+  - component: {fileID: 4892000620061988450}
   m_Layer: 6
   m_Name: Player
   m_TagString: Player
@@ -143,8 +144,8 @@ CapsuleCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: -0.043237656, y: 0.7043557}
-  m_Size: {x: 0.6148533, y: 1.2831769}
+  m_Offset: {x: 0, y: 1.1}
+  m_Size: {x: 1.0, y: 2.2}
   m_Direction: 0
 --- !u!50 &2268985004935060955
 Rigidbody2D:
@@ -344,19 +345,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   rb: {fileID: 2268985004935060955}
-  speed: 10
-  jumpingPower: 18
-  jumpCutMultiplier: 0.3
+  speed: 6
+  jumpingPower: 14
+  jumpCutMultiplier: 0.4
   coyoteTime: 0.15
   jumpBufferTime: 0.1
-  baseGravityScale: 3
-  fallGravityMultiplier: 5
-  maxFallSpeed: -30
+  baseGravityScale: 2
+  fallGravityMultiplier: 3
+  maxFallSpeed: -20
   groundLayer:
     serializedVersion: 2
     m_Bits: 129
   groundCheck: {fileID: 7815163999142919841}
-  groundCheckRadius: 0.2
+  groundCheckRadius: 0.3
   jumpSound: {fileID: 0}
   jumpVolume: 1
   landSound: {fileID: 0}
@@ -549,7 +550,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec1c3d381ca7ac84abf351e927ae5229, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DashAbility
-  dashSpeed: 20
+  dashSpeed: 15
   dashDuration: 0.2
   dashCooldown: 1
 --- !u!210 &4007111283195755229
@@ -593,6 +594,18 @@ MonoBehaviour:
   sortingLayerName: Default
   baseSortingOrder: 0
   logFrameChanges: 0
+--- !u!114 &4892000620061988450
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2553238395389881092}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3086202ac899f7b4c988f1f76dcbaa6e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerAppearance
 --- !u!1 &6872185932980887859
 GameObject:
   m_ObjectHideFlags: 0
