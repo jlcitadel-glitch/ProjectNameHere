@@ -54,14 +54,15 @@ public class LPCSetupWizard : EditorWindow
     };
 
     // Hair styles to download (each becomes a separate BodyPartData with slot=Hair)
-    // "short" and "mohawk" removed — do not exist in LPC repo
-    // "ponytail" uses fg/bg layers — handled by fg/ fallback in download logic
+    // Removed: "short", "mohawk", "messy" (don't exist in LPC repo)
+    // "ponytail", "braid", "wavy", "xlong" use fg/bg layers — handled by fg/ fallback
     private static readonly string[] HAIR_STYLES = new string[]
     {
         "long", "bob", "pixie", "ponytail",
         "afro", "cornrows", "dreadlocks_long", "dreadlocks_short",
         "natural", "braid", "curly_short", "curly_long",
-        "messy", "bangs", "wavy", "buzzcut", "shorthawk", "xlong"
+        "bangs", "wavy", "buzzcut", "shorthawk", "xlong",
+        "messy1", "loose", "plain", "jewfro"
     };
 
     // Equipment sprites to download (each becomes a BodyPartData for visual equipment)
@@ -72,7 +73,7 @@ public class LPCSetupWizard : EditorWindow
         new PartDef("legs_armour",        BodyPartSlot.Legs,        "legs/armour/plate/male",            "steel"),
         new PartDef("weapon_longsword",   BodyPartSlot.WeaponFront, "weapon/sword/longsword",            "longsword"),
         // Mage
-        new PartDef("torso_longsleeve",   BodyPartSlot.Torso,       "torso/clothes/longsleeve/male",     "white"),
+        new PartDef("torso_longsleeve",   BodyPartSlot.Torso,       "torso/clothes/longsleeve/longsleeve/male", "white"),
         new PartDef("legs_pants_teal",    BodyPartSlot.Legs,        "legs/pants/male",                   "teal"),
         new PartDef("weapon_staff",       BodyPartSlot.WeaponFront, "weapon/magic/simple/foreground",    "simple"),
         // Rogue
@@ -323,6 +324,14 @@ public class LPCSetupWizard : EditorWindow
         statusMessage = $"Downloaded {downloaded} sprites. Import settings configured.";
     }
 
+    // Some LPC equipment uses different animation folder names than our standard names.
+    // Key: our animation name, Values: alternative names to try in order.
+    private static readonly Dictionary<string, string[]> EQUIP_ANIM_ALIASES = new Dictionary<string, string[]>
+    {
+        { "slash",  new[] { "slash", "attack_slash" } },
+        { "thrust", new[] { "thrust", "attack_thrust" } },
+    };
+
     private void DownloadEquipmentSprites()
     {
         statusMessage = "Downloading equipment sprites...";
@@ -346,32 +355,63 @@ public class LPCSetupWizard : EditorWindow
 
                 statusMessage = $"Downloading {part.name}/{anim.name}...";
 
-                // Equipment uses colorVariant pattern: {repoPath}/{anim}/{colorVariant}.png
-                string url = $"{GITHUB_RAW_BASE}{part.repoPath}/{anim.name}/{part.colorVariant}.png";
+                // Build list of animation name variants to try
+                string[] animNames = EQUIP_ANIM_ALIASES.ContainsKey(anim.name)
+                    ? EQUIP_ANIM_ALIASES[anim.name]
+                    : new[] { anim.name };
 
-                try
+                bool success = false;
+                foreach (var animName in animNames)
                 {
-                    using (var client = new System.Net.WebClient())
-                    {
-                        client.DownloadFile(url, fullPath);
-                        downloaded++;
-                    }
-                }
-                catch (System.Exception)
-                {
-                    // Try without color variant subdirectory
+                    if (success) break;
+
+                    // Pattern 1: {repoPath}/{animName}/{colorVariant}.png
                     try
                     {
-                        string altUrl = $"{GITHUB_RAW_BASE}{part.repoPath}/{anim.name}.png";
+                        string url = $"{GITHUB_RAW_BASE}{part.repoPath}/{animName}/{part.colorVariant}.png";
                         using (var client = new System.Net.WebClient())
                         {
-                            client.DownloadFile(altUrl, fullPath);
+                            client.DownloadFile(url, fullPath);
                             downloaded++;
+                            success = true;
                         }
                     }
-                    catch (System.Exception)
+                    catch (System.Exception) { }
+
+                    // Pattern 2: {repoPath}/{animName}.png (no color variant)
+                    if (!success)
                     {
-                        Debug.LogWarning($"[LPC Wizard] Failed to download equipment sprite: {part.name}/{anim.name}");
+                        try
+                        {
+                            string url = $"{GITHUB_RAW_BASE}{part.repoPath}/{animName}.png";
+                            using (var client = new System.Net.WebClient())
+                            {
+                                client.DownloadFile(url, fullPath);
+                                downloaded++;
+                                success = true;
+                            }
+                        }
+                        catch (System.Exception) { }
+                    }
+                }
+
+                if (!success)
+                    Debug.Log($"[LPC Wizard] Equipment anim not available (expected): {part.name}/{anim.name}");
+            }
+
+            // Post-download: copy walk.png as fallback for missing idle/run/jump.
+            // Most LPC equipment only provides walk + combat animations.
+            // Walk frames are a valid substitute for idle/run/jump visuals.
+            string walkSrc = Path.GetFullPath(Path.Combine(partDir, "walk.png"));
+            if (File.Exists(walkSrc))
+            {
+                foreach (var fallback in new[] { "idle", "run", "jump" })
+                {
+                    string fallbackPath = Path.GetFullPath(Path.Combine(partDir, $"{fallback}.png"));
+                    if (!File.Exists(fallbackPath))
+                    {
+                        File.Copy(walkSrc, fallbackPath);
+                        Debug.Log($"[LPC Wizard] Using walk.png as {fallback}.png fallback for {part.name}");
                     }
                 }
             }

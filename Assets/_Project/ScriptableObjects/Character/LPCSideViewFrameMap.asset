@@ -23,50 +23,55 @@ MonoBehaviour:
     frameCount: 8
     frameRate: 10
     loop: 1
-  - stateName: Walk
-    startFrameIndex: 12
-    frameCount: 9
-    frameRate: 8
-    loop: 1
   - stateName: Jump
-    startFrameIndex: 21
+    startFrameIndex: 12
     frameCount: 6
     frameRate: 10
     loop: 0
   - stateName: Fall
-    startFrameIndex: 27
+    startFrameIndex: 18
     frameCount: 2
     frameRate: 8
     loop: 1
-  - stateName: Slash
-    startFrameIndex: 29
+  - stateName: Attack1
+    startFrameIndex: 20
     frameCount: 6
     frameRate: 12
     loop: 0
-  - stateName: Thrust
-    startFrameIndex: 35
+  - stateName: Attack2
+    startFrameIndex: 26
     frameCount: 8
     frameRate: 12
     loop: 0
-  - stateName: Spellcast
-    startFrameIndex: 43
+  - stateName: Attack3
+    startFrameIndex: 34
     frameCount: 7
     frameRate: 10
     loop: 0
-  - stateName: Shoot
-    startFrameIndex: 50
-    frameCount: 13
-    frameRate: 12
+  - stateName: Roll
+    startFrameIndex: 41
+    frameCount: 8
+    frameRate: 10
     loop: 0
   - stateName: Hurt
-    startFrameIndex: 63
+    startFrameIndex: 49
     frameCount: 6
     frameRate: 8
     loop: 0
-  - stateName: Dash
-    startFrameIndex: 69
-    frameCount: 4
-    frameRate: 10
+  - stateName: Death
+    startFrameIndex: 55
+    frameCount: 6
+    frameRate: 6
+    loop: 0
+  - stateName: WallSlide
+    startFrameIndex: 61
+    frameCount: 2
+    frameRate: 6
+    loop: 1
+  - stateName: LedgeGrab
+    startFrameIndex: 63
+    frameCount: 2
+    frameRate: 6
     loop: 0
   fallback:
     stateName: Idle
