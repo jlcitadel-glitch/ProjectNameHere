@@ -19,27 +19,27 @@ public static class StarterEquipmentGenerator
 
         // Warrior gear
         CreateEquipment("warrior_sword", "Iron Sword", "A sturdy iron blade.",
-            EquipmentSlotType.Weapon, bonusSTR: 2);
+            EquipmentSlotType.Weapon, bonusSTR: 2, visualPartId: "weapon_longsword");
         CreateEquipment("warrior_chainmail", "Chainmail", "Heavy chain armor.",
-            EquipmentSlotType.Armor, bonusSTR: 1, bonusAGI: 1);
+            EquipmentSlotType.Armor, bonusSTR: 1, bonusAGI: 1, visualPartId: "torso_chainmail");
         CreateEquipment("warrior_greaves", "Iron Greaves", "Iron leg armor.",
-            EquipmentSlotType.Boots, bonusSTR: 1);
+            EquipmentSlotType.Boots, bonusSTR: 1, visualPartId: "legs_armour");
 
         // Mage gear
         CreateEquipment("mage_staff", "Apprentice Staff", "A staff crackling with arcane energy.",
-            EquipmentSlotType.Weapon, bonusINT: 2);
+            EquipmentSlotType.Weapon, bonusINT: 2, visualPartId: "weapon_staff");
         CreateEquipment("mage_robe", "Cloth Robe", "Enchanted cloth robes.",
-            EquipmentSlotType.Armor, bonusINT: 2);
+            EquipmentSlotType.Armor, bonusINT: 2, visualPartId: "torso_longsleeve");
         CreateEquipment("mage_shoes", "Cloth Shoes", "Light mage footwear.",
-            EquipmentSlotType.Boots, bonusAGI: 1);
+            EquipmentSlotType.Boots, bonusAGI: 1, visualPartId: "legs_pants_teal");
 
         // Rogue gear
         CreateEquipment("rogue_dagger", "Iron Dagger", "A quick and deadly blade.",
-            EquipmentSlotType.Weapon, bonusSTR: 1, bonusAGI: 1);
+            EquipmentSlotType.Weapon, bonusSTR: 1, bonusAGI: 1, visualPartId: "weapon_dagger");
         CreateEquipment("rogue_vest", "Leather Vest", "Lightweight leather armor.",
-            EquipmentSlotType.Armor, bonusSTR: 1, bonusAGI: 1);
+            EquipmentSlotType.Armor, bonusSTR: 1, bonusAGI: 1, visualPartId: "torso_leather");
         CreateEquipment("rogue_boots", "Leather Boots", "Swift leather boots.",
-            EquipmentSlotType.Boots, bonusAGI: 2);
+            EquipmentSlotType.Boots, bonusAGI: 2, visualPartId: "legs_boots");
 
         // Wire to JobClassData assets
         WireStarterGear();
@@ -50,7 +50,8 @@ public static class StarterEquipmentGenerator
     }
 
     private static void CreateEquipment(string id, string displayName, string description,
-        EquipmentSlotType slot, int bonusSTR = 0, int bonusINT = 0, int bonusAGI = 0)
+        EquipmentSlotType slot, int bonusSTR = 0, int bonusINT = 0, int bonusAGI = 0,
+        string visualPartId = null)
     {
         string path = $"{EQUIPMENT_PATH}/{id}.asset";
 
@@ -65,6 +66,7 @@ public static class StarterEquipmentGenerator
             existing.bonusSTR = bonusSTR;
             existing.bonusINT = bonusINT;
             existing.bonusAGI = bonusAGI;
+            WireVisualPart(existing, visualPartId);
             EditorUtility.SetDirty(existing);
             return;
         }
@@ -77,8 +79,26 @@ public static class StarterEquipmentGenerator
         asset.bonusSTR = bonusSTR;
         asset.bonusINT = bonusINT;
         asset.bonusAGI = bonusAGI;
+        WireVisualPart(asset, visualPartId);
 
         AssetDatabase.CreateAsset(asset, path);
+    }
+
+    private static void WireVisualPart(EquipmentData equipment, string visualPartId)
+    {
+        if (string.IsNullOrEmpty(visualPartId))
+            return;
+
+        string bpPath = $"Assets/_Project/ScriptableObjects/Character/BodyParts/{visualPartId}.asset";
+        var part = AssetDatabase.LoadAssetAtPath<BodyPartData>(bpPath);
+        if (part != null)
+        {
+            equipment.visualPart = part;
+        }
+        else
+        {
+            Debug.LogWarning($"[StarterEquipmentGenerator] BodyPartData not found at: {bpPath}");
+        }
     }
 
     private static void WireStarterGear()

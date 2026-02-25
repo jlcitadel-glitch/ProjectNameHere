@@ -32,6 +32,9 @@ public class LPCSetupWizard : EditorWindow
     // LPC frame size
     private const int FRAME_SIZE = 64;
 
+    // Pixels-per-unit for world scale (project uses 32 PPU after scale normalization)
+    private const int PIXELS_PER_UNIT = 32;
+
     // For side-scrollers, we use row index 3 (right-facing) from directional animations.
     // Left-facing is handled by flipping transform.localScale.x at runtime.
     private const int SIDE_VIEW_ROW = 3; // Right-facing row
@@ -51,9 +54,33 @@ public class LPCSetupWizard : EditorWindow
     };
 
     // Hair styles to download (each becomes a separate BodyPartData with slot=Hair)
+    // "short" and "mohawk" removed — do not exist in LPC repo
+    // "ponytail" uses fg/bg layers — handled by fg/ fallback in download logic
     private static readonly string[] HAIR_STYLES = new string[]
     {
-        "long", "short", "bob", "pixie", "ponytail", "mohawk"
+        "long", "bob", "pixie", "ponytail",
+        "afro", "cornrows", "dreadlocks_long", "dreadlocks_short",
+        "natural", "braid", "curly_short", "curly_long",
+        "messy", "bangs", "wavy", "buzzcut", "shorthawk", "xlong"
+    };
+
+    // Equipment sprites to download (each becomes a BodyPartData for visual equipment)
+    private static readonly PartDef[] EQUIPMENT_PARTS = new PartDef[]
+    {
+        // Warrior
+        new PartDef("torso_chainmail",    BodyPartSlot.Torso,       "torso/chainmail/male",              "gray"),
+        new PartDef("legs_armour",        BodyPartSlot.Legs,        "legs/armour/plate/male",            "steel"),
+        new PartDef("weapon_longsword",   BodyPartSlot.WeaponFront, "weapon/sword/longsword",            "longsword"),
+        // Mage
+        new PartDef("torso_longsleeve",   BodyPartSlot.Torso,       "torso/clothes/longsleeve/male",     "white"),
+        new PartDef("legs_pants_teal",    BodyPartSlot.Legs,        "legs/pants/male",                   "teal"),
+        new PartDef("weapon_staff",       BodyPartSlot.WeaponFront, "weapon/magic/simple/foreground",    "simple"),
+        // Rogue
+        new PartDef("torso_leather",      BodyPartSlot.Torso,       "torso/armour/leather/male",         "leather"),
+        new PartDef("legs_boots",         BodyPartSlot.Legs,        "feet/boots/basic/male",             "brown"),
+        new PartDef("weapon_dagger",      BodyPartSlot.WeaponFront, "weapon/sword/dagger",               "dagger"),
+        // Shared default pants
+        new PartDef("legs_pants",         BodyPartSlot.Legs,        "legs/pants/male",                   "brown"),
     };
 
     // Body parts to download (folder path relative to spritesheets/)
@@ -147,6 +174,11 @@ public class LPCSetupWizard : EditorWindow
             DownloadAndImportSprites();
         }
 
+        if (GUILayout.Button("Step 1b: Download & Import Equipment Sprites", GUILayout.Height(30)))
+        {
+            DownloadEquipmentSprites();
+        }
+
         if (GUILayout.Button("Step 2: Slice Spritesheets & Create Assets", GUILayout.Height(30)))
         {
             SliceAndCreateAssets();
@@ -237,8 +269,10 @@ public class LPCSetupWizard : EditorWindow
                 catch (System.Exception e)
                 {
                     Debug.LogWarning($"[LPC Wizard] Failed to download {url}: {e.Message}");
-                    // Try alternate URL pattern (base file without color subdir)
-                    if (part.colorVariant != null)
+                    bool recovered = false;
+
+                    // Fallback 1: Try base file without color subdir (for color variant parts)
+                    if (!recovered && part.colorVariant != null)
                     {
                         try
                         {
@@ -247,13 +281,30 @@ public class LPCSetupWizard : EditorWindow
                             {
                                 client.DownloadFile(altUrl, fullPath);
                                 downloaded++;
+                                recovered = true;
                             }
                         }
-                        catch (System.Exception)
-                        {
-                            Debug.LogWarning($"[LPC Wizard] Also failed alternate URL for {part.name}/{anim.name}");
-                        }
+                        catch (System.Exception) { }
                     }
+
+                    // Fallback 2: Try fg/ subdirectory (for hair styles like ponytail that use bg/fg layers)
+                    if (!recovered && part.colorVariant == null)
+                    {
+                        try
+                        {
+                            string fgUrl = $"{GITHUB_RAW_BASE}{part.repoPath}/fg/{anim.name}.png";
+                            using (var client = new System.Net.WebClient())
+                            {
+                                client.DownloadFile(fgUrl, fullPath);
+                                downloaded++;
+                                recovered = true;
+                            }
+                        }
+                        catch (System.Exception) { }
+                    }
+
+                    if (!recovered)
+                        Debug.LogWarning($"[LPC Wizard] All URL patterns failed for {part.name}/{anim.name}");
                 }
             }
         }
@@ -272,6 +323,74 @@ public class LPCSetupWizard : EditorWindow
         statusMessage = $"Downloaded {downloaded} sprites. Import settings configured.";
     }
 
+    private void DownloadEquipmentSprites()
+    {
+        statusMessage = "Downloading equipment sprites...";
+        int downloaded = 0;
+
+        foreach (var part in EQUIPMENT_PARTS)
+        {
+            string partDir = Path.Combine(SPRITE_ROOT, part.name);
+            EnsureDirectory(partDir);
+
+            foreach (var anim in ANIMATIONS)
+            {
+                string localPath = Path.Combine(partDir, $"{anim.name}.png");
+                string fullPath = Path.GetFullPath(localPath);
+
+                if (File.Exists(fullPath))
+                {
+                    downloaded++;
+                    continue;
+                }
+
+                statusMessage = $"Downloading {part.name}/{anim.name}...";
+
+                // Equipment uses colorVariant pattern: {repoPath}/{anim}/{colorVariant}.png
+                string url = $"{GITHUB_RAW_BASE}{part.repoPath}/{anim.name}/{part.colorVariant}.png";
+
+                try
+                {
+                    using (var client = new System.Net.WebClient())
+                    {
+                        client.DownloadFile(url, fullPath);
+                        downloaded++;
+                    }
+                }
+                catch (System.Exception)
+                {
+                    // Try without color variant subdirectory
+                    try
+                    {
+                        string altUrl = $"{GITHUB_RAW_BASE}{part.repoPath}/{anim.name}.png";
+                        using (var client = new System.Net.WebClient())
+                        {
+                            client.DownloadFile(altUrl, fullPath);
+                            downloaded++;
+                        }
+                    }
+                    catch (System.Exception)
+                    {
+                        Debug.LogWarning($"[LPC Wizard] Failed to download equipment sprite: {part.name}/{anim.name}");
+                    }
+                }
+            }
+        }
+
+        AssetDatabase.Refresh();
+
+        // Configure import settings for all downloaded PNGs
+        string[] pngs = Directory.GetFiles(Path.GetFullPath(SPRITE_ROOT), "*.png", SearchOption.AllDirectories);
+        foreach (string png in pngs)
+        {
+            string assetPath = "Assets" + png.Replace(Path.GetFullPath("Assets"), "").Replace("\\", "/");
+            ConfigureSpriteImport(assetPath);
+        }
+
+        AssetDatabase.Refresh();
+        statusMessage = $"Downloaded {downloaded} equipment sprites. Import settings configured.";
+    }
+
     private void ConfigureSpriteImport(string assetPath)
     {
         var importer = AssetImporter.GetAtPath(assetPath) as TextureImporter;
@@ -279,7 +398,7 @@ public class LPCSetupWizard : EditorWindow
 
         importer.textureType = TextureImporterType.Sprite;
         importer.spriteImportMode = SpriteImportMode.Multiple;
-        importer.spritePixelsPerUnit = FRAME_SIZE;
+        importer.spritePixelsPerUnit = PIXELS_PER_UNIT;
         importer.filterMode = FilterMode.Point;
         importer.textureCompression = TextureImporterCompression.Uncompressed;
         importer.mipmapEnabled = false;
@@ -415,8 +534,8 @@ public class LPCSetupWizard : EditorWindow
         }
 
         // Create the BodyPartData asset
-        // Hair parts don't use skinColor suffix (they have no color variant)
-        string assetSuffix = (slot == BodyPartSlot.Hair) ? "" : $"_{skinColor}";
+        // Only Body/Head use skinColor suffix; hair, equipment, and weapons don't
+        string assetSuffix = (slot == BodyPartSlot.Body || slot == BodyPartSlot.Head) ? $"_{skinColor}" : "";
         string assetPath = $"{DATA_ROOT}/BodyParts/{partName}{assetSuffix}.asset";
         var bodyPart = AssetDatabase.LoadAssetAtPath<BodyPartData>(assetPath);
         if (bodyPart == null)
@@ -426,11 +545,8 @@ public class LPCSetupWizard : EditorWindow
         }
 
         bodyPart.partId = $"{partName}{assetSuffix}";
-        // For hair parts named "hair_long", display as "Long"; otherwise capitalize first letter
-        if (slot == BodyPartSlot.Hair && partName.StartsWith("hair_"))
-            bodyPart.displayName = char.ToUpper(partName[5]) + partName.Substring(6);
-        else
-            bodyPart.displayName = char.ToUpper(partName[0]) + partName.Substring(1);
+        // Strip slot prefix and title-case: "hair_dreadlocks_long" → "Dreadlocks Long"
+        bodyPart.displayName = FormatDisplayName(partName, slot);
         bodyPart.slot = slot;
         bodyPart.frames = allFrames.ToArray();
         bodyPart.sortOrderOffset = 0;
@@ -805,18 +921,41 @@ public class LPCSetupWizard : EditorWindow
         };
     }
 
+    private string FormatDisplayName(string partName, BodyPartSlot slot)
+    {
+        // Strip known slot prefixes: "hair_long" → "long", "torso_chainmail" → "chainmail"
+        string raw = partName;
+        string[] prefixes = { "hair_", "torso_", "legs_", "feet_", "weapon_" };
+        foreach (var prefix in prefixes)
+        {
+            if (raw.StartsWith(prefix))
+            {
+                raw = raw.Substring(prefix.Length);
+                break;
+            }
+        }
+
+        // Replace underscores with spaces and title-case each word
+        var words = raw.Split('_');
+        for (int i = 0; i < words.Length; i++)
+        {
+            if (words[i].Length > 0)
+                words[i] = char.ToUpper(words[i][0]) + words[i].Substring(1);
+        }
+        return string.Join(" ", words);
+    }
+
     private BodyPartSlot GuessSlot(string dirName)
     {
         string lower = dirName.ToLower();
         if (lower.StartsWith("hair")) return BodyPartSlot.Hair;
+        if (lower.StartsWith("torso")) return BodyPartSlot.Torso;
+        if (lower.StartsWith("legs") || lower.StartsWith("feet")) return BodyPartSlot.Legs;
+        if (lower.StartsWith("weapon")) return BodyPartSlot.WeaponFront;
         return lower switch
         {
             "body" => BodyPartSlot.Body,
             "head" => BodyPartSlot.Head,
-            "torso" => BodyPartSlot.Torso,
-            "legs" => BodyPartSlot.Legs,
-            "weapon_behind" => BodyPartSlot.WeaponBehind,
-            "weapon_front" => BodyPartSlot.WeaponFront,
             _ => BodyPartSlot.Body
         };
     }
