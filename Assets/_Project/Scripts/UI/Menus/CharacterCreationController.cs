@@ -520,7 +520,9 @@ namespace ProjectName.UI
             merged.skinTint = builtAppearance.skinTint;
             merged.hairTint = builtAppearance.hairTint;
 
-            // Overlay class-specific gear from starter equipment
+            bool hasEquipment = false;
+
+            // Primary: per-class starter equipment visuals
             if (jobData != null && jobData.starterEquipment != null)
             {
                 foreach (var equip in jobData.starterEquipment)
@@ -530,15 +532,28 @@ namespace ProjectName.UI
                     {
                         case EquipmentSlotType.Armor:
                             merged.torso = equip.visualPart;
+                            hasEquipment = true;
                             break;
                         case EquipmentSlotType.Boots:
                             merged.legs = equip.visualPart;
+                            hasEquipment = true;
                             break;
                         case EquipmentSlotType.Weapon:
                             merged.weaponFront = equip.visualPart;
+                            hasEquipment = true;
                             break;
                     }
                 }
+            }
+
+            // Fallback: shared default appearance config
+            if (!hasEquipment && jobData != null && jobData.defaultAppearance != null)
+            {
+                var da = jobData.defaultAppearance;
+                if (da.torso != null) merged.torso = da.torso;
+                if (da.legs != null) merged.legs = da.legs;
+                if (da.weaponBehind != null) merged.weaponBehind = da.weaponBehind;
+                if (da.weaponFront != null) merged.weaponFront = da.weaponFront;
             }
 
             preview.ApplyConfig(merged);
