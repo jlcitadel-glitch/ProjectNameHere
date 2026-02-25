@@ -24,6 +24,7 @@ namespace ProjectName.UI
         [SerializeField] private TMP_Text hpText;
         [SerializeField] private TMP_Text mpText;
         [SerializeField] private Image playerImage;
+        [SerializeField] private UILayeredSpritePreview playerLayeredPreview;
 
         [Header("Stat Display")]
         [SerializeField] private TMP_Text availablePointsText;
@@ -64,6 +65,7 @@ namespace ProjectName.UI
         private ManaSystem manaSystem;
         private LevelSystem levelSystem;
         private SpriteRenderer playerSpriteRenderer;
+        private PlayerAppearance playerAppearance;
 
         public bool IsOpen => isOpen;
 
@@ -226,6 +228,7 @@ namespace ProjectName.UI
             }
 
             playerSpriteRenderer = player.GetComponent<SpriteRenderer>();
+            playerAppearance = player.GetComponent<PlayerAppearance>();
         }
 
         private void UnsubscribeFromPlayerSystems()
@@ -482,7 +485,14 @@ namespace ProjectName.UI
                 classText.text = !string.IsNullOrEmpty(jobName) ? $"({jobName})" : "(Adventurer)";
             }
 
-            if (playerImage != null && playerSpriteRenderer != null && playerSpriteRenderer.sprite != null)
+            // Prefer layered preview; fall back to static sprite
+            if (playerLayeredPreview != null && playerAppearance != null && playerAppearance.CurrentConfig != null)
+            {
+                playerLayeredPreview.ApplyConfig(playerAppearance.CurrentConfig);
+                if (playerImage != null)
+                    playerImage.enabled = false;
+            }
+            else if (playerImage != null && playerSpriteRenderer != null && playerSpriteRenderer.sprite != null)
             {
                 playerImage.sprite = playerSpriteRenderer.sprite;
             }
@@ -648,6 +658,15 @@ namespace ProjectName.UI
             playerImg.preserveAspect = true;
             playerImg.color = Color.white;
 
+            // Layered character preview (overlays the static image)
+            var layeredPreviewGo = MakeRect("LayeredPreview", imgContainer.transform);
+            var layeredPreviewRect = layeredPreviewGo.GetComponent<RectTransform>();
+            layeredPreviewRect.anchorMin = new Vector2(0.05f, 0.05f);
+            layeredPreviewRect.anchorMax = new Vector2(0.95f, 0.95f);
+            layeredPreviewRect.offsetMin = Vector2.zero;
+            layeredPreviewRect.offsetMax = Vector2.zero;
+            var layeredPreview = layeredPreviewGo.AddComponent<UILayeredSpritePreview>();
+
             // Info column (right of image)
             var infoCol = MakeRect("InfoColumn", topSection.transform);
             var infoColRect = infoCol.GetComponent<RectTransform>();
@@ -746,6 +765,7 @@ namespace ProjectName.UI
             controller.hpText = hpTmpRef;
             controller.mpText = mpTmpRef;
             controller.playerImage = playerImg;
+            controller.playerLayeredPreview = layeredPreview;
 
             // Stat display
             controller.availablePointsText = pointsTmp;

@@ -267,8 +267,13 @@ namespace ProjectName.UI
             {
                 if (icon != null)
                 {
-                    icon.sprite = item.icon;
-                    icon.color = item.icon != null ? Color.white : EmptySlotColor;
+                    // Use dedicated icon if set, otherwise fall back to the visual part's preview sprite
+                    var displaySprite = item.icon;
+                    if (displaySprite == null && item.visualPart != null)
+                        displaySprite = item.visualPart.previewSprite;
+
+                    icon.sprite = displaySprite;
+                    icon.color = displaySprite != null ? Color.white : EmptySlotColor;
                 }
                 if (nameText != null)
                     nameText.text = item.displayName;
