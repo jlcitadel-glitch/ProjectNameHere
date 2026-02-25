@@ -501,6 +501,26 @@ namespace ProjectName.UI
         /// </summary>
         private void ApplyAppearanceToClassCards()
         {
+            // Build a default appearance from the registry if the user skipped customization
+            if (builtAppearance == null)
+            {
+                if (bodyPartRegistry == null)
+                    bodyPartRegistry = Resources.Load<BodyPartRegistry>("BodyPartRegistry");
+
+                if (bodyPartRegistry != null)
+                {
+                    builtAppearance = ScriptableObject.CreateInstance<CharacterAppearanceConfig>();
+                    var bodyParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Body);
+                    var headParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Head);
+                    var hairParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Hair);
+                    if (bodyParts.Length > 0) builtAppearance.body = bodyParts[0];
+                    if (headParts.Length > 0) builtAppearance.head = headParts[0];
+                    if (hairParts.Length > 0) builtAppearance.hair = hairParts[0];
+                    builtAppearance.skinTint = SkinTonePresets[0];
+                    builtAppearance.hairTint = HairColorPresets[0];
+                }
+            }
+
             if (builtAppearance == null) return;
 
             ApplyAppearanceToCard(warriorLayeredPreview, warriorPreviewImage, warriorData);
@@ -510,7 +530,21 @@ namespace ProjectName.UI
 
         private void ApplyAppearanceToCard(UILayeredSpritePreview preview, Image fallbackImage, JobClassData jobData)
         {
-            if (preview == null || builtAppearance == null) return;
+            string jobName = jobData != null ? jobData.jobName : "null";
+            if (preview == null)
+            {
+                Debug.LogWarning($"[CharCreation] {jobName}: preview is null, skipping");
+                return;
+            }
+            if (builtAppearance == null)
+            {
+                Debug.LogWarning($"[CharCreation] {jobName}: builtAppearance is null, skipping");
+                return;
+            }
+
+            Debug.Log($"[CharCreation] Applying appearance to {jobName}: " +
+                $"body={builtAppearance.body?.partId ?? "null"}, " +
+                $"starterEquipment={jobData?.starterEquipment?.Length ?? 0}");
 
             // Create a merged config: player's base appearance + class gear
             var merged = ScriptableObject.CreateInstance<CharacterAppearanceConfig>();
@@ -555,6 +589,12 @@ namespace ProjectName.UI
                 if (da.weaponBehind != null) merged.weaponBehind = da.weaponBehind;
                 if (da.weaponFront != null) merged.weaponFront = da.weaponFront;
             }
+
+            Debug.Log($"[CharCreation] {jobName} merged: " +
+                $"torso={merged.torso?.partId ?? "null"}, " +
+                $"legs={merged.legs?.partId ?? "null"}, " +
+                $"weaponFront={merged.weaponFront?.partId ?? "null"}, " +
+                $"hasEquipment={hasEquipment}");
 
             preview.ApplyConfig(merged);
 
