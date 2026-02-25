@@ -810,6 +810,7 @@ namespace ProjectName.UI
             BuildClassPanel(ctrl, rootGo.transform);
             BuildAppearancePanel(ctrl, rootGo.transform);
             FindJobData(ctrl);
+            WireStarterEquipmentIfMissing(ctrl);
             FindBodyPartRegistry(ctrl);
             LoadClassPreviewSprites(ctrl);
 
@@ -1339,6 +1340,34 @@ namespace ProjectName.UI
                 ctrl.rogueData.agiPerLevel = 3;
                 ctrl.rogueData.spPerLevel = 3;
             }
+        }
+
+        /// <summary>
+        /// Loads starter equipment from Resources for any job that is missing it.
+        /// This handles the case where FindJobData creates runtime fallback instances
+        /// or finds assets that aren't fully loaded yet.
+        /// </summary>
+        private static void WireStarterEquipmentIfMissing(CharacterCreationController ctrl)
+        {
+            WireJobEquipment(ctrl.warriorData, "warrior_sword", "warrior_chainmail", "warrior_greaves");
+            WireJobEquipment(ctrl.mageData, "mage_staff", "mage_robe", "mage_shoes");
+            WireJobEquipment(ctrl.rogueData, "rogue_dagger", "rogue_vest", "rogue_boots");
+        }
+
+        private static void WireJobEquipment(JobClassData job, params string[] equipmentIds)
+        {
+            if (job == null) return;
+            if (job.starterEquipment != null && job.starterEquipment.Length > 0) return;
+
+            var equipment = new System.Collections.Generic.List<EquipmentData>();
+            foreach (var id in equipmentIds)
+            {
+                var equip = Resources.Load<EquipmentData>($"Equipment/{id}");
+                if (equip != null) equipment.Add(equip);
+            }
+
+            if (equipment.Count > 0)
+                job.starterEquipment = equipment.ToArray();
         }
 
         // --- UI element helpers ---
