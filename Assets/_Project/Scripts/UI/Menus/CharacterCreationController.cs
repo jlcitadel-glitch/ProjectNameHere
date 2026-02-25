@@ -59,6 +59,7 @@ namespace ProjectName.UI
         [SerializeField] private Button skinPrevButton;
         [SerializeField] private Button skinNextButton;
         [SerializeField] private Image hairColorPreview;
+        [SerializeField] private TMP_Text hairColorNameText;
         [SerializeField] private Button hairColorPrevButton;
         [SerializeField] private Button hairColorNextButton;
         private UILayeredSpritePreview appearancePreview;
@@ -107,6 +108,10 @@ namespace ProjectName.UI
             new Color(0.10f, 0.85f, 0.90f),     // Cyan
             new Color(0.15f, 0.70f, 0.25f),     // Green
             new Color(0.55f, 0.20f, 0.75f),     // Purple
+        };
+        private static readonly string[] HairColorNames = new string[]
+        {
+            "Red", "Orange", "Blonde", "Brown", "Black", "White", "Cyan", "Green", "Purple"
         };
         private int selectedHairColorIndex;
 
@@ -734,6 +739,9 @@ namespace ProjectName.UI
 
             if (hairColorPreview != null)
                 hairColorPreview.color = builtAppearance.hairTint;
+
+            if (hairColorNameText != null && selectedHairColorIndex >= 0 && selectedHairColorIndex < HairColorNames.Length)
+                hairColorNameText.text = HairColorNames[selectedHairColorIndex];
         }
 
         private void OnAppearanceBack()
@@ -950,6 +958,16 @@ namespace ProjectName.UI
             hairColorPreviewLayout.preferredWidth = 60f;
             hairColorPreviewLayout.preferredHeight = 35f;
             ctrl.hairColorPreview = hairColorPreviewImg;
+            var hairColorNameGo = MakeUIObject("HairColorName", hairColorRow.transform);
+            var hairColorNameTmp = hairColorNameGo.AddComponent<TextMeshProUGUI>();
+            hairColorNameTmp.text = HairColorNames[0];
+            hairColorNameTmp.fontSize = 20f;
+            hairColorNameTmp.alignment = TextAlignmentOptions.Center;
+            hairColorNameTmp.color = Color.white;
+            var hairColorNameLayout = hairColorNameGo.AddComponent<LayoutElement>();
+            hairColorNameLayout.preferredWidth = 80f;
+            hairColorNameLayout.preferredHeight = 35f;
+            ctrl.hairColorNameText = hairColorNameTmp;
             ctrl.hairColorNextButton = MakeButton(hairColorRow.transform, ">", 50f, 40f);
 
             MakeSpacer(content.transform, 20f);

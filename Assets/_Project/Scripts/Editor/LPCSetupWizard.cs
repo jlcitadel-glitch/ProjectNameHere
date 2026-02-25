@@ -180,6 +180,11 @@ public class LPCSetupWizard : EditorWindow
             DownloadEquipmentSprites();
         }
 
+        if (GUILayout.Button("Step 1c: Desaturate Hair Sprites (for tinting)", GUILayout.Height(30)))
+        {
+            DesaturateHairSprites();
+        }
+
         if (GUILayout.Button("Step 2: Slice Spritesheets & Create Assets", GUILayout.Height(30)))
         {
             SliceAndCreateAssets();
@@ -199,11 +204,16 @@ public class LPCSetupWizard : EditorWindow
             AssetDatabase.Refresh();
             EditorApplication.delayCall += () =>
             {
-                SliceAndCreateAssets();
+                DesaturateHairSprites();
+                AssetDatabase.Refresh();
                 EditorApplication.delayCall += () =>
                 {
-                    SetupPlayerPrefab();
-                    statusMessage = "All steps complete!";
+                    SliceAndCreateAssets();
+                    EditorApplication.delayCall += () =>
+                    {
+                        SetupPlayerPrefab();
+                        statusMessage = "All steps complete!";
+                    };
                 };
             };
         }
@@ -936,6 +946,58 @@ public class LPCSetupWizard : EditorWindow
                 Debug.Log("[LPC Wizard] Wired BodyPartRegistry to SaveManager");
             }
         }
+    }
+
+    // ===== Step 1c: Desaturate Hair Sprites =====
+
+    /// <summary>
+    /// Converts all hair sprite textures to grayscale so that Image.color
+    /// tinting produces the correct hue. Without this, the pre-colored
+    /// sprites multiply with the tint and produce wrong colors.
+    /// </summary>
+    private void DesaturateHairSprites()
+    {
+        statusMessage = "Desaturating hair sprites for tinting...";
+
+        string spriteRoot = Path.GetFullPath(SPRITE_ROOT);
+        var hairDirs = Directory.GetDirectories(spriteRoot)
+            .Where(d => Path.GetFileName(d).StartsWith("hair"))
+            .ToList();
+
+        // Also include the base "hair" directory if it exists
+        string baseHairDir = Path.Combine(spriteRoot, "hair");
+        if (Directory.Exists(baseHairDir) && !hairDirs.Contains(baseHairDir))
+            hairDirs.Add(baseHairDir);
+
+        int processed = 0;
+        foreach (string dir in hairDirs)
+        {
+            string[] pngs = Directory.GetFiles(dir, "*.png");
+            foreach (string png in pngs)
+            {
+                byte[] bytes = File.ReadAllBytes(png);
+                var tex = new Texture2D(2, 2);
+                tex.LoadImage(bytes);
+
+                var pixels = tex.GetPixels32();
+                for (int i = 0; i < pixels.Length; i++)
+                {
+                    // Luminance-weighted grayscale, preserving alpha
+                    byte gray = (byte)(pixels[i].r * 0.299f + pixels[i].g * 0.587f + pixels[i].b * 0.114f);
+                    pixels[i] = new Color32(gray, gray, gray, pixels[i].a);
+                }
+                tex.SetPixels32(pixels);
+
+                byte[] pngBytes = tex.EncodeToPNG();
+                File.WriteAllBytes(png, pngBytes);
+                DestroyImmediate(tex);
+                processed++;
+            }
+        }
+
+        AssetDatabase.Refresh();
+        statusMessage = $"Desaturated {processed} hair sprites across {hairDirs.Count} directories.";
+        Debug.Log($"[LPC Wizard] Desaturated {processed} hair sprites for tinting.");
     }
 
     // ===== Helpers =====
