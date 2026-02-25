@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>ProjectNameHere — Full Architecture</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  @page { size: A3 landscape; margin: 12mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #0d1117; color: #c9d1d9;
+    margin: 0; padding: 24px;
+    line-height: 1.5;
+  }
+  h1 { color: #58a6ff; font-size: 28px; border-bottom: 2px solid #30363d; padding-bottom: 8px; margin-top: 40px; }
+  h1:first-of-type { margin-top: 0; }
+  h2 { color: #d2a8ff; font-size: 20px; margin-top: 32px; }
+  h3 { color: #7ee787; font-size: 16px; }
+  .header { text-align: center; padding: 32px 0 16px; border-bottom: 3px solid #58a6ff; margin-bottom: 32px; }
+  .header h1 { border: none; font-size: 36px; margin: 0; }
+  .header p { color: #8b949e; font-size: 16px; margin: 8px 0 0; }
+  .diagram-container {
+    background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+    padding: 24px; margin: 16px 0 32px; overflow-x: auto;
+  }
+  .mermaid { text-align: center; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 16px 0; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin: 16px 0; }
+  .card {
+    background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+    padding: 16px;
+  }
+  .card h3 { margin-top: 0; }
+  .card ul { margin: 8px 0; padding-left: 20px; }
+  .card li { margin: 4px 0; color: #8b949e; font-size: 13px; }
+  .card li strong { color: #c9d1d9; }
+  .stat-row { display: flex; gap: 16px; margin: 16px 0; flex-wrap: wrap; }
+  .stat-box {
+    background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+    padding: 16px 24px; text-align: center; flex: 1; min-width: 120px;
+  }
+  .stat-box .num { font-size: 32px; font-weight: bold; color: #58a6ff; }
+  .stat-box .label { font-size: 12px; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; }
+  .legend { display: flex; gap: 24px; margin: 16px 0; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+  th { background: #21262d; color: #58a6ff; text-align: left; padding: 8px 12px; border: 1px solid #30363d; }
+  td { padding: 8px 12px; border: 1px solid #30363d; }
+  code { background: #21262d; padding: 2px 6px; border-radius: 4px; font-size: 12px; color: #f0883e; }
+  .page-break { page-break-before: always; }
+  .section-intro { color: #8b949e; font-size: 14px; margin: -8px 0 16px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>ProjectNameHere</h1>
+  <p>2D Metroidvania — Unity 6 — Full Project Architecture</p>
+  <p style="color:#484f58; font-size:13px;">Generated 2026-02-21 &middot; 155 Scripts &middot; 62 Beads &middot; 9 Agents</p>
+</div>
+
+<!-- ==================== PROJECT STATS ==================== -->
+
+<div class="stat-row">
+  <div class="stat-box"><div class="num">155</div><div class="label">Scripts</div></div>
+  <div class="stat-box"><div class="num">16</div><div class="label">Systems</div></div>
+  <div class="stat-box"><div class="num">9</div><div class="label">Agents</div></div>
+  <div class="stat-box"><div class="num">62</div><div class="label">Beads</div></div>
+  <div class="stat-box"><div class="num" style="color:#7ee787">49</div><div class="label">Closed</div></div>
+  <div class="stat-box"><div class="num" style="color:#d29922">7</div><div class="label">In Progress</div></div>
+  <div class="stat-box"><div class="num" style="color:#f85149">6</div><div class="label">Blocked</div></div>
+  <div class="stat-box"><div class="num" style="color:#8b949e">0</div><div class="label">Ready</div></div>
+</div>
+
+<!-- ==================== HIGH LEVEL OVERVIEW ==================== -->
+
+<h1>1. High-Level System Map</h1>
+<p class="section-intro">Every major system in the game and how they connect.</p>
+
+<div class="diagram-container">
+<pre class="mermaid">
+graph TB
+  subgraph INPUT["Input Layer"]
+    direction LR
+    IS["InputSystem<br/>(Player + UI maps)"]
+  end
+
+  subgraph PLAYER["Player Core"]
+    direction TB
+    PC["PlayerController<br/>Movement, Jump,<br/>Coyote/Buffer"]
+    PA["PlayerAppearance<br/>Sprites, Animator"]
+    DASH["DashAbility"]
+    DJ["DoubleJumpAbility"]
+    PUM["PowerUpManager"]
+  end
+
+  subgraph COMBAT["Combat"]
+    direction TB
+    CC["CombatController<br/>5 States, 3 Weapon Slots,<br/>Combo Chains"]
+    PS["ParrySystem<br/>Fighter/Mage/Rogue"]
+    AH["AttackHitbox"]
+    PROJ["Projectile"]
+  end
+
+  subgraph STATS["Stats & Progression"]
+    direction TB
+    HS["HealthSystem"]
+    MS["ManaSystem<br/>+ Regen"]
+    SS["StatSystem<br/>STR/INT/AGI"]
+    LS["LevelSystem<br/>RuneScape XP"]
+    XP["ExperienceOrb"]
+  end
+
+  subgraph SKILLS["Skills & Jobs"]
+    direction TB
+    SM["SkillManager<br/>(Singleton)"]
+    SE["SkillExecutor"]
+    PSC["PlayerSkillController<br/>Hotbar 1-4"]
+    ABT["ActiveBuffTracker"]
+    PST["PassiveSkillTracker"]
+  end
+
+  subgraph ENEMIES["Enemy Systems"]
+    direction TB
+    EC["EnemyController<br/>8 States, IDamageable"]
+    BC["BossController<br/>Phase 1/2/Enraged"]
+    ECMB["EnemyCombat"]
+    ESNS["EnemySensors<br/>Radius/Cone/LoS"]
+    MOV["Movement<br/>Ground/Flying/<br/>Hopping/Stationary"]
+  end
+
+  subgraph WAVES["Wave System"]
+    direction TB
+    WM["WaveManager<br/>Rest-Spawn-Active"]
+    ESM["EnemySpawnManager"]
+    WS["WaveScaler"]
+    SA["SurvivalArena"]
+    W100["Wave100Controller"]
+  end
+
+  subgraph CORE["Core Managers (Singletons)"]
+    direction TB
+    GM["GameManager<br/>7 Game States"]
+    SVM["SaveManager<br/>5 Slots, JSON"]
+    SB["SystemsBootstrap<br/>(-1000 exec order)"]
+    SL["SceneLoader"]
+    CM["CutsceneManager"]
+  end
+
+  subgraph CAMERA["Camera"]
+    direction TB
+    ACC["AdvancedCameraController<br/>SmoothDamp, LookAhead,<br/>Shake, BossLock"]
+    PLX["ParallaxManager<br/>+ ParallaxLayers"]
+    CBT["CameraBoundsTriggers"]
+    BRT["BossRoomTrigger"]
+  end
+
+  subgraph AUDIO["Audio"]
+    direction LR
+    SFX["SFXManager<br/>(Static)"]
+    MUS["MusicManager<br/>(Singleton)"]
+  end
+
+  subgraph VFX["Visual Effects"]
+    direction TB
+    DVFX["DashTrailVFX"]
+    PHVFX["PlayerHurtVFX"]
+    EDVFX["EnemyDeathVFX"]
+    ESVFX["EnemySpawnVFX"]
+    KVFX["KnockbackVFX"]
+    LVFX["LevelUpVFX"]
+    FOG["Fog Systems"]
+    RAIN["Precipitation<br/>Zones + Presets"]
+  end
+
+  subgraph UI["UI Layer"]
+    direction TB
+    UIM["UIManager<br/>(Singleton)"]
+    HUD["HUD<br/>HP/MP/XP Bars,<br/>Weapon, Cast, Combo"]
+    MENU["Menus<br/>Main, Pause,<br/>Options, Credits"]
+    STUI["Skill Tree UI<br/>Nodes, Lines,<br/>Tooltips, Hotbar"]
+    STMU["Stat Menu<br/>Allocation"]
+    DMG["DamageNumbers<br/>(World Canvas)"]
+    BOSS_UI["BossHealthBar"]
+    DEATH["DeathScreen"]
+  end
+
+  subgraph DATA["ScriptableObject Data Layer"]
+    direction LR
+    AD["AttackData"]
+    WD["WeaponData"]
+    PD["ParryData"]
+    ED["EnemyData"]
+    EAD["EnemyAttackData"]
+    SD["SkillData"]
+    JCD["JobClassData"]
+    STD["SkillTreeData"]
+    WC["WaveConfig"]
+  end
+
+  IS --> PC
+  IS --> CC
+  IS --> PSC
+  IS --> UIM
+
+  PC --> DASH
+  PC --> DJ
+  PC --> PUM
+  PC --> PA
+
+  CC --> AH
+  CC --> PROJ
+  CC --> PS
+
+  AH --> EC
+  PROJ --> EC
+  EC --> ECMB
+  EC --> ESNS
+  EC --> MOV
+  EC --> BC
+
+  ECMB --> HS
+  PS --> ECMB
+
+  LS --> SS
+  LS --> HS
+  LS --> MS
+  XP --> LS
+
+  SM --> SE
+  PSC --> SE
+  SE --> MS
+  SE --> ABT
+  SM --> PST
+
+  WM --> ESM
+  ESM --> EC
+  WS --> ESM
+  SA --> WM
+  W100 --> CM
+
+  GM --> SL
+  GM --> MUS
+  SVM --> SM
+  SVM --> SS
+  SB --> GM
+
+  ACC --> PC
+  BRT --> ACC
+  CBT --> ACC
+
+  UIM --> HUD
+  UIM --> MENU
+  HUD --> HS
+  HUD --> MS
+  HUD --> LS
+  HUD --> CC
+  STUI --> SM
+  STMU --> SS
+  DMG --> AH
+  BOSS_UI --> BC
+  DEATH --> GM
+
+  CC --> AD
+  CC --> WD
+  PS --> PD
+  EC --> ED
+  ECMB --> EAD
+  SE --> SD
+  SM --> JCD
+  SM --> STD
+  WM --> WC
+
+  SFX --> CC
+  SFX --> EC
+  MUS --> GM
+
+  DVFX --> DASH
+  PHVFX --> HS
+  EDVFX --> EC
+  ESVFX --> ESM
+  LVFX --> LS
+
+  style INPUT fill:#1f6feb,stroke:#58a6ff,color:#fff
+  style PLAYER fill:#1a4a1a,stroke:#3fb950,color:#c9d1d9
+  style COMBAT fill:#6e2a0a,stroke:#f0883e,color:#c9d1d9
+  style STATS fill:#3d1f6e,stroke:#d2a8ff,color:#c9d1d9
+  style SKILLS fill:#2a4858,stroke:#58a6ff,color:#c9d1d9
+  style ENEMIES fill:#6e0a0a,stroke:#f85149,color:#c9d1d9
+  style WAVES fill:#5c2a0a,stroke:#d29922,color:#c9d1d9
+  style CORE fill:#21262d,stroke:#8b949e,color:#c9d1d9
+  style CAMERA fill:#0a3d6e,stroke:#58a6ff,color:#c9d1d9
+  style AUDIO fill:#2a1f4e,stroke:#bc8cff,color:#c9d1d9
+  style VFX fill:#1f4e3d,stroke:#56d364,color:#c9d1d9
+  style UI fill:#4e1f4e,stroke:#db61a2,color:#c9d1d9
+  style DATA fill:#3d3d21,stroke:#d29922,color:#c9d1d9
+</pre>
+</div>
+
+<!-- ==================== COMBAT DETAIL ==================== -->
+
+<h1 class="page-break">2. Combat System Detail</h1>
+<p class="section-intro">Attack flow, parry mechanics, combo chains, and damage calculation.</p>
+
+<div class="diagram-container">
+<pre class="mermaid">
+graph LR
+  subgraph ATTACK_FLOW["Attack Flow"]
+    direction TB
+    INPUT["Player presses Attack"] --> CC["CombatController"]
+    CC -->|"checks state,<br/>mana, cooldown"| WINDUP["WindUp<br/>(windUpDuration)"]
+    WINDUP --> ACTIVE["Attacking<br/>(activeDuration)"]
+    ACTIVE -->|"spawns"| HB["AttackHitbox / Projectile"]
+    ACTIVE --> RECOVERY["Recovery<br/>(recoveryDuration)"]
+    RECOVERY -->|"combo queued?"| COMBO{"Combo?"}
+    COMBO -->|"yes"| WINDUP
+    COMBO -->|"no"| IDLE["Idle"]
+  end
+
+  subgraph DAMAGE_CALC["Damage Calculation"]
+    direction TB
+    BASE["AttackData.baseDamage"] --> MULT["x DamageMultiplier<br/>(1 + STR*0.02 melee<br/>1 + INT*0.02 magic)"]
+    MULT --> CRIT{"Crit Roll<br/>AGI*0.005"}
+    CRIT -->|"hit"| CRITD["x CritMult<br/>(2 + AGI*0.01)"]
+    CRIT -->|"miss"| FINAL["Final Damage"]
+    CRITD --> FINAL
+    FINAL --> DEF["/ Defense<br/>modifier"]
+    DEF --> HP["HealthSystem<br/>.TakeDamage()"]
+  end
+
+  subgraph PARRY["Parry System"]
+    direction TB
+    PBTN["Player presses Parry"] --> PWIN["Open Parry Window"]
+    PWIN --> EHIT["Enemy Attack Arrives"]
+    EHIT --> CHECK{"In Window?"}
+    CHECK -->|"yes"| PTYPE{"ParryType?"}
+    CHECK -->|"no"| TAKE_DMG["Take Damage"]
+    PTYPE -->|"ClassicParry"| STUN["Stun Enemy +<br/>Counter Damage"]
+    PTYPE -->|"SpellMirror"| REFLECT["Reflect<br/>Projectile"]
+    PTYPE -->|"ShadowStep"| TELEPORT["Teleport Behind +<br/>i-Frames"]
+  end
+
+  HB --> DAMAGE_CALC
+
+  style ATTACK_FLOW fill:#2a1500,stroke:#f0883e,color:#c9d1d9
+  style DAMAGE_CALC fill:#3d1f6e,stroke:#d2a8ff,color:#c9d1d9
+  style PARRY fill:#1f4e3d,stroke:#56d364,color:#c9d1d9
+</pre>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h3>Weapon Slots</h3>
+    <ul>
+      <li><strong>Melee</strong> — Directional (Forward/Up/Down) + aerial overrides</li>
+      <li><strong>Ranged</strong> — Spawns Projectile with pierce</li>
+      <li><strong>Magic</strong> — Mana-consuming, can spawn SkillProjectile</li>
+    </ul>
+    <h3>Combat States</h3>
+    <ul>
+      <li>Idle &rarr; WindUp &rarr; Attacking &rarr; Recovery &rarr; (Combo?) &rarr; Idle</li>
+      <li>Parrying (entered from Idle on parry input)</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3>Key Constants</h3>
+    <table>
+      <tr><th>Param</th><th>Value</th></tr>
+      <tr><td>Coyote Time</td><td>0.15s</td></tr>
+      <tr><td>Jump Buffer</td><td>0.15s</td></tr>
+      <tr><td>Fall Gravity Mult</td><td>2.5x</td></tr>
+      <tr><td>Max Fall Speed</td><td>-20</td></tr>
+      <tr><td>Dash Speed / Duration / CD</td><td>20 / 0.2s / 1.0s</td></tr>
+      <tr><td>Crit Cap</td><td>50% (AGI*0.005)</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ==================== ENEMY & WAVE ==================== -->
+
+<h1 class="page-break">3. Enemy AI & Wave System</h1>
+<p class="section-intro">State machines, boss phases, sensor detection, and wave progression.</p>
+
+<div class="diagram-container">
+<pre class="mermaid">
+stateDiagram-v2
+  direction LR
+
+  [*] --> Idle
+  Idle --> Patrol : timer expired
+  Patrol --> Alert : target detected
+  Alert --> Chase : confirm target
+  Chase --> Attack : in attack range
+  Attack --> Cooldown : attack complete
+  Cooldown --> Chase : cooldown expired\n+ has target
+  Cooldown --> Patrol : cooldown expired\n+ lost target
+
+  Chase --> Alert : target lost briefly
+  Alert --> Patrol : target lost (timeout)
+
+  Idle --> Stunned : stunned
+  Patrol --> Stunned : stunned
+  Chase --> Stunned : stunned
+  Attack --> Stunned : stunned
+  Cooldown --> Stunned : stunned
+  Stunned --> Idle : stun expired
+
+  Idle --> Dead : health <= 0
+  Patrol --> Dead : health <= 0
+  Alert --> Dead : health <= 0
+  Chase --> Dead : health <= 0
+  Attack --> Dead : health <= 0
+  Cooldown --> Dead : health <= 0
+  Stunned --> Dead : health <= 0
+  Dead --> [*]
+</pre>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h3>Boss Phase System</h3>
+    <div class="diagram-container" style="margin:8px 0">
+<pre class="mermaid">
+stateDiagram-v2
+  direction LR
+  [*] --> Phase1
+  Phase1 --> Phase2 : HP below 50%
+  Phase2 --> Enraged : HP below 20%
+  Enraged --> Dead : HP = 0
+
+  note right of Phase1 : speedMult: 1.0x\ndamageMult: 1.0x
+  note right of Phase2 : speedMult: 1.2x\ndamageMult: 1.3x
+  note right of Enraged : speedMult: 1.5x\ndamageMult: 1.6x
+</pre>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Wave Lifecycle</h3>
+    <div class="diagram-container" style="margin:8px 0">
+<pre class="mermaid">
+stateDiagram-v2
+  direction LR
+  [*] --> Idle
+  Idle --> Rest : StartWaves()
+  Rest --> Spawning : timer expired
+  Spawning --> Active : all spawned
+  Active --> Rest : all enemies dead
+  Active --> Rest : OnAllEnemiesDead
+
+  note right of Rest : Countdown timer\nUI: OnRestTimerUpdated
+  note right of Active : Wave 100:\nOnSpecialWaveReached
+</pre>
+    </div>
+  </div>
+</div>
+
+<div class="grid-3">
+  <div class="card">
+    <h3>Enemy Types</h3>
+    <ul>
+      <li><strong>GroundPatrol</strong> — Walk, wall/ledge flip</li>
+      <li><strong>Flying</strong> — No gravity, 2D flight</li>
+      <li><strong>Hopping</strong> — Jump cycles, hop cooldowns</li>
+      <li><strong>Stationary</strong> — Turrets, no movement</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3>Detection Modes</h3>
+    <ul>
+      <li><strong>Radius</strong> — Sphere check around enemy</li>
+      <li><strong>Cone</strong> — Angle + range in facing dir</li>
+      <li><strong>LineOfSight</strong> — Raycast, blocked by walls</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3>Enemy Prefabs</h3>
+    <ul>
+      <li>Bat, Flying Eye</li>
+      <li>Goblin, Skeleton</li>
+      <li>Mushroom, Slime</li>
+      <li>Turret</li>
+      <li>GuardianBoss</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ==================== SKILLS & PROGRESSION ==================== -->
+
+<h1 class="page-break">4. Skills, Jobs & Progression</h1>
+<p class="section-intro">Job advancement tree, skill system, and leveling formulas.</p>
+
+<div class="diagram-container">
+<pre class="mermaid">
+graph TB
+  subgraph JOB_TREE["Job Advancement"]
+    direction TB
+    BEG["Beginner<br/>(Tier 0)"]
+    BEG --> WAR["Warrior<br/>(Tier 1)<br/>STR focus"]
+    BEG --> MAGE["Mage<br/>(Tier 1)<br/>INT focus"]
+    BEG --> ROG["Rogue<br/>(Tier 1)<br/>AGI focus"]
+    WAR -->|"Req: Lv ??"| WAR2["Advanced Warrior<br/>(Tier 2)"]
+    MAGE -->|"Req: Lv ??"| MAGE2["Advanced Mage<br/>(Tier 2)"]
+    ROG -->|"Req: Lv ??"| ROG2["Advanced Rogue<br/>(Tier 2)"]
+  end
+
+  subgraph SKILL_FLOW["Skill Execution"]
+    direction LR
+    KEY["Hotbar Key<br/>(1-4)"] --> PSC2["PlayerSkillController"]
+    PSC2 -->|"check cooldown<br/>+ mana"| SE2["SkillExecutor"]
+    SE2 -->|"spend mana"| MS2["ManaSystem"]
+    SE2 -->|"spawn"| PREF["Skill Prefab"]
+    PREF --> EFF{"Effect Type?"}
+    EFF --> DMG2["DamageSkillEffect"]
+    EFF --> HEAL["HealSkillEffect"]
+    EFF --> BUFF["BuffSkillEffect"]
+    EFF --> PROJ2["ProjectileSkillEffect"]
+  end
+
+  subgraph LEVEL_FLOW["Level-Up Chain"]
+    direction LR
+    KILL["Enemy Dies"] --> ORB["ExperienceOrb<br/>Scatter-Idle-Attract"]
+    ORB --> LS2["LevelSystem<br/>.AddXP()"]
+    LS2 -->|"OnLevelUp"| STAT2["StatSystem<br/>+Stat Points"]
+    LS2 -->|"OnLevelUp"| SKILL2["SkillManager<br/>+SP, unlock check"]
+    LS2 -->|"OnLevelUp"| RECALC["Recalc HP/MP<br/>with job + stat bonuses"]
+  end
+
+  style JOB_TREE fill:#2a4858,stroke:#58a6ff,color:#c9d1d9
+  style SKILL_FLOW fill:#3d1f6e,stroke:#d2a8ff,color:#c9d1d9
+  style LEVEL_FLOW fill:#1a4a1a,stroke:#3fb950,color:#c9d1d9
+</pre>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h3>Stat Formulas</h3>
+    <table>
+      <tr><th>Stat</th><th>Formula</th></tr>
+      <tr><td>Max HP</td><td><code>baseHP + (lvl-1)*hpPerLvl + job.hpBonus + STR*5</code></td></tr>
+      <tr><td>Max Mana</td><td><code>baseMana + (lvl-1)*mpPerLvl + job.mpBonus + INT*3</code></td></tr>
+      <tr><td>Melee Mult</td><td><code>1 + STR * 0.02</code></td></tr>
+      <tr><td>Magic Mult</td><td><code>1 + INT * 0.02</code></td></tr>
+      <tr><td>Atk Speed</td><td><code>1 / (1 + AGI * 0.01)</code></td></tr>
+      <tr><td>Crit Chance</td><td><code>min(0.5, AGI * 0.005)</code></td></tr>
+      <tr><td>Crit Damage</td><td><code>2 + AGI * 0.01</code></td></tr>
+      <tr><td>XP to Level</td><td><code>floor((L + 300 * 2^(L/7)) / 4)</code></td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h3>Skill Data Model</h3>
+    <ul>
+      <li><strong>SkillData (SO)</strong> — id, name, type, damage type, requirements, scaling per level, effects[], prefab, sound, animation</li>
+      <li><strong>JobClassData (SO)</strong> — job tree, stat modifiers, growth rates, parryData, appearance, available skills</li>
+      <li><strong>SkillTreeData (SO)</strong> — hierarchy of skill nodes, connections</li>
+      <li><strong>SkillEffectData (SO)</strong> — individual effect template (damage/heal/buff/projectile)</li>
+      <li><strong>SkillInstance</strong> — runtime state: current level, cooldown tracker</li>
+    </ul>
+    <h3>Job Stat Modifiers (per class)</h3>
+    <ul>
+      <li><strong>Warrior</strong> — attackModifier, high strPerLevel, parry: ClassicParry</li>
+      <li><strong>Mage</strong> — magicModifier, high intPerLevel, parry: SpellMirror</li>
+      <li><strong>Rogue</strong> — attack speed + crit, high agiPerLevel, parry: ShadowStep</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ==================== CORE SYSTEMS ==================== -->
+
+<h1 class="page-break">5. Core Systems & Bootstrap</h1>
+<p class="section-intro">Singletons, game state machine, save system, and initialization order.</p>
+
+<div class="diagram-container">
+<pre class="mermaid">
+graph TB
+  subgraph BOOT["Bootstrap (Exec Order -1000)"]
+    SB2["SystemsBootstrap.Awake()"]
+    SB2 --> FIND["Find or Create<br/>'Managers' GameObject"]
+    FIND --> ADD["Auto-add missing:"]
+    ADD --> GM2["GameManager"]
+    ADD --> SVM2["SaveManager"]
+    ADD --> SKM["SkillManager"]
+    ADD --> MUS2["MusicManager"]
+    ADD --> SL2["SceneLoader"]
+    ADD --> DS["DisplaySettings"]
+    ADD --> SMUI["StatMenuUI"]
+    ADD -->|"all get"| DDOL["DontDestroyOnLoad"]
+    SB2 -->|"then"| DESTROY["Destroy self"]
+  end
+
+  subgraph GAME_STATES["GameManager State Machine"]
+    direction LR
+    MM["MainMenu"] -->|"New/Load Game"| PLAY["Playing"]
+    PLAY -->|"Esc"| PAUSE["Paused<br/>timeScale=0"]
+    PAUSE -->|"Resume"| PLAY
+    PLAY -->|"Boss trigger"| BOSS["BossFight"]
+    BOSS -->|"Boss dead"| PLAY
+    PLAY -->|"Wave 100"| CUT["Cutscene<br/>timeScale=0"]
+    CUT --> PLAY
+    PLAY -->|"Scene change"| LOAD["Loading"]
+    LOAD --> PLAY
+    PLAY -->|"Player dies"| GO["GameOver"]
+    GO -->|"Restart"| PLAY
+    GO -->|"Quit"| MM
+  end
+
+  subgraph SAVE["Save System"]
+    direction TB
+    SAVE_TRIGGER["SaveManager.Save()"]
+    SAVE_TRIGGER --> COLLECT["Collect SaveData"]
+    COLLECT --> POS["Player Position"]
+    COLLECT --> HP2["Health/Mana state"]
+    COLLECT --> ABILITIES["Unlocked Abilities"]
+    COLLECT --> SKILLS_SAVE["SkillManager state<br/>(job, skills, SP)"]
+    COLLECT --> STATS_SAVE["StatSystem state<br/>(STR/INT/AGI, allocated)"]
+    COLLECT --> WAVE_SAVE["Wave progress"]
+    COLLECT --> DC["Death count"]
+    COLLECT --> JSON["Serialize to JSON"]
+    JSON --> PP["PlayerPrefs<br/>GameSave_Slot_N<br/>(5 slots, version 5)"]
+  end
+
+  style BOOT fill:#21262d,stroke:#8b949e,color:#c9d1d9
+  style GAME_STATES fill:#1f6feb33,stroke:#58a6ff,color:#c9d1d9
+  style SAVE fill:#1a4a1a,stroke:#3fb950,color:#c9d1d9
+</pre>
+</div>
+
+<!-- ==================== UI LAYER ==================== -->
+
+<h1>6. UI Layer</h1>
+<p class="section-intro">All UI screens, HUD elements, and their data sources.</p>
+
+<div class="diagram-container">
+<pre class="mermaid">
+graph LR
+  subgraph MANAGER["UIManager (Singleton)"]
+    direction TB
+    UIM2["Canvas Refs:<br/>mainMenu, hud,<br/>pause, world"]
+    FOCUS["FocusManager"]
+    STYLE["UIStyleGuide (SO)"]
+    SOUND2["UISoundBank (SO)"]
+  end
+
+  subgraph MENUS2["Menu Screens"]
+    direction TB
+    MAIN["MainMenuController<br/>New/Continue/Options/Quit"]
+    CHAR["CharacterCreation<br/>Job select + appearance"]
+    PAUSE2["PauseMenuController"]
+    OPT["OptionsMenu<br/>Audio/Video/Controls"]
+    CRED["CreditsController"]
+    SCORES["HighscoresController"]
+    SAVES["SaveSlotUI"]
+  end
+
+  subgraph HUD2["HUD Elements"]
+    direction TB
+    BARS["PlayerStatBars<br/>HP + MP bars"]
+    XPBAR["ExpBarDisplay"]
+    LVLDISP["LevelDisplay"]
+    WEAP["WeaponIndicator"]
+    CAST["CastBar"]
+    COMB["ComboCounter"]
+    BOSS_HP["BossHealthBar"]
+    NOTIFY["NotificationSystem"]
+    VIGN["LowHealthVignette"]
+  end
+
+  subgraph SKILL_UI["Skill & Stat UI"]
+    direction TB
+    TREE["SkillTreeController"]
+    PANEL["SkillTreePanel"]
+    NODE["SkillNodeUI"]
+    TIP["SkillTooltip"]
+    LINE["ConnectionLines"]
+    HBAR["SkillHotbar"]
+    JAP["JobAdvancementPopup"]
+    STATM["StatMenuController<br/>STR/INT/AGI allocation"]
+  end
+
+  subgraph OVERLAY["Overlays"]
+    direction TB
+    DMGN["DamageNumberSpawner<br/>(World Canvas)"]
+    DEATH2["DeathScreen<br/>+ Game Over SFX"]
+  end
+
+  MANAGER --> MENUS2
+  MANAGER --> HUD2
+  MANAGER --> SKILL_UI
+  MANAGER --> OVERLAY
+
+  BARS -.->|"reads"| HS3["HealthSystem"]
+  BARS -.->|"reads"| MS3["ManaSystem"]
+  XPBAR -.->|"reads"| LS3["LevelSystem"]
+  BOSS_HP -.->|"reads"| BC3["BossController"]
+  TREE -.->|"reads"| SM3["SkillManager"]
+  STATM -.->|"reads"| SS3["StatSystem"]
+  DEATH2 -.->|"calls"| GM3["GameManager"]
+  DMGN -.->|"from"| AH3["AttackHitbox"]
+
+  style MANAGER fill:#4e1f4e,stroke:#db61a2,color:#c9d1d9
+  style MENUS2 fill:#21262d,stroke:#8b949e,color:#c9d1d9
+  style HUD2 fill:#21262d,stroke:#d29922,color:#c9d1d9
+  style SKILL_UI fill:#21262d,stroke:#58a6ff,color:#c9d1d9
+  style OVERLAY fill:#21262d,stroke:#f85149,color:#c9d1d9
+</pre>
+</div>
+
+<!-- ==================== DATA LAYER ==================== -->
+
+<h1 class="page-break">7. ScriptableObject Data Layer</h1>
+<p class="section-intro">All data assets and what systems consume them.</p>
+
+<div class="diagram-container">
+<pre class="mermaid">
+graph LR
+  subgraph SO_COMBAT["Combat Data"]
+    AD2["AttackData<br/>damage, timing,<br/>hitbox, knockback,<br/>VFX, audio"]
+    WD2["WeaponData<br/>groups attacks by<br/>direction + aerial"]
+    PD2["ParryData<br/>window, cooldown,<br/>type-specific params"]
+    EAD2["EnemyAttackData<br/>enemy attack defs"]
+  end
+
+  subgraph SO_ENEMY["Enemy Data"]
+    ED2["EnemyData<br/>type, health, speed,<br/>detection, attacks,<br/>rewards, audio, VFX"]
+  end
+
+  subgraph SO_SKILLS["Skill Data"]
+    SD2["SkillData<br/>id, type, damage type,<br/>reqs, scaling, effects"]
+    JCD2["JobClassData<br/>stats, growth,<br/>skills, parry,<br/>appearance"]
+    STD2["SkillTreeData<br/>node hierarchy"]
+    SED["SkillEffectData<br/>effect templates"]
+  end
+
+  subgraph SO_WORLD["World Data"]
+    WC2["WaveConfig<br/>enemy pool,<br/>spawn scaling"]
+    PP2["PrecipitationPreset<br/>weather configs"]
+    CD2["CutsceneData<br/>dialogue sequences"]
+  end
+
+  subgraph SO_UI["UI Data"]
+    USG["UIStyleGuide<br/>colors, fonts"]
+    USB2["UISoundBank<br/>UI audio clips"]
+  end
+
+  AD2 --> CC2["CombatController"]
+  WD2 --> CC2
+  PD2 --> PS2["ParrySystem"]
+  EAD2 --> ECM2["EnemyCombat"]
+  ED2 --> EC2["EnemyController"]
+  SD2 --> SE3["SkillExecutor"]
+  JCD2 --> SM4["SkillManager"]
+  JCD2 --> PA2["PlayerAppearance"]
+  JCD2 --> PD2
+  STD2 --> SM4
+  SED --> SE3
+  WC2 --> WM2["WaveManager"]
+  PP2 --> RAIN2["PrecipitationController"]
+  CD2 --> CM2["CutsceneManager"]
+  USG --> UIM3["UIManager"]
+  USB2 --> UIM3
+
+  style SO_COMBAT fill:#6e2a0a,stroke:#f0883e,color:#c9d1d9
+  style SO_ENEMY fill:#6e0a0a,stroke:#f85149,color:#c9d1d9
+  style SO_SKILLS fill:#2a4858,stroke:#58a6ff,color:#c9d1d9
+  style SO_WORLD fill:#1a4a1a,stroke:#3fb950,color:#c9d1d9
+  style SO_UI fill:#4e1f4e,stroke:#db61a2,color:#c9d1d9
+</pre>
+</div>
+
+<!-- ==================== AGENT INFRASTRUCTURE ==================== -->
+
+<h1 class="page-break">8. Agent Infrastructure</h1>
+<p class="section-intro">How 9 autonomous Claude agents are dispatched, run, and persist context.</p>
+
+<div class="diagram-container">
+<pre class="mermaid">
+graph TB
+  subgraph RUNNER["Agent Runner (PowerShell)"]
+    POLL["Poll every 30s:<br/>bd ready --label agent:X<br/>--json --limit 1"]
+    POLL -->|"work found"| LAUNCH["Launch: claude -p<br/>(headless, non-interactive)"]
+    LAUNCH -->|"exit 0"| COOL["Cooldown 10s"]
+    COOL --> POLL
+    PAUSE_F["PAUSE file"] -.->|"pauses loop"| POLL
+    STOP_F["STOP file"] -.->|"exits loop"| POLL
+  end
+
+  subgraph AGENTS2["9 Agents"]
+    direction TB
+    A1["architect<br/>Patterns, CI, design"]
+    A2["player<br/>Movement, abilities"]
+    A3["enemy-behavior<br/>AI, bosses, waves"]
+    A4["systems<br/>Managers, save, XP"]
+    A5["ui-ux<br/>Gothic UI, menus"]
+    A6["vfx<br/>Particles, effects"]
+    A7["sound-design<br/>SFX, music"]
+    A8["camera<br/>Follow, parallax"]
+    A9["environment<br/>Tilemaps, hazards"]
+  end
+
+  subgraph MEMORY2["Persistent Memory"]
+    HANDOFF["handoffs/agent.json<br/>done, remaining,<br/>decisions, files,<br/>next_steps"]
+    ACTIVITY2["handoffs/activity.jsonl<br/>Append-only log"]
+    BEADS["Beads (Dolt DB)<br/>Issues, deps, labels,<br/>priorities, status"]
+    SETTINGS2[".claude/agents/X/<br/>settings.local.json<br/>Tool permissions"]
+    CLAUDE_MD2["Agent CLAUDE.md<br/>Domain expertise,<br/>owned scripts"]
+  end
+
+  subgraph CONFIG2["Shared Config"]
+    STD_MD["STANDARDS.md"]
+    AGENTS_MD2["AGENTS.md"]
+    ROOT_MD["CLAUDE.md"]
+    ROUTE["routing.json<br/>Label dispatch rules"]
+  end
+
+  RUNNER --> AGENTS2
+  AGENTS2 -->|"read on start"| MEMORY2
+  AGENTS2 -->|"write on end"| MEMORY2
+  AGENTS2 -->|"read"| CONFIG2
+  BEADS <-->|"bd sync"| GIT2["Git Remote"]
+  ROUTE -->|"label matching"| RUNNER
+
+  style RUNNER fill:#5c2a0a,stroke:#d29922,color:#c9d1d9
+  style AGENTS2 fill:#1f6feb33,stroke:#58a6ff,color:#c9d1d9
+  style MEMORY2 fill:#3d1f6e,stroke:#d2a8ff,color:#c9d1d9
+  style CONFIG2 fill:#21262d,stroke:#8b949e,color:#c9d1d9
+</pre>
+</div>
+
+<div class="diagram-container">
+<pre class="mermaid">
+sequenceDiagram
+  participant R as Agent Runner
+  participant BD as Beads (Dolt)
+  participant C as Claude Agent
+  participant G as Git Remote
+
+  R->>BD: bd ready --label agent:X
+  BD-->>R: [{id, title, priority}]
+  R->>C: Launch with task prompt
+
+  C->>C: Read STANDARDS.md + agent CLAUDE.md
+  C->>C: Read handoffs/agent.json
+  C->>BD: bd update id --claim
+  C->>BD: bd show id
+
+  Note over C: Research - Plan - Implement
+
+  C->>C: Write/edit source files
+  C->>BD: bd close id --reason "summary"
+  C->>C: Write handoffs/agent.json
+  C->>G: git add + commit + push
+  C->>BD: bd sync
+  C-->>R: Exit
+</pre>
+</div>
+
+<!-- ==================== BLOCKING CHAIN ==================== -->
+
+<h1 class="page-break">9. Current Work & Blocking Chain</h1>
+<p class="section-intro">What's in progress, what's blocked, and the critical path.</p>
+
+<div class="diagram-container">
+<pre class="mermaid">
+graph LR
+  subgraph DONE["Completed (49)"]
+    direction TB
+    SO2["1s2: SO Data Assets<br/>P0 CLOSED"]
+    B8Z["b8z: Input Consolidation<br/>P0"]
+    MANY["...46 more closed beads"]
+  end
+
+  subgraph WIP["In Progress (7)"]
+    direction TB
+    I17["i17: Multi-Scene<br/>Zone System<br/>P1 architect"]
+    N9AG["9ag: Prefab Audit<br/>P0 architect"]
+    N17P["17p: Unit Tests<br/>P2 architect"]
+    BUU["buu: CI Pipeline<br/>P2 architect"]
+    MN2["mn2: Inventory<br/>P3 systems"]
+    BXI["bxi: Balance Curves<br/>P3 systems"]
+    B8Z2["b8z: Input Assets<br/>P0 player"]
+  end
+
+  subgraph BLOCKED2["Blocked (6)"]
+    direction TB
+    N1J4["1j4: Prefab CI Check<br/>P2"]
+    N6BD["6bd: Boss Encounters<br/>P1"]
+    N80C["80c: Zone Enemy Groups<br/>P1"]
+    R7P["r7p: Exploration Gates<br/>P1"]
+    N7HQ["7hq: NPC/Dialogue<br/>P3"]
+    N4ZA["4za: World Map UI<br/>P3"]
+  end
+
+  SO2 -.->|"unblocked"| I17
+  N9AG -->|"blocks"| N1J4
+  I17 -->|"blocks"| N6BD
+  I17 -->|"blocks"| N80C
+  I17 -->|"blocks"| R7P
+  I17 -->|"blocks"| N7HQ
+  I17 -->|"blocks"| N4ZA
+
+  style DONE fill:#1b4332,stroke:#40916c,color:#c9d1d9
+  style WIP fill:#5c2a0a,stroke:#d29922,color:#c9d1d9
+  style BLOCKED2 fill:#6a040f,stroke:#f85149,color:#c9d1d9
+</pre>
+</div>
+
+<div class="card" style="border-color:#f85149; margin-top:16px;">
+  <h3 style="color:#f85149;">Critical Path Analysis</h3>
+  <p><strong>i17 (Zone System)</strong> is the single biggest bottleneck — it blocks 5 of 6 blocked beads. It's assigned to the <strong>architect</strong> agent, who is also carrying 3 other in-progress tasks (prefab audit, unit tests, CI pipeline).</p>
+  <p><strong>Recommendation:</strong> Prioritize i17 completion or break it into smaller, unblocking chunks. Consider moving architect's lower-priority work (17p, buu) to backlog to focus bandwidth.</p>
+</div>
+
+<!-- ==================== FILE STRUCTURE ==================== -->
+
+<h1 class="page-break">10. Project File Structure</h1>
+
+<div class="grid">
+  <div class="card">
+    <h3>Scripts (155 files)</h3>
+    <table>
+      <tr><th>Directory</th><th>Count</th><th>Key Classes</th></tr>
+      <tr><td>Player/</td><td>2</td><td>PlayerControllerScript, PlayerAppearance</td></tr>
+      <tr><td>Abilities/</td><td>3</td><td>DashAbility, DoubleJumpAbility, PowerUpManager</td></tr>
+      <tr><td>Combat/</td><td>~12</td><td>CombatController, ParrySystem, AttackHitbox, Projectile</td></tr>
+      <tr><td>Enemies/</td><td>~20</td><td>EnemyController, BossController, Movement variants, Sensors</td></tr>
+      <tr><td>Skills/</td><td>~15</td><td>SkillManager, SkillExecutor, Effects (4 types), Trackers</td></tr>
+      <tr><td>Systems/</td><td>~15</td><td>GameManager, SaveManager, Health/Mana/Level/StatSystem</td></tr>
+      <tr><td>UI/</td><td>~35</td><td>UIManager, all menus, HUD, skill tree, stat menu</td></tr>
+      <tr><td>Camera/</td><td>5</td><td>AdvancedCameraController, Parallax, Bounds, BossRoom</td></tr>
+      <tr><td>Audio/</td><td>4</td><td>SFXManager (static), MusicManager (singleton)</td></tr>
+      <tr><td>VFX/</td><td>~18</td><td>Death/Spawn/Hurt/Dash VFX, Fog, Precipitation</td></tr>
+      <tr><td>Editor/</td><td>~10</td><td>Setup wizards, build script, debug tools</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h3>Prefabs</h3>
+    <table>
+      <tr><th>Directory</th><th>Contents</th></tr>
+      <tr><td>Player/</td><td>Player.prefab</td></tr>
+      <tr><td>Enemies/</td><td>8 enemies + GuardianBoss</td></tr>
+      <tr><td>Abilities/</td><td>DashPowerUp, DoubleJumpPowerUp</td></tr>
+      <tr><td>Effects/</td><td>Death/Spawn/Skill VFX, XP Orb, 6 Parallax layers</td></tr>
+      <tr><td>UI/</td><td>HUD, MainMenu, SkillTree canvases + UIManager</td></tr>
+      <tr><td>Camera/</td><td>MainCamera</td></tr>
+      <tr><td>Arena/</td><td>SurvivalArena</td></tr>
+    </table>
+    <h3 style="margin-top:16px;">Scenes</h3>
+    <table>
+      <tr><td>MainMenu.unity</td><td>Title screen</td></tr>
+      <tr><td>SampleScene.unity</td><td>Gameplay (single scene currently)</td></tr>
+    </table>
+    <h3 style="margin-top:16px;">Packages</h3>
+    <table>
+      <tr><td>Input System</td><td>1.17.0</td></tr>
+      <tr><td>Universal RP</td><td>17.3.0</td></tr>
+      <tr><td>Cinemachine</td><td>3.1.5</td></tr>
+      <tr><td>2D Suite</td><td>Sprites, Tilemap, Animation, SpriteShape, Aseprite</td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      darkMode: true,
+      background: '#161b22',
+      primaryColor: '#1f6feb',
+      primaryTextColor: '#c9d1d9',
+      primaryBorderColor: '#30363d',
+      lineColor: '#8b949e',
+      secondaryColor: '#21262d',
+      tertiaryColor: '#161b22',
+      fontFamily: 'Segoe UI, system-ui, sans-serif',
+      fontSize: '14px',
+    },
+    flowchart: { curve: 'basis', padding: 16 },
+    sequence: { actorMargin: 50 },
+  });
+</script>
+
+</body>
+</html>
