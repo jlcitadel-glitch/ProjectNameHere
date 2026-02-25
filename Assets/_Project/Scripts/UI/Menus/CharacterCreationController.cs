@@ -98,12 +98,15 @@ namespace ProjectName.UI
 
         private static readonly Color[] HairColorPresets = new Color[]
         {
-            new Color(0.15f, 0.12f, 0.10f),     // Black
+            new Color(0.75f, 0.15f, 0.10f),     // Red
+            new Color(0.90f, 0.50f, 0.10f),     // Orange
+            new Color(0.95f, 0.85f, 0.30f),     // Blonde
             new Color(0.45f, 0.30f, 0.15f),     // Brown
-            new Color(0.85f, 0.65f, 0.25f),     // Blonde
-            new Color(0.75f, 0.25f, 0.10f),     // Red
-            new Color(0.55f, 0.55f, 0.55f),     // Grey
+            new Color(0.15f, 0.12f, 0.10f),     // Black
             Color.white,                          // White
+            new Color(0.10f, 0.85f, 0.90f),     // Cyan
+            new Color(0.15f, 0.70f, 0.25f),     // Green
+            new Color(0.55f, 0.20f, 0.75f),     // Purple
         };
         private int selectedHairColorIndex;
 
