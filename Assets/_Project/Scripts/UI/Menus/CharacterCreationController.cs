@@ -237,6 +237,11 @@ namespace ProjectName.UI
             if (rogueLayeredPreview != null)
                 rogueLayeredPreview.Clear();
 
+            // Re-enable fallback images that ApplyAppearanceToCard disabled
+            if (warriorPreviewImage != null) warriorPreviewImage.enabled = true;
+            if (magePreviewImage != null) magePreviewImage.enabled = true;
+            if (roguePreviewImage != null) roguePreviewImage.enabled = true;
+
             HideAllPanels();
         }
 
@@ -515,16 +520,25 @@ namespace ProjectName.UI
             merged.skinTint = builtAppearance.skinTint;
             merged.hairTint = builtAppearance.hairTint;
 
-            // Overlay class-specific gear if available
-            if (jobData != null && jobData.defaultAppearance != null)
+            // Overlay class-specific gear from starter equipment
+            if (jobData != null && jobData.starterEquipment != null)
             {
-                var classAppearance = jobData.defaultAppearance;
-                if (classAppearance.torso != null) merged.torso = classAppearance.torso;
-                if (classAppearance.legs != null) merged.legs = classAppearance.legs;
-                if (classAppearance.weaponBehind != null) merged.weaponBehind = classAppearance.weaponBehind;
-                if (classAppearance.weaponFront != null) merged.weaponFront = classAppearance.weaponFront;
-                merged.armorPrimaryTint = classAppearance.armorPrimaryTint;
-                merged.armorSecondaryTint = classAppearance.armorSecondaryTint;
+                foreach (var equip in jobData.starterEquipment)
+                {
+                    if (equip == null || equip.visualPart == null) continue;
+                    switch (equip.slotType)
+                    {
+                        case EquipmentSlotType.Armor:
+                            merged.torso = equip.visualPart;
+                            break;
+                        case EquipmentSlotType.Boots:
+                            merged.legs = equip.visualPart;
+                            break;
+                        case EquipmentSlotType.Weapon:
+                            merged.weaponFront = equip.visualPart;
+                            break;
+                    }
+                }
             }
 
             preview.ApplyConfig(merged);
