@@ -602,7 +602,12 @@ public class LPCSetupWizard : EditorWindow
         bodyPart.sortOrderOffset = 0;
         bodyPart.supportsTinting = (slot == BodyPartSlot.Body || slot == BodyPartSlot.Head || slot == BodyPartSlot.Hair);
         bodyPart.defaultTint = Color.white;
-        bodyPart.previewSprite = allFrames.Count > 0 ? allFrames[0] : null;
+        // Weapon idle frames are tiny (just a handle); use a slash/attack frame instead.
+        // Attack1 (slash) starts at frame index 20 in the standard frame map.
+        if ((slot == BodyPartSlot.WeaponFront || slot == BodyPartSlot.WeaponBehind) && allFrames.Count > 23)
+            bodyPart.previewSprite = allFrames[23] ?? allFrames[22] ?? allFrames[21] ?? allFrames[20] ?? allFrames[0];
+        else
+            bodyPart.previewSprite = allFrames.Count > 0 ? allFrames[0] : null;
 
         EditorUtility.SetDirty(bodyPart);
         Debug.Log($"[LPC Wizard] Created BodyPartData: {assetPath} ({allFrames.Count} frames)");

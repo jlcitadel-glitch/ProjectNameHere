@@ -267,10 +267,15 @@ namespace ProjectName.UI
             {
                 if (icon != null)
                 {
-                    // Use dedicated icon if set, otherwise fall back to the visual part's preview sprite
+                    // Use dedicated icon if set, otherwise fall back to the visual part's preview sprite.
+                    // For weapons, prefer an attack frame since idle frames are barely visible.
                     var displaySprite = item.icon;
                     if (displaySprite == null && item.visualPart != null)
-                        displaySprite = item.visualPart.previewSprite;
+                    {
+                        if (slot == EquipmentSlotType.Weapon)
+                            displaySprite = FindBestWeaponFrame(item.visualPart);
+                        displaySprite ??= item.visualPart.previewSprite;
+                    }
 
                     icon.sprite = displaySprite;
                     icon.color = displaySprite != null ? Color.white : EmptySlotColor;
@@ -295,6 +300,22 @@ namespace ProjectName.UI
                 if (statsText != null)
                     statsText.text = "";
             }
+        }
+
+        /// <summary>
+        /// Returns a visible attack frame from a weapon's BodyPartData.
+        /// Weapon idle frames are tiny (just a handle), so we look for a slash frame instead.
+        /// Attack1 (slash) starts at frame index 20 in the standard LPC frame map.
+        /// </summary>
+        private static Sprite FindBestWeaponFrame(BodyPartData part)
+        {
+            if (part?.frames == null) return null;
+            // Try slash/attack frames (indices 20-25) — mid-swing frames are most visible
+            for (int i = 23; i >= 20 && i < part.frames.Length; i--)
+            {
+                if (part.frames[i] != null) return part.frames[i];
+            }
+            return null;
         }
 
         private void RefreshCharacterPreview()
