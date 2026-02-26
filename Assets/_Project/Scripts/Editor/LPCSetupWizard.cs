@@ -409,19 +409,31 @@ public class LPCSetupWizard : EditorWindow
                     Debug.Log($"[LPC Wizard] Equipment anim not available (expected): {part.name}/{anim.name}");
             }
 
-            // Post-download: copy walk.png as fallback for missing idle/run/jump.
-            // Most LPC equipment only provides walk + combat animations.
-            // Walk frames are a valid substitute for idle/run/jump visuals.
+            // Post-download: only copy walk.png as run.png fallback.
+            // Idle/jump are handled in SliceBodyPart with a static walk frame 0
+            // to avoid desync (walk cycle played during idle makes equipment "walk"
+            // while the body stands still).
             string walkSrc = Path.GetFullPath(Path.Combine(partDir, "walk.png"));
             if (File.Exists(walkSrc))
             {
-                foreach (var fallback in new[] { "idle", "run", "jump" })
+                string runFallback = Path.GetFullPath(Path.Combine(partDir, "run.png"));
+                if (!File.Exists(runFallback))
                 {
-                    string fallbackPath = Path.GetFullPath(Path.Combine(partDir, $"{fallback}.png"));
-                    if (!File.Exists(fallbackPath))
+                    File.Copy(walkSrc, runFallback);
+                    Debug.Log($"[LPC Wizard] Using walk.png as run.png fallback for {part.name}");
+                }
+
+                // Clean up old walk-based idle/jump copies from previous wizard runs
+                // (these caused desync: equipment played walk cycle during body idle)
+                foreach (var obsoleteFallback in new[] { "idle", "jump" })
+                {
+                    string fbPath = Path.GetFullPath(Path.Combine(partDir, $"{obsoleteFallback}.png"));
+                    if (File.Exists(fbPath) && new FileInfo(fbPath).Length == new FileInfo(walkSrc).Length)
                     {
-                        File.Copy(walkSrc, fallbackPath);
-                        Debug.Log($"[LPC Wizard] Using walk.png as {fallback}.png fallback for {part.name}");
+                        File.Delete(fbPath);
+                        string metaPath = fbPath + ".meta";
+                        if (File.Exists(metaPath)) File.Delete(metaPath);
+                        Debug.Log($"[LPC Wizard] Removed walk-based {obsoleteFallback}.png fallback for {part.name}");
                     }
                 }
             }
@@ -519,7 +531,26 @@ public class LPCSetupWizard : EditorWindow
             var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(pngPath);
             if (texture == null)
             {
-                // Fill with nulls to maintain frame indexing
+                // Try walk.png frame 0 as a static neutral-stance fallback.
+                // Equipment layers without a native animation for this state should
+                // show a neutral pose rather than null (which hides the layer) or
+                // a walk cycle (which causes visible desync during idle/jump).
+                string walkPng = $"{partDir}/walk.png";
+                var walkTex = AssetDatabase.LoadAssetAtPath<Texture2D>(walkPng);
+                if (walkTex != null)
+                {
+                    int wCols = walkTex.width / FRAME_SIZE;
+                    int wRows = walkTex.height / FRAME_SIZE;
+                    int wRow = wRows >= 4 ? SIDE_VIEW_ROW : 0;
+                    var wSprites = SliceSpritesheet(walkPng, walkTex, wCols, wRows);
+                    int f0Idx = wRow * wCols;
+                    Sprite staticFrame = (f0Idx < wSprites.Length) ? wSprites[f0Idx] : null;
+                    for (int i = 0; i < entry.frameCount; i++)
+                        allFrames.Add(staticFrame);
+                    continue;
+                }
+
+                // No walk.png either — fill with nulls to maintain frame indexing
                 for (int i = 0; i < entry.frameCount; i++)
                     allFrames.Add(null);
                 continue;

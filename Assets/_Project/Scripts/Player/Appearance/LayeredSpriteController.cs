@@ -130,6 +130,13 @@ public class LayeredSpriteController : MonoBehaviour
                 if (sprite != null)
                 {
                     entry.renderer.sprite = sprite;
+                    if (!entry.renderer.enabled) entry.renderer.enabled = true;
+                }
+                else
+                {
+                    // Null frame = this layer has no sprite for this animation.
+                    // Hide rather than showing a stale frame from a different animation.
+                    entry.renderer.enabled = false;
                 }
             }
         }
