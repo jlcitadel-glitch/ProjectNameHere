@@ -366,6 +366,17 @@ public class SkillManager : MonoBehaviour
         if (!jobHistory.Contains(job))
             jobHistory.Add(job);
 
+        // Grant initial SP so the player can learn skills immediately.
+        // Level 1 characters receive one level's worth of SP from their starting job.
+        if (availableSP == 0 && totalSPEarned == 0)
+        {
+            int startingSP = job.spPerLevel > 0 ? job.spPerLevel : 3;
+            AddSP(startingSP);
+
+            if (logEvents)
+                Debug.Log($"[SkillManager] Granted {startingSP} starting SP for job {job.jobName}");
+        }
+
         if (logEvents)
             Debug.Log($"[SkillManager] Starting job set: {previousJob?.jobName ?? "None"} -> {job.jobName}");
 

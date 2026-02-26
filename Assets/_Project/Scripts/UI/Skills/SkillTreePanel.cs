@@ -367,12 +367,55 @@ namespace ProjectName.UI
             {
                 int level = instance?.currentLevel ?? 1;
                 var stats = new System.Text.StringBuilder();
-                stats.AppendLine($"Damage: {skill.GetDamage(level):F0}");
-                stats.AppendLine($"Mana Cost: {skill.GetManaCost(level):F0}");
-                stats.AppendLine($"Cooldown: {skill.GetCooldown(level):F1}s");
+                stats.AppendLine($"Type: {skill.skillType}");
+                if (skill.GetDamage(level) > 0)
+                    stats.AppendLine($"Damage: {skill.GetDamage(level):F0}");
+                if (skill.GetManaCost(level) > 0)
+                    stats.AppendLine($"Mana Cost: {skill.GetManaCost(level):F0}");
+                if (skill.GetCooldown(level) > 0)
+                    stats.AppendLine($"Cooldown: {skill.GetCooldown(level):F1}s");
                 if (skill.GetDuration(level) > 0)
                     stats.AppendLine($"Duration: {skill.GetDuration(level):F1}s");
+
+                stats.AppendLine($"SP Cost: {skill.spCost}");
+                if (instance != null)
+                    stats.AppendLine($"Level: {instance.currentLevel} / {skill.maxSkillLevel}");
+                else
+                    stats.AppendLine($"Max Level: {skill.maxSkillLevel}");
+
                 skillStatsText.text = stats.ToString();
+            }
+
+            if (skillRequirementsText != null)
+            {
+                var reqs = new System.Text.StringBuilder();
+                var skillManager = SkillManager.Instance;
+
+                if (skill.requiredPlayerLevel > 1)
+                {
+                    bool met = skillManager != null && skillManager.PlayerLevel >= skill.requiredPlayerLevel;
+                    reqs.AppendLine(met ? $"<color=#88CC88>Lv. {skill.requiredPlayerLevel} Required</color>"
+                                       : $"<color=#CC8888>Lv. {skill.requiredPlayerLevel} Required</color>");
+                }
+
+                if (skill.prerequisiteSkills != null)
+                {
+                    foreach (var prereq in skill.prerequisiteSkills)
+                    {
+                        if (prereq == null) continue;
+                        bool met = skillManager?.GetLearnedSkill(prereq.skillId) != null;
+                        reqs.AppendLine(met ? $"<color=#88CC88>Requires: {prereq.skillName}</color>"
+                                           : $"<color=#CC8888>Requires: {prereq.skillName}</color>");
+                    }
+                }
+
+                if (skillManager != null && instance == null && !skillManager.CanLearnSkill(skill))
+                {
+                    if (skillManager.AvailableSP < skill.spCost)
+                        reqs.AppendLine($"<color=#CC8888>Need {skill.spCost} SP (have {skillManager.AvailableSP})</color>");
+                }
+
+                skillRequirementsText.text = reqs.ToString();
             }
 
             UpdateLearnButton(node);

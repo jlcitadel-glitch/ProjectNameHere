@@ -603,7 +603,7 @@ namespace ProjectName.UI
             skillStatsRect.anchorMax = new Vector2(1, 1);
             skillStatsRect.pivot = new Vector2(0.5f, 1);
             skillStatsRect.anchoredPosition = new Vector2(0, infoY);
-            skillStatsRect.sizeDelta = new Vector2(0, 80);
+            skillStatsRect.sizeDelta = new Vector2(0, 120);
             var skillStatsTmp = skillStatsGo.AddComponent<TextMeshProUGUI>();
             skillStatsTmp.text = "";
             skillStatsTmp.fontSize = 15;
@@ -611,7 +611,7 @@ namespace ProjectName.UI
             skillStatsTmp.alignment = TextAlignmentOptions.TopLeft;
             skillStatsTmp.textWrappingMode = TextWrappingModes.Normal;
             FontManager.EnsureFont(skillStatsTmp);
-            infoY -= 85;
+            infoY -= 125;
 
             // Skill requirements
             var skillReqGo = MakeRect("SkillRequirements", infoPanelGo.transform);
@@ -620,15 +620,16 @@ namespace ProjectName.UI
             skillReqRect.anchorMax = new Vector2(1, 1);
             skillReqRect.pivot = new Vector2(0.5f, 1);
             skillReqRect.anchoredPosition = new Vector2(0, infoY);
-            skillReqRect.sizeDelta = new Vector2(0, 40);
+            skillReqRect.sizeDelta = new Vector2(0, 80);
             var skillReqTmp = skillReqGo.AddComponent<TextMeshProUGUI>();
             skillReqTmp.text = "";
             skillReqTmp.fontSize = 14;
             skillReqTmp.color = RTBSubtleText;
             skillReqTmp.alignment = TextAlignmentOptions.TopLeft;
             skillReqTmp.textWrappingMode = TextWrappingModes.Normal;
+            skillReqTmp.richText = true;
             FontManager.EnsureFont(skillReqTmp);
-            infoY -= 50;
+            infoY -= 90;
 
             // Assign to Hotbar button (anchored above Learn button)
             var assignBtnGo = MakeRect("AssignHotbarButton", infoPanelGo.transform);
