@@ -12,16 +12,22 @@ public class BossRoomTrigger : MonoBehaviour
 
     private AdvancedCameraController cameraController;
     private bool isLocked = false;
+    private bool bossWasAssigned;
 
     void Awake()
     {
-        cameraController = Camera.main.GetComponent<AdvancedCameraController>();
-
-        // If no room center specified, use this object's position
         if (!roomCenter)
-        {
             roomCenter = transform;
-        }
+    }
+
+    void Start()
+    {
+        if (Camera.main != null)
+            cameraController = Camera.main.GetComponent<AdvancedCameraController>();
+        else
+            Debug.LogWarning($"[BossRoomTrigger] {gameObject.name}: No MainCamera found");
+
+        bossWasAssigned = bossObject != null;
     }
 
     void OnTriggerEnter2D(Collider2D other)
@@ -34,8 +40,8 @@ public class BossRoomTrigger : MonoBehaviour
 
     void Update()
     {
-        // Check if boss is defeated
-        if (unlockOnBossDefeat && isLocked && bossObject == null)
+        // Check if boss is defeated (only if a boss was actually assigned)
+        if (unlockOnBossDefeat && isLocked && bossWasAssigned && bossObject == null)
         {
             UnlockCamera();
         }

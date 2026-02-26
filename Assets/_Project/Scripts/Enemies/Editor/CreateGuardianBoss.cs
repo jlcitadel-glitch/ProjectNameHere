@@ -117,6 +117,46 @@ public static class CreateGuardianBoss
         CreateChildTransform(bossGO, "LedgeCheck", new Vector3(0.9f, -1.1f, 0f));
         CreateChildTransform(bossGO, "AttackOrigin", new Vector3(0.5f, 0.2f, 0f));
 
+        // --- Wire serialized references ---
+
+        // EnemyController: animator + audioSource
+        Animator anim = bossGO.GetComponent<Animator>();
+        soController.Update();
+        soController.FindProperty("animator").objectReferenceValue = anim;
+        soController.FindProperty("audioSource").objectReferenceValue = audioSource;
+        soController.ApplyModifiedProperties();
+
+        // EnemySensors: targetLayers + obstacleLayers
+        EnemySensors sensors = bossGO.GetComponent<EnemySensors>();
+        SerializedObject soSensors = new SerializedObject(sensors);
+        soSensors.FindProperty("targetLayers.m_Bits").intValue = LayerMask.GetMask("Player");
+        soSensors.FindProperty("obstacleLayers.m_Bits").intValue = LayerMask.GetMask("Ground");
+        soSensors.ApplyModifiedProperties();
+
+        // GroundPatrolMovement: groundLayer + check transforms
+        GroundPatrolMovement movement = bossGO.GetComponent<GroundPatrolMovement>();
+        SerializedObject soMove = new SerializedObject(movement);
+        soMove.FindProperty("groundLayer.m_Bits").intValue = LayerMask.GetMask("Ground");
+        soMove.FindProperty("groundCheck").objectReferenceValue = bossGO.transform.Find("GroundCheck");
+        soMove.FindProperty("wallCheck").objectReferenceValue = bossGO.transform.Find("WallCheck");
+        soMove.FindProperty("ledgeCheck").objectReferenceValue = bossGO.transform.Find("LedgeCheck");
+        soMove.ApplyModifiedProperties();
+
+        // EnemyCombat: attackOrigin
+        EnemyCombat combat = bossGO.GetComponent<EnemyCombat>();
+        SerializedObject soCombat = new SerializedObject(combat);
+        soCombat.FindProperty("attackOrigin").objectReferenceValue = bossGO.transform.Find("AttackOrigin");
+        soCombat.ApplyModifiedProperties();
+
+        // SpriteRenderer: material (use Bat.prefab's known-good material)
+        GameObject refPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Project/Prefabs/Enemies/Bat.prefab");
+        if (refPrefab != null)
+        {
+            Material refMat = refPrefab.GetComponent<SpriteRenderer>()?.sharedMaterial;
+            if (refMat != null)
+                sr.sharedMaterial = refMat;
+        }
+
         // --- Save as Prefab ---
         GameObject prefab = PrefabUtility.SaveAsPrefabAsset(bossGO, PrefabPath);
         Object.DestroyImmediate(bossGO);

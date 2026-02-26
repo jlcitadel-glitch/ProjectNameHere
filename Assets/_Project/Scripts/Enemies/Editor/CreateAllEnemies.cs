@@ -233,6 +233,48 @@ public static class CreateAllEnemies
         }
         CreateChild(go, "AttackOrigin", new Vector3(def.colliderWidth * 0.3f, 0.1f, 0f));
 
+        // --- Wire serialized references ---
+
+        // EnemyController: animator + audioSource
+        soCtrl.Update();
+        soCtrl.FindProperty("animator").objectReferenceValue = anim;
+        soCtrl.FindProperty("audioSource").objectReferenceValue = audio;
+        soCtrl.ApplyModifiedProperties();
+
+        // EnemySensors: targetLayers + obstacleLayers
+        EnemySensors sensors = go.GetComponent<EnemySensors>();
+        SerializedObject soSensors = new SerializedObject(sensors);
+        soSensors.FindProperty("targetLayers.m_Bits").intValue = LayerMask.GetMask("Player");
+        soSensors.FindProperty("obstacleLayers.m_Bits").intValue = LayerMask.GetMask("Ground");
+        soSensors.ApplyModifiedProperties();
+
+        // Movement: groundLayer + check transforms (ground/hopping only)
+        if (!def.isFlying)
+        {
+            BaseEnemyMovement movement = go.GetComponent<BaseEnemyMovement>();
+            SerializedObject soMove = new SerializedObject(movement);
+            soMove.FindProperty("groundLayer.m_Bits").intValue = LayerMask.GetMask("Ground");
+            soMove.FindProperty("groundCheck").objectReferenceValue = go.transform.Find("GroundCheck");
+            soMove.FindProperty("wallCheck").objectReferenceValue = go.transform.Find("WallCheck");
+            soMove.FindProperty("ledgeCheck").objectReferenceValue = go.transform.Find("LedgeCheck");
+            soMove.ApplyModifiedProperties();
+        }
+
+        // EnemyCombat: attackOrigin
+        EnemyCombat combat = go.GetComponent<EnemyCombat>();
+        SerializedObject soCombat = new SerializedObject(combat);
+        soCombat.FindProperty("attackOrigin").objectReferenceValue = go.transform.Find("AttackOrigin");
+        soCombat.ApplyModifiedProperties();
+
+        // SpriteRenderer: material (use Bat.prefab's known-good material)
+        GameObject refPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Project/Prefabs/Enemies/Bat.prefab");
+        if (refPrefab != null)
+        {
+            Material refMat = refPrefab.GetComponent<SpriteRenderer>()?.sharedMaterial;
+            if (refMat != null)
+                sr.sharedMaterial = refMat;
+        }
+
         // Save prefab
         GameObject prefab = PrefabUtility.SaveAsPrefabAsset(go, prefabPath);
         Object.DestroyImmediate(go);

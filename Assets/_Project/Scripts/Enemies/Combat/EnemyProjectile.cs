@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using ProjectName.UI;
 
 /// <summary>
 /// Enemy projectile that travels in a direction and deals damage on contact.
@@ -139,12 +140,22 @@ public class EnemyProjectile : MonoBehaviour
         if (healthSystem != null)
         {
             healthSystem.TakeDamage(attackData.baseDamage);
+            SpawnDamageNumber(target, attackData.baseDamage);
 
             if (debugLogging)
             {
                 Debug.Log($"[EnemyProjectile] Dealt {attackData.baseDamage} damage to {target.name}");
             }
         }
+    }
+
+    private void SpawnDamageNumber(Collider2D target, float damage)
+    {
+        var spawner = DamageNumberSpawner.GetOrCreate();
+        if (spawner == null) return;
+
+        Vector3 spawnPos = target.bounds.center + Vector3.up * target.bounds.extents.y;
+        spawner.SpawnDamage(spawnPos, damage, DamageNumberType.Normal, false);
     }
 
     private void ApplyKnockback(Collider2D target)

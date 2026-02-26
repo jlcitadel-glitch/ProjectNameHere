@@ -283,6 +283,170 @@ public class EnemySetupWizard : EditorWindow
             issueCount++;
         }
 
+        // --- Wire serialized references (fixes null refs on existing prefabs) ---
+
+        // Child transforms (ground/hopping only)
+        bool isGround = (type == EnemyType.GroundPatrol || type == EnemyType.Hopping);
+        if (isGround)
+        {
+            if (prefabRoot.transform.Find("GroundCheck") == null)
+            {
+                CreateChildTransform(prefabRoot, "GroundCheck", new Vector3(0f, -0.6f, 0f));
+                report += "  + Added GroundCheck child\n";
+                modified = true;
+                issueCount++;
+            }
+            if (prefabRoot.transform.Find("WallCheck") == null)
+            {
+                CreateChildTransform(prefabRoot, "WallCheck", new Vector3(0.6f, 0f, 0f));
+                report += "  + Added WallCheck child\n";
+                modified = true;
+                issueCount++;
+            }
+            if (prefabRoot.transform.Find("LedgeCheck") == null)
+            {
+                CreateChildTransform(prefabRoot, "LedgeCheck", new Vector3(0.6f, -0.6f, 0f));
+                report += "  + Added LedgeCheck child\n";
+                modified = true;
+                issueCount++;
+            }
+        }
+        if (prefabRoot.transform.Find("AttackOrigin") == null)
+        {
+            CreateChildTransform(prefabRoot, "AttackOrigin", new Vector3(0.3f, 0.1f, 0f));
+            report += "  + Added AttackOrigin child\n";
+            modified = true;
+            issueCount++;
+        }
+
+        // EnemyController: animator + audioSource
+        Animator animComp = prefabRoot.GetComponent<Animator>();
+        if (animComp == null)
+        {
+            animComp = prefabRoot.AddComponent<Animator>();
+            report += "  + Added Animator\n";
+            modified = true;
+            issueCount++;
+        }
+        AudioSource audioComp = prefabRoot.GetComponent<AudioSource>();
+
+        SerializedObject soCtrl = new SerializedObject(controller);
+        var animProp = soCtrl.FindProperty("animator");
+        var audioProp = soCtrl.FindProperty("audioSource");
+        if (animProp != null && animProp.objectReferenceValue == null)
+        {
+            animProp.objectReferenceValue = animComp;
+            report += "  + Wired EnemyController.animator\n";
+            modified = true;
+            issueCount++;
+        }
+        if (audioProp != null && audioProp.objectReferenceValue == null && audioComp != null)
+        {
+            audioProp.objectReferenceValue = audioComp;
+            report += "  + Wired EnemyController.audioSource\n";
+            modified = true;
+            issueCount++;
+        }
+        soCtrl.ApplyModifiedProperties();
+
+        // EnemySensors: targetLayers + obstacleLayers
+        EnemySensors sensorsComp = prefabRoot.GetComponent<EnemySensors>();
+        if (sensorsComp != null)
+        {
+            SerializedObject soSensors = new SerializedObject(sensorsComp);
+            var targetProp = soSensors.FindProperty("targetLayers.m_Bits");
+            var obstacleProp = soSensors.FindProperty("obstacleLayers.m_Bits");
+            if (targetProp != null && targetProp.intValue == 0)
+            {
+                targetProp.intValue = LayerMask.GetMask("Player");
+                report += "  + Set EnemySensors.targetLayers = Player\n";
+                modified = true;
+                issueCount++;
+            }
+            if (obstacleProp != null && obstacleProp.intValue == 0)
+            {
+                obstacleProp.intValue = LayerMask.GetMask("Ground");
+                report += "  + Set EnemySensors.obstacleLayers = Ground\n";
+                modified = true;
+                issueCount++;
+            }
+            soSensors.ApplyModifiedProperties();
+        }
+
+        // Movement: groundLayer + check transforms
+        BaseEnemyMovement moveComp = prefabRoot.GetComponent<BaseEnemyMovement>();
+        if (moveComp != null && isGround)
+        {
+            SerializedObject soMove = new SerializedObject(moveComp);
+            var groundLayerProp = soMove.FindProperty("groundLayer.m_Bits");
+            if (groundLayerProp != null && groundLayerProp.intValue == 0)
+            {
+                groundLayerProp.intValue = LayerMask.GetMask("Ground");
+                report += "  + Set movement.groundLayer = Ground\n";
+                modified = true;
+                issueCount++;
+            }
+            var gcProp = soMove.FindProperty("groundCheck");
+            if (gcProp != null && gcProp.objectReferenceValue == null)
+            {
+                gcProp.objectReferenceValue = prefabRoot.transform.Find("GroundCheck");
+                report += "  + Wired movement.groundCheck\n";
+                modified = true;
+                issueCount++;
+            }
+            var wcProp = soMove.FindProperty("wallCheck");
+            if (wcProp != null && wcProp.objectReferenceValue == null)
+            {
+                wcProp.objectReferenceValue = prefabRoot.transform.Find("WallCheck");
+                report += "  + Wired movement.wallCheck\n";
+                modified = true;
+                issueCount++;
+            }
+            var lcProp = soMove.FindProperty("ledgeCheck");
+            if (lcProp != null && lcProp.objectReferenceValue == null)
+            {
+                lcProp.objectReferenceValue = prefabRoot.transform.Find("LedgeCheck");
+                report += "  + Wired movement.ledgeCheck\n";
+                modified = true;
+                issueCount++;
+            }
+            soMove.ApplyModifiedProperties();
+        }
+
+        // EnemyCombat: attackOrigin
+        EnemyCombat combatRepair = prefabRoot.GetComponent<EnemyCombat>();
+        if (combatRepair != null)
+        {
+            SerializedObject soCombat = new SerializedObject(combatRepair);
+            var aoProp = soCombat.FindProperty("attackOrigin");
+            if (aoProp != null && aoProp.objectReferenceValue == null)
+            {
+                aoProp.objectReferenceValue = prefabRoot.transform.Find("AttackOrigin");
+                report += "  + Wired EnemyCombat.attackOrigin\n";
+                modified = true;
+                issueCount++;
+            }
+            soCombat.ApplyModifiedProperties();
+        }
+
+        // SpriteRenderer: material
+        SpriteRenderer srRepair = prefabRoot.GetComponent<SpriteRenderer>();
+        if (srRepair != null)
+        {
+            GameObject refPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Project/Prefabs/Enemies/Bat.prefab");
+            if (refPrefab != null)
+            {
+                Material refMat = refPrefab.GetComponent<SpriteRenderer>()?.sharedMaterial;
+                if (refMat != null && srRepair.sharedMaterial != refMat)
+                {
+                    srRepair.sharedMaterial = refMat;
+                    report += "  + Set SpriteRenderer material to Sprites-Default\n";
+                    modified = true;
+                    issueCount++;
+                }
+            }
+        }
+
         // Save or discard
         if (modified)
         {
@@ -470,6 +634,11 @@ public class EnemySetupWizard : EditorWindow
         // Add core components
         HealthSystem health = enemyGO.AddComponent<HealthSystem>();
 
+        Animator anim = enemyGO.AddComponent<Animator>();
+
+        AudioSource audio = enemyGO.AddComponent<AudioSource>();
+        audio.playOnAwake = false;
+
         EnemyController controller = enemyGO.AddComponent<EnemyController>();
         // Set enemyData via SerializedObject
         SerializedObject so = new SerializedObject(controller);
@@ -492,9 +661,6 @@ public class EnemySetupWizard : EditorWindow
         enemyGO.AddComponent<EnemyCombat>();
         enemyGO.AddComponent<EnemySensors>();
 
-        // Add AudioSource
-        enemyGO.AddComponent<AudioSource>();
-
         // Set layer
         int enemyLayer = LayerMask.NameToLayer("Enemy");
         if (enemyLayer != -1)
@@ -504,6 +670,57 @@ public class EnemySetupWizard : EditorWindow
 
         // Set tag
         enemyGO.tag = "Enemy";
+
+        // Child transforms
+        if (enemyType == EnemyType.GroundPatrol || enemyType == EnemyType.Hopping)
+        {
+            CreateChildTransform(enemyGO, "GroundCheck", new Vector3(0f, -0.6f, 0f));
+            CreateChildTransform(enemyGO, "WallCheck", new Vector3(0.6f, 0f, 0f));
+            CreateChildTransform(enemyGO, "LedgeCheck", new Vector3(0.6f, -0.6f, 0f));
+        }
+        CreateChildTransform(enemyGO, "AttackOrigin", new Vector3(0.3f, 0.1f, 0f));
+
+        // --- Wire serialized references ---
+
+        // EnemyController: animator + audioSource
+        so.Update();
+        so.FindProperty("animator").objectReferenceValue = anim;
+        so.FindProperty("audioSource").objectReferenceValue = audio;
+        so.ApplyModifiedProperties();
+
+        // EnemySensors: targetLayers + obstacleLayers
+        EnemySensors sensors = enemyGO.GetComponent<EnemySensors>();
+        SerializedObject soSensors = new SerializedObject(sensors);
+        soSensors.FindProperty("targetLayers.m_Bits").intValue = LayerMask.GetMask("Player");
+        soSensors.FindProperty("obstacleLayers.m_Bits").intValue = LayerMask.GetMask("Ground");
+        soSensors.ApplyModifiedProperties();
+
+        // Movement refs (ground/hopping only)
+        if (enemyType == EnemyType.GroundPatrol || enemyType == EnemyType.Hopping)
+        {
+            BaseEnemyMovement movement = enemyGO.GetComponent<BaseEnemyMovement>();
+            SerializedObject soMove = new SerializedObject(movement);
+            soMove.FindProperty("groundLayer.m_Bits").intValue = LayerMask.GetMask("Ground");
+            soMove.FindProperty("groundCheck").objectReferenceValue = enemyGO.transform.Find("GroundCheck");
+            soMove.FindProperty("wallCheck").objectReferenceValue = enemyGO.transform.Find("WallCheck");
+            soMove.FindProperty("ledgeCheck").objectReferenceValue = enemyGO.transform.Find("LedgeCheck");
+            soMove.ApplyModifiedProperties();
+        }
+
+        // EnemyCombat: attackOrigin
+        EnemyCombat combatComp = enemyGO.GetComponent<EnemyCombat>();
+        SerializedObject soCombat = new SerializedObject(combatComp);
+        soCombat.FindProperty("attackOrigin").objectReferenceValue = enemyGO.transform.Find("AttackOrigin");
+        soCombat.ApplyModifiedProperties();
+
+        // SpriteRenderer: material (use Bat.prefab's known-good material)
+        GameObject refPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Project/Prefabs/Enemies/Bat.prefab");
+        if (refPrefab != null)
+        {
+            Material refMat = refPrefab.GetComponent<SpriteRenderer>()?.sharedMaterial;
+            if (refMat != null)
+                sr.sharedMaterial = refMat;
+        }
 
         // Save as prefab
         string prefabPath = $"Assets/_Project/Prefabs/Enemies/{enemyName}.prefab";
@@ -578,6 +795,13 @@ public class EnemySetupWizard : EditorWindow
                 currentPath = newPath;
             }
         }
+    }
+
+    private void CreateChildTransform(GameObject parent, string name, Vector3 localPos)
+    {
+        GameObject child = new GameObject(name);
+        child.transform.SetParent(parent.transform);
+        child.transform.localPosition = localPos;
     }
 
     private void DrawSeparator()
