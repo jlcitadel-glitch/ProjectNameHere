@@ -12,9 +12,11 @@ public class PlayerAppearance : MonoBehaviour
     private Animator animator;
     private RuntimeAnimatorController originalAnimator;
     private CharacterAppearanceConfig currentConfig;
+    private bool configIsClone;
 
     /// <summary>
     /// The currently applied appearance config, or null if using fallback rendering.
+    /// Reflects equipment changes made via SetPart().
     /// </summary>
     public CharacterAppearanceConfig CurrentConfig => currentConfig;
 
@@ -118,6 +120,7 @@ public class PlayerAppearance : MonoBehaviour
             return;
 
         currentConfig = config;
+        configIsClone = false;
 
         // Disable root SpriteRenderer when layered system is active
         if (fallbackRenderer != null)
@@ -144,11 +147,49 @@ public class PlayerAppearance : MonoBehaviour
     }
 
     /// <summary>
-    /// Sets a single body part on the layered system.
+    /// Sets a single body part on the layered system and keeps CurrentConfig in sync.
     /// </summary>
     public void SetPart(BodyPartSlot slot, BodyPartData part)
     {
         if (layeredSprite != null)
             layeredSprite.SetPart(slot, part);
+
+        if (currentConfig != null)
+        {
+            EnsureConfigCloned();
+            switch (slot)
+            {
+                case BodyPartSlot.Body: currentConfig.body = part; break;
+                case BodyPartSlot.Head: currentConfig.head = part; break;
+                case BodyPartSlot.Hair: currentConfig.hair = part; break;
+                case BodyPartSlot.Torso: currentConfig.torso = part; break;
+                case BodyPartSlot.Legs: currentConfig.legs = part; break;
+                case BodyPartSlot.WeaponBehind: currentConfig.weaponBehind = part; break;
+                case BodyPartSlot.WeaponFront: currentConfig.weaponFront = part; break;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Clones currentConfig on first mutation so we don't modify the original asset.
+    /// </summary>
+    private void EnsureConfigCloned()
+    {
+        if (configIsClone || currentConfig == null) return;
+
+        var clone = ScriptableObject.CreateInstance<CharacterAppearanceConfig>();
+        clone.body = currentConfig.body;
+        clone.head = currentConfig.head;
+        clone.hair = currentConfig.hair;
+        clone.torso = currentConfig.torso;
+        clone.legs = currentConfig.legs;
+        clone.weaponBehind = currentConfig.weaponBehind;
+        clone.weaponFront = currentConfig.weaponFront;
+        clone.skinTint = currentConfig.skinTint;
+        clone.hairTint = currentConfig.hairTint;
+        clone.armorPrimaryTint = currentConfig.armorPrimaryTint;
+        clone.armorSecondaryTint = currentConfig.armorSecondaryTint;
+        currentConfig = clone;
+        configIsClone = true;
     }
 }
