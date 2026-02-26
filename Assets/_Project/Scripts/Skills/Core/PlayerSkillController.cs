@@ -40,6 +40,9 @@ public class PlayerSkillController : MonoBehaviour
     private float castEndTime;
     private string pendingSkillId;
 
+    // Fallback input actions created at runtime when serialized references are null
+    private InputAction[] fallbackSkillActions;
+
     // Properties
     public int HotbarSlots => hotbarSlots;
     public bool IsCasting => isCasting;
@@ -90,22 +93,57 @@ public class PlayerSkillController : MonoBehaviour
 
     private void EnableInputActions()
     {
-        if (skill1Action?.action != null) { skill1Action.action.Enable(); skill1Action.action.performed += OnSkill1; }
-        if (skill2Action?.action != null) { skill2Action.action.Enable(); skill2Action.action.performed += OnSkill2; }
-        if (skill3Action?.action != null) { skill3Action.action.Enable(); skill3Action.action.performed += OnSkill3; }
-        if (skill4Action?.action != null) { skill4Action.action.Enable(); skill4Action.action.performed += OnSkill4; }
-        if (skill5Action?.action != null) { skill5Action.action.Enable(); skill5Action.action.performed += OnSkill5; }
-        if (skill6Action?.action != null) { skill6Action.action.Enable(); skill6Action.action.performed += OnSkill6; }
+        var refs = new[] { skill1Action, skill2Action, skill3Action, skill4Action, skill5Action, skill6Action };
+        var handlers = new Action<InputAction.CallbackContext>[] { OnSkill1, OnSkill2, OnSkill3, OnSkill4, OnSkill5, OnSkill6 };
+        var bindings = new[] { "<Keyboard>/1", "<Keyboard>/2", "<Keyboard>/3", "<Keyboard>/4", "<Keyboard>/5", "<Keyboard>/6" };
+
+        for (int i = 0; i < refs.Length && i < hotbarSlots; i++)
+        {
+            if (refs[i]?.action != null)
+            {
+                refs[i].action.Enable();
+                refs[i].action.performed += handlers[i];
+            }
+            else
+            {
+                // Create fallback InputAction when serialized reference is null
+                // (component was added at runtime, not from a prefab)
+                if (fallbackSkillActions == null)
+                    fallbackSkillActions = new InputAction[hotbarSlots];
+
+                fallbackSkillActions[i] = new InputAction($"Skill{i + 1}", InputActionType.Button, bindings[i]);
+                fallbackSkillActions[i].Enable();
+                fallbackSkillActions[i].performed += handlers[i];
+            }
+        }
     }
 
     private void DisableInputActions()
     {
-        if (skill1Action?.action != null) { skill1Action.action.performed -= OnSkill1; }
-        if (skill2Action?.action != null) { skill2Action.action.performed -= OnSkill2; }
-        if (skill3Action?.action != null) { skill3Action.action.performed -= OnSkill3; }
-        if (skill4Action?.action != null) { skill4Action.action.performed -= OnSkill4; }
-        if (skill5Action?.action != null) { skill5Action.action.performed -= OnSkill5; }
-        if (skill6Action?.action != null) { skill6Action.action.performed -= OnSkill6; }
+        var refs = new[] { skill1Action, skill2Action, skill3Action, skill4Action, skill5Action, skill6Action };
+        var handlers = new Action<InputAction.CallbackContext>[] { OnSkill1, OnSkill2, OnSkill3, OnSkill4, OnSkill5, OnSkill6 };
+
+        for (int i = 0; i < refs.Length && i < hotbarSlots; i++)
+        {
+            if (refs[i]?.action != null)
+                refs[i].action.performed -= handlers[i];
+
+            if (fallbackSkillActions != null && i < fallbackSkillActions.Length && fallbackSkillActions[i] != null)
+            {
+                fallbackSkillActions[i].performed -= handlers[i];
+                fallbackSkillActions[i].Disable();
+            }
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (fallbackSkillActions != null)
+        {
+            foreach (var action in fallbackSkillActions)
+                action?.Dispose();
+            fallbackSkillActions = null;
+        }
     }
 
     private void OnSkill1(InputAction.CallbackContext ctx) => UseSkill(0);

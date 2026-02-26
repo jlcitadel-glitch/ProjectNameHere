@@ -106,6 +106,12 @@ public class PlayerControllerScript : MonoBehaviour
             statSystem = gameObject.AddComponent<StatSystem>();
         }
 
+        // Get or add skill components (SkillExecutor must come first — PlayerSkillController.Awake() calls GetComponent<SkillExecutor>())
+        if (GetComponent<SkillExecutor>() == null)
+            gameObject.AddComponent<SkillExecutor>();
+        if (GetComponent<PlayerSkillController>() == null)
+            gameObject.AddComponent<PlayerSkillController>();
+
         // Get animator
         animator = GetComponent<Animator>();
 
