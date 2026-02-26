@@ -295,6 +295,11 @@ namespace ProjectName.UI
                     icon.enabled = true;
                     icon.color = displaySprite != null ? Color.white : EmptySlotColor;
 
+                    // Scale weapon icons up — LPC weapon overlays are tiny on transparent 64x64 frames
+                    icon.rectTransform.localScale = (slot == EquipmentSlotType.Weapon && displaySprite != null)
+                        ? Vector3.one * 2.5f
+                        : Vector3.one;
+
                     if (displaySprite == null)
                         Debug.LogWarning($"[EquipmentMenu] No sprite for {item.displayName} in {slot}: " +
                             $"icon={item.icon != null}, visualPart={item.visualPart != null}, " +
@@ -315,6 +320,7 @@ namespace ProjectName.UI
                     icon.sprite = null;
                     icon.enabled = true;
                     icon.color = EmptySlotColor;
+                    icon.rectTransform.localScale = Vector3.one;
                 }
                 if (nameText != null)
                     nameText.text = "Empty";
@@ -359,16 +365,21 @@ namespace ProjectName.UI
         }
 
         /// <summary>
-        /// Returns a visible attack frame from a weapon's BodyPartData.
-        /// Weapon idle frames are tiny (just a handle), so we look for a slash frame instead.
+        /// Returns a visible frame from a weapon's BodyPartData.
+        /// Weapon idle frames are tiny (just a handle), so we search multiple
+        /// animation ranges: thrust (26-33), slash (20-25), spellcast (34-40).
         /// </summary>
         private static Sprite FindBestWeaponFrame(BodyPartData part)
         {
             if (part?.frames == null) return null;
-            // Try slash/attack frames (indices 20-25)
-            for (int i = 23; i >= 20 && i < part.frames.Length; i--)
+            // Try ranges in order of visual prominence for weapon overlays
+            int[][] ranges = { new[]{26,33}, new[]{20,25}, new[]{34,40} };
+            foreach (var range in ranges)
             {
-                if (part.frames[i] != null) return part.frames[i];
+                for (int i = range[1]; i >= range[0] && i < part.frames.Length; i--)
+                {
+                    if (part.frames[i] != null) return part.frames[i];
+                }
             }
             return null;
         }
@@ -422,22 +433,37 @@ namespace ProjectName.UI
 
             if (selectionListContent == null) return;
 
-            // Load all equipment from Resources
-            var allEquipment = Resources.LoadAll<EquipmentData>("Equipment");
             var currentItem = equipmentManager != null ? equipmentManager.GetEquipped(slot) : null;
 
-            // Filter to items that fit this slot
-            var matchingItems = allEquipment.Where(e => e.slotType == slot).ToList();
+            // Only show equipment the player owns (their class's starter gear)
+            var currentJob = SkillManager.Instance?.CurrentJob;
+            var starterGear = currentJob?.starterEquipment;
+
+            List<EquipmentData> matchingItems;
+            if (starterGear != null && starterGear.Length > 0)
+            {
+                matchingItems = starterGear
+                    .Where(e => e != null && e.slotType == slot)
+                    .ToList();
+            }
+            else
+            {
+                // Fallback: load all from Resources (shouldn't happen in normal play)
+                var allEquipment = Resources.LoadAll<EquipmentData>("Equipment");
+                matchingItems = allEquipment.Where(e => e.slotType == slot).ToList();
+            }
 
             float yPos = 0f;
             float rowHeight = 70f;
             float spacing = 6f;
 
+            bool isWeaponSlot = slot == EquipmentSlotType.Weapon;
+
             // "Unequip" option at the top (if something is equipped)
             if (currentItem != null)
             {
                 var unequipRow = BuildSelectionRow(selectionListContent, "-- Unequip --", "",
-                    null, yPos, currentItem == null);
+                    null, yPos, false, isWeaponSlot);
                 var unequipBtn = unequipRow.GetComponent<Button>();
                 unequipBtn.onClick.AddListener(() =>
                 {
@@ -456,7 +482,7 @@ namespace ProjectName.UI
                 string stats = item.GetStatSummary();
                 string label = isCurrentlyEquipped ? $"{item.displayName} (Equipped)" : item.displayName;
 
-                var row = BuildSelectionRow(selectionListContent, label, stats, sprite, yPos, isCurrentlyEquipped);
+                var row = BuildSelectionRow(selectionListContent, label, stats, sprite, yPos, isCurrentlyEquipped, isWeaponSlot);
 
                 if (!isCurrentlyEquipped)
                 {
@@ -476,7 +502,7 @@ namespace ProjectName.UI
             if (matchingItems.Count == 0 && currentItem == null)
             {
                 var emptyRow = BuildSelectionRow(selectionListContent, "No equipment available", "",
-                    null, yPos, false);
+                    null, yPos, false, false);
                 var emptyBtn = emptyRow.GetComponent<Button>();
                 emptyBtn.interactable = false;
                 selectionRows.Add(emptyRow);
@@ -753,27 +779,27 @@ namespace ProjectName.UI
             labelTmp.raycastTarget = false;
             FontManager.EnsureFont(labelTmp);
 
-            // Icon background (left side, behind icon)
-            var iconBgGo = MakeRect("IconBg", rowGo.transform);
-            var iconBgRect = iconBgGo.GetComponent<RectTransform>();
-            iconBgRect.anchorMin = new Vector2(0, 0);
-            iconBgRect.anchorMax = new Vector2(0, 1);
-            iconBgRect.pivot = new Vector2(0, 0.5f);
-            iconBgRect.anchoredPosition = new Vector2(6, -8);
-            iconBgRect.sizeDelta = new Vector2(60, -24);
-            var iconBgImg = iconBgGo.AddComponent<Image>();
-            iconBgImg.sprite = WhiteSprite;
-            iconBgImg.color = new Color(0.06f, 0.06f, 0.08f, 0.8f);
-            iconBgImg.raycastTarget = false;
+            // Icon container (left side, with RectMask2D to clip scaled weapon sprites)
+            var iconContainerGo = MakeRect("IconContainer", rowGo.transform);
+            var iconContainerRect = iconContainerGo.GetComponent<RectTransform>();
+            iconContainerRect.anchorMin = new Vector2(0, 0);
+            iconContainerRect.anchorMax = new Vector2(0, 1);
+            iconContainerRect.pivot = new Vector2(0, 0.5f);
+            iconContainerRect.anchoredPosition = new Vector2(6, -8);
+            iconContainerRect.sizeDelta = new Vector2(60, -24);
+            var iconContainerBg = iconContainerGo.AddComponent<Image>();
+            iconContainerBg.sprite = WhiteSprite;
+            iconContainerBg.color = new Color(0.06f, 0.06f, 0.08f, 0.8f);
+            iconContainerBg.raycastTarget = false;
+            iconContainerGo.AddComponent<RectMask2D>();
 
-            // Icon (on top of background)
-            var iconGo = MakeRect("Icon", rowGo.transform);
+            // Icon (child of container, scaled up for weapons to make tiny overlays visible)
+            var iconGo = MakeRect("Icon", iconContainerGo.transform);
             var iconRect = iconGo.GetComponent<RectTransform>();
             iconRect.anchorMin = new Vector2(0, 0);
-            iconRect.anchorMax = new Vector2(0, 1);
-            iconRect.pivot = new Vector2(0, 0.5f);
-            iconRect.anchoredPosition = new Vector2(8, -8);
-            iconRect.sizeDelta = new Vector2(56, -28);
+            iconRect.anchorMax = new Vector2(1, 1);
+            iconRect.offsetMin = new Vector2(2, 2);
+            iconRect.offsetMax = new Vector2(-2, -2);
             var iconImg = iconGo.AddComponent<Image>();
             iconImg.sprite = null;
             iconImg.color = EmptySlotColor;
@@ -893,7 +919,7 @@ namespace ProjectName.UI
         }
 
         private static GameObject BuildSelectionRow(Transform parent, string itemName, string stats,
-            Sprite itemSprite, float yPos, bool isSelected)
+            Sprite itemSprite, float yPos, bool isSelected, bool isWeapon = false)
         {
             var rowGo = MakeRect("SelRow", parent);
             var rowRect = rowGo.GetComponent<RectTransform>();
@@ -918,16 +944,25 @@ namespace ProjectName.UI
             rowBtn.colors = btnColors;
             rowBtn.targetGraphic = rowBg;
 
-            // Icon
+            // Icon (with RectMask2D container for weapon scaling)
             if (itemSprite != null)
             {
-                var iconGo = MakeRect("SelIcon", rowGo.transform);
+                var iconContainerGo = MakeRect("SelIconContainer", rowGo.transform);
+                var iconContainerRect = iconContainerGo.GetComponent<RectTransform>();
+                iconContainerRect.anchorMin = new Vector2(0, 0.1f);
+                iconContainerRect.anchorMax = new Vector2(0, 0.9f);
+                iconContainerRect.pivot = new Vector2(0, 0.5f);
+                iconContainerRect.anchoredPosition = new Vector2(6, 0);
+                iconContainerRect.sizeDelta = new Vector2(50, 0);
+                iconContainerGo.AddComponent<RectMask2D>();
+
+                var iconGo = MakeRect("SelIcon", iconContainerGo.transform);
                 var iconRect = iconGo.GetComponent<RectTransform>();
-                iconRect.anchorMin = new Vector2(0, 0.1f);
-                iconRect.anchorMax = new Vector2(0, 0.9f);
-                iconRect.pivot = new Vector2(0, 0.5f);
-                iconRect.anchoredPosition = new Vector2(6, 0);
-                iconRect.sizeDelta = new Vector2(50, 0);
+                iconRect.anchorMin = Vector2.zero;
+                iconRect.anchorMax = Vector2.one;
+                iconRect.offsetMin = Vector2.zero;
+                iconRect.offsetMax = Vector2.zero;
+                if (isWeapon) iconRect.localScale = Vector3.one * 2.5f;
 
                 var iconImg = iconGo.AddComponent<Image>();
                 iconImg.sprite = itemSprite;
