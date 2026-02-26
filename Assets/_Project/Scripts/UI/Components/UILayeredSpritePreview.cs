@@ -75,8 +75,13 @@ public class UILayeredSpritePreview : MonoBehaviour
         img.enabled = true;
         img.color = part.supportsTinting ? part.defaultTint : Color.white;
 
-        // Show preview sprite or first frame
-        if (part.previewSprite != null)
+        // Weapon layers use frames[0] (neutral stance) to align with the idle body.
+        // previewSprite on weapons is a combat frame meant for standalone icons,
+        // which misaligns with the idle body pose in layered previews.
+        bool isWeapon = slot == BodyPartSlot.WeaponFront || slot == BodyPartSlot.WeaponBehind;
+        if (isWeapon && part.frames.Length > 0 && part.frames[0] != null)
+            img.sprite = part.frames[0];
+        else if (part.previewSprite != null)
             img.sprite = part.previewSprite;
         else if (part.frames.Length > 0 && part.frames[0] != null)
             img.sprite = part.frames[0];

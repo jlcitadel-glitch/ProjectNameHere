@@ -633,10 +633,28 @@ public class LPCSetupWizard : EditorWindow
         bodyPart.sortOrderOffset = 0;
         bodyPart.supportsTinting = (slot == BodyPartSlot.Body || slot == BodyPartSlot.Head || slot == BodyPartSlot.Hair);
         bodyPart.defaultTint = Color.white;
-        // Weapon idle frames are tiny (just a handle); use a slash/attack frame instead.
-        // Attack1 (slash) starts at frame index 20 in the standard frame map.
-        if ((slot == BodyPartSlot.WeaponFront || slot == BodyPartSlot.WeaponBehind) && allFrames.Count > 23)
-            bodyPart.previewSprite = allFrames[23] ?? allFrames[22] ?? allFrames[21] ?? allFrames[20] ?? allFrames[0];
+        // Weapon idle frames are tiny (just a handle); use a combat frame for standalone icons.
+        // Search thrust (26-33), slash (20-25), spellcast (34-40) for a real frame
+        // that differs from the walk-static fallback (frames[0]).
+        if ((slot == BodyPartSlot.WeaponFront || slot == BodyPartSlot.WeaponBehind) && allFrames.Count > 26)
+        {
+            Sprite walkStatic = allFrames[0];
+            Sprite bestPreview = null;
+            int[][] combatRanges = { new[]{26,33}, new[]{20,25}, new[]{34,40} };
+            foreach (var range in combatRanges)
+            {
+                for (int i = range[0]; i <= range[1] && i < allFrames.Count; i++)
+                {
+                    if (allFrames[i] != null && allFrames[i] != walkStatic)
+                    {
+                        bestPreview = allFrames[i];
+                        break;
+                    }
+                }
+                if (bestPreview != null) break;
+            }
+            bodyPart.previewSprite = bestPreview ?? allFrames[0];
+        }
         else
             bodyPart.previewSprite = allFrames.Count > 0 ? allFrames[0] : null;
 
