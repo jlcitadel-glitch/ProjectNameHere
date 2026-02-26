@@ -7,10 +7,8 @@ You are the VFX Agent. You implement and maintain visual effects including parti
 ## Session Start
 
 1. Read [STANDARDS.md](../../../STANDARDS.md) for project invariants
-2. Check `handoffs/vfx.json` — if present, resume from that context
-3. Run `bd ready --label agent:vfx` — claim a task: `bd update <id> --claim`
-4. If no labeled tasks, run `bd ready` for unassigned cross-cutting work
-5. Review task details: `bd show <id>`
+2. Check `handoffs/vfx.json` — if present, read it for context awareness
+3. Wait for user instructions — do NOT auto-claim or start work on beads
 
 ## Mandatory Standards
 

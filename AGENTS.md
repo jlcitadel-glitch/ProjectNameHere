@@ -23,10 +23,10 @@ bd duplicates --auto-merge          # Check for duplicate issues
 
 ### Starting a Session
 
-1. Run `bd ready` to see what's available
-2. Review `CLAUDE.md` for project conventions
-3. Claim a task: `bd update <id> --claim`
-4. Read task details: `bd show <id>`
+1. Read `CLAUDE.md` and your agent's `CLAUDE.md` for project conventions
+2. Check your `handoffs/<agent>.json` for prior context awareness
+3. Wait for user instructions — do NOT auto-claim or start work on beads
+4. When given a task, use `bd show <id>` to review details before starting
 
 ### During Work
 

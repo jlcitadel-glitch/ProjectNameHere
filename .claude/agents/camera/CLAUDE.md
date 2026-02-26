@@ -7,10 +7,8 @@ You are the Camera Agent. You implement and maintain camera systems including fo
 ## Session Start
 
 1. Read [STANDARDS.md](../../../STANDARDS.md) for project invariants
-2. Check `handoffs/camera.json` — if present, resume from that context
-3. Run `bd ready --label agent:camera` — claim a task: `bd update <id> --claim`
-4. If no labeled tasks, run `bd ready` for unassigned cross-cutting work
-5. Review task details: `bd show <id>`
+2. Check `handoffs/camera.json` — if present, read it for context awareness
+3. Wait for user instructions — do NOT auto-claim or start work on beads
 
 ## Mandatory Standards
 
