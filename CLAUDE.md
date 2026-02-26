@@ -75,3 +75,11 @@ Assets/_Project/
 | Dash Duration | 0.2s | DashAbility |
 | Dash Cooldown | 1.0s | DashAbility |
 | Dash Speed | 20 | DashAbility |
+
+## Lessons Learned
+
+### ScriptableObject Lookup at Main Menu Time
+
+`CharacterCreationController.FindJobData()` uses `Resources.FindObjectsOfTypeAll<JobClassData>()` which only finds assets **already loaded in memory**. The real `JobClassData` assets (Warrior/Mage/Rogue) live in `ScriptableObjects/Skills/Jobs/` — NOT in a `Resources/` folder — so they are not found at main menu time. The controller creates blank runtime fallback instances with no `starterEquipment`. `WireStarterEquipmentIfMissing()` fixes this by explicitly loading equipment from `Resources/Equipment/` and attaching it to jobs missing starter gear.
+
+**General rule:** This same pattern may apply to **any** ScriptableObject lookup via `FindObjectsOfTypeAll` at main menu time. Assets must be in a `Resources/` folder or already referenced by a loaded scene to be discoverable.
