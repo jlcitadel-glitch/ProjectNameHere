@@ -32,6 +32,8 @@ namespace ProjectName.UI
         [SerializeField] private TMP_Text skillRequirementsText;
         [SerializeField] private Button learnButton;
         [SerializeField] private TMP_Text learnButtonText;
+        [SerializeField] private Button assignHotbarButton;
+        [SerializeField] private TMP_Text assignHotbarButtonText;
 
         [Header("Prefabs")]
         [SerializeField] private GameObject skillNodePrefab;
@@ -63,6 +65,11 @@ namespace ProjectName.UI
             if (learnButton != null)
             {
                 learnButton.onClick.AddListener(OnLearnButtonClicked);
+            }
+
+            if (assignHotbarButton != null)
+            {
+                assignHotbarButton.onClick.AddListener(OnAssignHotbarClicked);
             }
 
             // Hide skill info panel initially
@@ -109,7 +116,8 @@ namespace ProjectName.UI
             GameObject skillInfoPanel, TMP_Text skillNameText,
             Image skillIconImage, TMP_Text skillDescriptionText,
             TMP_Text skillStatsText, TMP_Text skillRequirementsText,
-            Button learnButton, TMP_Text learnButtonText)
+            Button learnButton, TMP_Text learnButtonText,
+            Button assignHotbarButton = null, TMP_Text assignHotbarButtonText = null)
         {
             this.scrollRect = scrollRect;
             this.contentContainer = contentContainer;
@@ -127,6 +135,8 @@ namespace ProjectName.UI
             this.skillRequirementsText = skillRequirementsText;
             this.learnButton = learnButton;
             this.learnButtonText = learnButtonText;
+            this.assignHotbarButton = assignHotbarButton;
+            this.assignHotbarButtonText = assignHotbarButtonText;
         }
 
         /// <summary>
@@ -202,6 +212,7 @@ namespace ProjectName.UI
 
                 // Subscribe to events
                 nodeUI.OnNodeClicked += HandleNodeClicked;
+                nodeUI.OnNodeRightClicked += HandleNodeRightClicked;
                 nodeUI.OnNodeHovered += HandleNodeHovered;
                 nodeUI.OnNodeUnhovered += HandleNodeUnhovered;
 
@@ -291,6 +302,17 @@ namespace ProjectName.UI
             OnSkillSelected?.Invoke(node.SkillData);
         }
 
+        private void HandleNodeRightClicked(SkillNodeUI node)
+        {
+            // Right-click opens hotbar assignment if skill is learned and usable
+            if (node.SkillInstance == null) return;
+            if (node.SkillInstance.SkillType == SkillType.Passive) return;
+
+            selectedNode = node;
+            UpdateSkillInfoPanel(node);
+            ShowHotbarAssignPopup(node.SkillData.skillId);
+        }
+
         private void HandleNodeHovered(SkillNodeUI node)
         {
             if (tooltip != null)
@@ -345,6 +367,7 @@ namespace ProjectName.UI
             }
 
             UpdateLearnButton(node);
+            UpdateAssignHotbarButton(node);
         }
 
         private void UpdateLearnButton(SkillNodeUI node)
@@ -426,6 +449,44 @@ namespace ProjectName.UI
                     UIManager.Instance.PlayErrorSound();
                 }
             }
+        }
+
+        private void UpdateAssignHotbarButton(SkillNodeUI node)
+        {
+            if (assignHotbarButton == null) return;
+
+            var instance = node.SkillInstance;
+            // Show assign button only for learned Active/Buff/Toggle skills
+            bool show = instance != null && instance.SkillType != SkillType.Passive;
+            assignHotbarButton.gameObject.SetActive(show);
+
+            if (show && assignHotbarButtonText != null)
+            {
+                var controller = UnityEngine.Object.FindAnyObjectByType<PlayerSkillController>();
+                bool alreadyAssigned = controller != null && controller.IsSkillOnHotbar(instance.SkillId);
+                assignHotbarButtonText.text = alreadyAssigned ? "Reassign Hotbar" : "Assign to Hotbar";
+            }
+        }
+
+        private void OnAssignHotbarClicked()
+        {
+            if (selectedNode?.SkillInstance == null) return;
+            if (selectedNode.SkillInstance.SkillType == SkillType.Passive) return;
+
+            ShowHotbarAssignPopup(selectedNode.SkillData.skillId);
+        }
+
+        /// <summary>
+        /// Opens the hotbar slot picker for the given skill.
+        /// Called by both the assign button and right-click on nodes.
+        /// </summary>
+        public void ShowHotbarAssignPopup(string skillId)
+        {
+            var popup = SkillHotbarAssignPopup.Instance;
+            if (popup == null)
+                popup = SkillHotbarAssignPopup.CreateRuntimeUI(transform.root);
+
+            popup.Show(skillId);
         }
 
         private void HandleSkillLearned(SkillInstance instance)

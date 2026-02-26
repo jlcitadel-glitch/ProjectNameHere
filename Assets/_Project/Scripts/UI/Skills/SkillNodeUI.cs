@@ -53,6 +53,7 @@ namespace ProjectName.UI
         public NodeState State => currentState;
 
         public event System.Action<SkillNodeUI> OnNodeClicked;
+        public event System.Action<SkillNodeUI> OnNodeRightClicked;
         public event System.Action<SkillNodeUI> OnNodeHovered;
         public event System.Action<SkillNodeUI> OnNodeUnhovered;
 
@@ -215,7 +216,14 @@ namespace ProjectName.UI
 
         public void OnPointerClick(PointerEventData eventData)
         {
-            OnNodeClicked?.Invoke(this);
+            if (eventData.button == PointerEventData.InputButton.Right)
+            {
+                OnNodeRightClicked?.Invoke(this);
+            }
+            else
+            {
+                OnNodeClicked?.Invoke(this);
+            }
 
             // Play click sound
             if (UIManager.Instance != null)

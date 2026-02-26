@@ -630,6 +630,39 @@ namespace ProjectName.UI
             FontManager.EnsureFont(skillReqTmp);
             infoY -= 50;
 
+            // Assign to Hotbar button (anchored above Learn button)
+            var assignBtnGo = MakeRect("AssignHotbarButton", infoPanelGo.transform);
+            var assignBtnRect = assignBtnGo.GetComponent<RectTransform>();
+            assignBtnRect.anchorMin = new Vector2(0.1f, 0);
+            assignBtnRect.anchorMax = new Vector2(0.9f, 0);
+            assignBtnRect.pivot = new Vector2(0.5f, 0);
+            assignBtnRect.anchoredPosition = new Vector2(0, 55);
+            assignBtnRect.sizeDelta = new Vector2(0, 36);
+
+            var assignBtnImg = assignBtnGo.AddComponent<Image>();
+            assignBtnImg.sprite = RTBWhiteSprite;
+            assignBtnImg.color = RTBBtnNormal;
+
+            var assignBtn = assignBtnGo.AddComponent<Button>();
+            var assignBtnColors = assignBtn.colors;
+            assignBtnColors.normalColor = RTBBtnNormal;
+            assignBtnColors.highlightedColor = RTBBtnHover;
+            assignBtnColors.pressedColor = RTBBtnPress;
+            assignBtnColors.selectedColor = RTBBtnHover;
+            assignBtnColors.fadeDuration = 0.1f;
+            assignBtn.colors = assignBtnColors;
+
+            var assignBtnTextGo = MakeRect("Text", assignBtnGo.transform);
+            Stretch(assignBtnTextGo);
+            var assignBtnTmp = assignBtnTextGo.AddComponent<TextMeshProUGUI>();
+            assignBtnTmp.text = "Assign to Hotbar";
+            assignBtnTmp.fontSize = 16;
+            assignBtnTmp.color = RTBBoneWhite;
+            assignBtnTmp.alignment = TextAlignmentOptions.Center;
+            FontManager.EnsureFont(assignBtnTmp);
+
+            assignBtnGo.SetActive(false); // Hidden until a learned skill is selected
+
             // Learn button (anchored to bottom of info panel)
             var learnBtnGo = MakeRect("LearnButton", infoPanelGo.transform);
             var learnBtnRect = learnBtnGo.GetComponent<RectTransform>();
@@ -669,7 +702,8 @@ namespace ProjectName.UI
                 jobTitleTmp, jobIconImg, spTmp, lvlTmp,
                 infoPanelGo, skillNameTmp, skillIconImg,
                 skillDescTmp, skillStatsTmp, skillReqTmp,
-                learnBtn, learnBtnTmp
+                learnBtn, learnBtnTmp,
+                assignBtn, assignBtnTmp
             );
 
             // --- Wire SkillTreeController ---

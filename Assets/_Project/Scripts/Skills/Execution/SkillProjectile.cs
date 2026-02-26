@@ -45,6 +45,14 @@ public class SkillProjectile : MonoBehaviour
             rb.linearVelocity = this.direction * speed;
         }
 
+        // Tint sprite by damage type
+        var sr = GetComponent<SpriteRenderer>();
+        if (sr != null)
+        {
+            var (primary, _) = SkillVFXFactory.GetColors(damageType);
+            sr.color = primary;
+        }
+
         Destroy(gameObject, lifetime);
         initialized = true;
     }
@@ -78,15 +86,17 @@ public class SkillProjectile : MonoBehaviour
                     ?? other.GetComponentInParent<IDamageable>();
                 if (fallback == null)
                 {
-                    // Hit a wall or obstacle — destroy
+                    // Hit a wall or obstacle — impact + destroy
+                    SkillVFXFactory.SpawnImpactBurst(transform.position, damageType);
                     Destroy(gameObject);
                     return;
                 }
             }
         }
 
-        // Apply damage
+        // Apply damage + impact VFX
         ApplyDamage(other);
+        SkillVFXFactory.SpawnImpactBurst(other.bounds.center, damageType);
         Destroy(gameObject);
     }
 

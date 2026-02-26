@@ -39,6 +39,10 @@ public class SkillExecutor : MonoBehaviour
             buffTracker = gameObject.AddComponent<ActiveBuffTracker>();
         if (passiveTracker == null)
             passiveTracker = gameObject.AddComponent<PassiveSkillTracker>();
+
+        // Add buff visual indicator
+        if (GetComponent<BuffAuraVFX>() == null)
+            gameObject.AddComponent<BuffAuraVFX>();
     }
 
     /// <summary>
@@ -142,6 +146,7 @@ public class SkillExecutor : MonoBehaviour
         DamageType dmgType = skill.skillData.damageType;
 
         CreateMeleeHitbox(spawnPos, hitboxSize, facing, finalDamage, dmgType, isCrit, lifetime);
+        SkillVFXFactory.SpawnMeleeSweep(spawnPos, facing, dmgType);
     }
 
     private void CreateMeleeHitbox(Vector3 position, Vector2 size, float facing,
@@ -189,6 +194,7 @@ public class SkillExecutor : MonoBehaviour
                 hitDamage *= (baseCritMult * critDamageMult);
 
             CreateMeleeHitbox(spawnPos, new Vector2(2f, 1.5f), facing, hitDamage, dmgType, isCrit, 0.1f);
+            SkillVFXFactory.SpawnMeleeSweep(spawnPos, facing, dmgType);
 
             if (i < 2) // No wait after last hit
                 yield return new WaitForSeconds(0.12f);
@@ -221,6 +227,7 @@ public class SkillExecutor : MonoBehaviour
         projectile.Initialize(finalDamage, skill.skillData.damageType, isCrit,
             speed, lifetime, direction, gameObject, enemyLayers,
             slowPercent, slowDuration);
+        SkillVFXFactory.AttachProjectileTrail(projectile.gameObject, skill.skillData.damageType);
     }
 
     // ===========================
@@ -240,6 +247,8 @@ public class SkillExecutor : MonoBehaviour
         float baseCritMult = statSystem != null ? statSystem.CritDamageMultiplier : 2f;
         if (isCrit)
             finalDamage *= (baseCritMult * critDamageMult);
+
+        SkillVFXFactory.SpawnAoECircle(center, radius, dmgType);
 
         Collider2D[] hits = Physics2D.OverlapCircleAll(center, radius, enemyLayers);
 
@@ -372,6 +381,7 @@ public class SkillExecutor : MonoBehaviour
         // Create wide hitbox covering the dash path
         Vector3 hitboxPos = transform.position + new Vector3(facing * 3f, 0f, 0f);
         CreateMeleeHitbox(hitboxPos, new Vector2(6f, 1.5f), facing, finalDamage, dmgType, true, dashDuration);
+        SkillVFXFactory.SpawnMeleeSweep(hitboxPos, facing, dmgType);
 
         // Dash movement
         float elapsed = 0f;
@@ -596,11 +606,14 @@ public class SkillHitboxHandler : MonoBehaviour
                 hs.TakeDamage(damage);
         }
 
-        // Spawn damage number
+        // Spawn damage number + impact VFX
+        Vector3 hitPos = other.bounds.center;
+        SkillVFXFactory.SpawnImpactBurst(hitPos, damageType);
+
         var spawner = DamageNumberSpawner.GetOrCreate();
         if (spawner != null)
         {
-            Vector3 pos = other.bounds.center + Vector3.up * other.bounds.extents.y;
+            Vector3 pos = hitPos + Vector3.up * other.bounds.extents.y;
             spawner.SpawnDamageWithType(pos, damage, damageType, isCrit);
         }
     }

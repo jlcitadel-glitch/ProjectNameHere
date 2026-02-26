@@ -74,12 +74,18 @@ public class PlayerSkillController : MonoBehaviour
     {
         EnableInputActions();
         cooldownTracker.OnCooldownEnded += HandleCooldownEnded;
+
+        if (SkillManager.Instance != null)
+            SkillManager.Instance.OnSkillLearned += HandleSkillLearned;
     }
 
     private void OnDisable()
     {
         DisableInputActions();
         cooldownTracker.OnCooldownEnded -= HandleCooldownEnded;
+
+        if (SkillManager.Instance != null)
+            SkillManager.Instance.OnSkillLearned -= HandleSkillLearned;
     }
 
     private void EnableInputActions()
@@ -416,6 +422,48 @@ public class PlayerSkillController : MonoBehaviour
     private void HandleCooldownEnded(string skillId)
     {
         OnSkillReady?.Invoke(skillId);
+    }
+
+    private void HandleSkillLearned(SkillInstance instance)
+    {
+        // Only auto-assign usable skills (Active, Buff, Toggle) to the first empty hotbar slot
+        if (instance.SkillType == SkillType.Passive)
+            return;
+
+        int emptySlot = FindFirstEmptySlot();
+        if (emptySlot >= 0)
+        {
+            SetHotbarSkill(emptySlot, instance.SkillId);
+
+            if (logSkillUse)
+                Debug.Log($"[PlayerSkillController] Auto-assigned {instance.SkillName} to hotbar slot {emptySlot + 1}");
+        }
+    }
+
+    /// <summary>
+    /// Finds the first empty hotbar slot. Returns -1 if all full.
+    /// </summary>
+    public int FindFirstEmptySlot()
+    {
+        for (int i = 0; i < hotbarSlots; i++)
+        {
+            if (string.IsNullOrEmpty(hotbarSkillIds[i]))
+                return i;
+        }
+        return -1;
+    }
+
+    /// <summary>
+    /// Checks whether a skill is already assigned to any hotbar slot.
+    /// </summary>
+    public bool IsSkillOnHotbar(string skillId)
+    {
+        for (int i = 0; i < hotbarSlots; i++)
+        {
+            if (hotbarSkillIds[i] == skillId)
+                return true;
+        }
+        return false;
     }
 
     /// <summary>
