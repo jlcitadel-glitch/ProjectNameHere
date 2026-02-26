@@ -504,12 +504,14 @@ namespace ProjectName.UI
 
             scrollGo.AddComponent<Mask>().showMaskGraphic = true;
 
-            // Content inside scroll view
+            // Content inside scroll view — anchored at top, stretches horizontally,
+            // height is set by SkillTreePanel.CalculateLayout() based on actual node count.
             var contentGo = MakeRect("Content", scrollGo.transform);
             var contentRect = contentGo.GetComponent<RectTransform>();
-            contentRect.anchorMin = new Vector2(0, 0);
+            contentRect.anchorMin = new Vector2(0, 1);
             contentRect.anchorMax = new Vector2(1, 1);
-            contentRect.sizeDelta = new Vector2(800, 800);
+            contentRect.pivot = new Vector2(0.5f, 1);
+            contentRect.sizeDelta = new Vector2(0, 400);
             contentRect.anchoredPosition = Vector2.zero;
 
             // Connections container (behind nodes)
@@ -521,9 +523,9 @@ namespace ProjectName.UI
             Stretch(nodesGo);
 
             scrollRectComp.content = contentRect;
-            scrollRectComp.horizontal = true;
+            scrollRectComp.horizontal = false;
             scrollRectComp.vertical = true;
-            scrollRectComp.movementType = ScrollRect.MovementType.Elastic;
+            scrollRectComp.movementType = ScrollRect.MovementType.Clamped;
             scrollRectComp.scrollSensitivity = 20f;
 
             // --- Vertical divider ---

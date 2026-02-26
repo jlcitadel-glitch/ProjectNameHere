@@ -137,6 +137,13 @@ namespace ProjectName.UI
             this.learnButtonText = learnButtonText;
             this.assignHotbarButton = assignHotbarButton;
             this.assignHotbarButtonText = assignHotbarButtonText;
+
+            // Wire button listeners here because Awake() runs before references
+            // are set when using AddComponent + SetRuntimeReferences pattern.
+            if (this.learnButton != null)
+                this.learnButton.onClick.AddListener(OnLearnButtonClicked);
+            if (this.assignHotbarButton != null)
+                this.assignHotbarButton.onClick.AddListener(OnAssignHotbarClicked);
         }
 
         /// <summary>
@@ -157,13 +164,11 @@ namespace ProjectName.UI
             ClearTree();
             currentTree = treeData;
 
+            CalculateLayout();
             CreateNodes();
             CreateConnections();
             RefreshHeader();
             RefreshAllNodes();
-
-            // Center view on root nodes
-            CenterOnRootNodes();
         }
 
         /// <summary>
@@ -568,32 +573,50 @@ namespace ProjectName.UI
             }
         }
 
-        private void CenterOnRootNodes()
+        /// <summary>
+        /// Calculates treeOffset and content size so nodes are centered
+        /// horizontally and laid out top-to-bottom in a scrollable list.
+        /// Must be called before CreateNodes().
+        /// </summary>
+        private void CalculateLayout()
         {
-            if (scrollRect == null || contentContainer == null) return;
+            if (currentTree?.nodes == null || contentContainer == null || scrollRect == null)
+                return;
 
-            // Find the topmost node (row 0)
-            Vector2 centerPos = Vector2.zero;
-            int count = 0;
-
-            if (currentTree?.nodes != null)
+            int maxRow = 0, maxCol = 0;
+            foreach (var node in currentTree.nodes)
             {
-                foreach (var node in currentTree.nodes)
-                {
-                    if (node.row == 0)
-                    {
-                        centerPos += currentTree.GetNodeWorldPosition(node);
-                        count++;
-                    }
-                }
+                if (node.skill == null) continue;
+                if (node.row > maxRow) maxRow = node.row;
+                if (node.column > maxCol) maxCol = node.column;
             }
 
-            if (count > 0)
-            {
-                centerPos /= count;
-                // Adjust scroll position to center on these nodes
-                // This is a simplified approach - a full implementation would calculate proper normalized position
-            }
+            float hSpacing = currentTree.horizontalSpacing;
+            float vSpacing = currentTree.verticalSpacing;
+            float nodeSize = 70f;
+            float topPadding = 30f;
+            float bottomPadding = 50f;
+
+            // Center the grid horizontally.
+            // Nodes are anchored at (0.5, 0.5) of nodesContainer (= center of content).
+            // Grid spans from col 0 to maxCol, so center of grid = maxCol * hSpacing / 2.
+            treeOffset.x = -(maxCol * hSpacing) / 2f;
+
+            // Position row 0 near the top of the content.
+            // Content height = topPadding + nodeSize + maxRow * vSpacing + bottomPadding
+            float contentHeight = topPadding + nodeSize + maxRow * vSpacing + bottomPadding;
+
+            // treeOffset.y places row-0 nodes so their top edge is topPadding below
+            // the content top. Content center y = contentHeight / 2 from top.
+            treeOffset.y = (contentHeight / 2f) - topPadding - (nodeSize / 2f);
+
+            // Resize content — width matches viewport (sizeDelta.x = 0 with stretch anchors),
+            // height is the calculated value.
+            contentContainer.sizeDelta = new Vector2(contentContainer.sizeDelta.x, contentHeight);
+
+            // Reset scroll to top
+            if (scrollRect != null)
+                scrollRect.verticalNormalizedPosition = 1f;
         }
 
         /// <summary>
