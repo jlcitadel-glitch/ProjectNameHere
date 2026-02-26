@@ -294,11 +294,7 @@ namespace ProjectName.UI
                     icon.sprite = displaySprite;
                     icon.enabled = true;
                     icon.color = displaySprite != null ? Color.white : EmptySlotColor;
-
-                    // Scale weapon icons up — LPC weapon overlays are tiny on transparent 64x64 frames
-                    icon.rectTransform.localScale = (slot == EquipmentSlotType.Weapon && displaySprite != null)
-                        ? Vector3.one * 2.5f
-                        : Vector3.one;
+                    icon.rectTransform.localScale = Vector3.one;
 
                     if (displaySprite == null)
                         Debug.LogWarning($"[EquipmentMenu] No sprite for {item.displayName} in {slot}: " +
@@ -341,27 +337,31 @@ namespace ProjectName.UI
             if (item.visualPart == null)
                 return null;
 
+            Sprite result = null;
+
             // For weapons, prefer a mid-attack frame where the weapon is fully visible
             if (slot == EquipmentSlotType.Weapon)
-            {
-                var weaponFrame = FindBestWeaponFrame(item.visualPart);
-                if (weaponFrame != null) return weaponFrame;
-            }
+                result = FindBestWeaponFrame(item.visualPart);
 
             // Fall back to preview sprite
-            if (item.visualPart.previewSprite != null)
-                return item.visualPart.previewSprite;
+            if (result == null && item.visualPart.previewSprite != null)
+                result = item.visualPart.previewSprite;
 
             // Last resort: first non-null frame
-            if (item.visualPart.frames != null)
+            if (result == null && item.visualPart.frames != null)
             {
                 foreach (var f in item.visualPart.frames)
                 {
-                    if (f != null) return f;
+                    if (f != null) { result = f; break; }
                 }
             }
 
-            return null;
+            // Crop weapon sprites to visible pixels — LPC weapon overlays are tiny
+            // pixels on large transparent 64x64 frames that are invisible at icon size
+            if (result != null && slot == EquipmentSlotType.Weapon)
+                result = CropToVisiblePixels(result);
+
+            return result;
         }
 
         /// <summary>
@@ -382,6 +382,90 @@ namespace ProjectName.UI
                 }
             }
             return null;
+        }
+
+        private static readonly Dictionary<int, Sprite> _croppedSpriteCache = new Dictionary<int, Sprite>();
+
+        /// <summary>
+        /// Creates a tightly-cropped sprite containing only the visible (non-transparent) pixels.
+        /// LPC overlay sprites (especially weapons) are tiny pixels on large transparent 64x64 frames.
+        /// Cropping lets them fill icon areas properly without needing fragile scale hacks.
+        /// </summary>
+        private static Sprite CropToVisiblePixels(Sprite source)
+        {
+            if (source == null) return null;
+
+            int key = source.GetInstanceID();
+            if (_croppedSpriteCache.TryGetValue(key, out var cached)) return cached;
+
+            try
+            {
+                var tex = source.texture;
+                if (!tex.isReadable)
+                {
+                    _croppedSpriteCache[key] = source;
+                    return source;
+                }
+
+                Rect spriteRect;
+                try { spriteRect = source.textureRect; }
+                catch { _croppedSpriteCache[key] = source; return source; }
+
+                int sx = (int)spriteRect.x;
+                int sy = (int)spriteRect.y;
+                int sw = (int)spriteRect.width;
+                int sh = (int)spriteRect.height;
+
+                var pixels = tex.GetPixels32(0);
+                int texW = tex.width;
+
+                int minX = sw, maxX = 0, minY = sh, maxY = 0;
+                for (int y = 0; y < sh; y++)
+                {
+                    for (int x = 0; x < sw; x++)
+                    {
+                        if (pixels[(sy + y) * texW + (sx + x)].a > 10)
+                        {
+                            if (x < minX) minX = x;
+                            if (x > maxX) maxX = x;
+                            if (y < minY) minY = y;
+                            if (y > maxY) maxY = y;
+                        }
+                    }
+                }
+
+                if (maxX < minX) // fully transparent
+                {
+                    _croppedSpriteCache[key] = source;
+                    return source;
+                }
+
+                // Skip cropping if content already fills most of the frame
+                float coverage = (float)(maxX - minX + 1) * (maxY - minY + 1) / (sw * sh);
+                if (coverage > 0.6f)
+                {
+                    _croppedSpriteCache[key] = source;
+                    return source;
+                }
+
+                int pad = 1;
+                minX = Mathf.Max(0, minX - pad);
+                minY = Mathf.Max(0, minY - pad);
+                maxX = Mathf.Min(sw - 1, maxX + pad);
+                maxY = Mathf.Min(sh - 1, maxY + pad);
+
+                var tightRect = new Rect(sx + minX, sy + minY, maxX - minX + 1, maxY - minY + 1);
+                var cropped = Sprite.Create(tex, tightRect, new Vector2(0.5f, 0.5f), source.pixelsPerUnit);
+                cropped.name = source.name + "_cropped";
+
+                _croppedSpriteCache[key] = cropped;
+                return cropped;
+            }
+            catch (System.Exception)
+            {
+                _croppedSpriteCache[key] = source;
+                return source;
+            }
         }
 
         private void RefreshCharacterPreview()
@@ -457,13 +541,11 @@ namespace ProjectName.UI
             float rowHeight = 70f;
             float spacing = 6f;
 
-            bool isWeaponSlot = slot == EquipmentSlotType.Weapon;
-
             // "Unequip" option at the top (if something is equipped)
             if (currentItem != null)
             {
                 var unequipRow = BuildSelectionRow(selectionListContent, "-- Unequip --", "",
-                    null, yPos, false, isWeaponSlot);
+                    null, yPos, false);
                 var unequipBtn = unequipRow.GetComponent<Button>();
                 unequipBtn.onClick.AddListener(() =>
                 {
@@ -482,7 +564,7 @@ namespace ProjectName.UI
                 string stats = item.GetStatSummary();
                 string label = isCurrentlyEquipped ? $"{item.displayName} (Equipped)" : item.displayName;
 
-                var row = BuildSelectionRow(selectionListContent, label, stats, sprite, yPos, isCurrentlyEquipped, isWeaponSlot);
+                var row = BuildSelectionRow(selectionListContent, label, stats, sprite, yPos, isCurrentlyEquipped);
 
                 if (!isCurrentlyEquipped)
                 {
@@ -502,7 +584,7 @@ namespace ProjectName.UI
             if (matchingItems.Count == 0 && currentItem == null)
             {
                 var emptyRow = BuildSelectionRow(selectionListContent, "No equipment available", "",
-                    null, yPos, false, false);
+                    null, yPos, false);
                 var emptyBtn = emptyRow.GetComponent<Button>();
                 emptyBtn.interactable = false;
                 selectionRows.Add(emptyRow);
@@ -919,7 +1001,7 @@ namespace ProjectName.UI
         }
 
         private static GameObject BuildSelectionRow(Transform parent, string itemName, string stats,
-            Sprite itemSprite, float yPos, bool isSelected, bool isWeapon = false)
+            Sprite itemSprite, float yPos, bool isSelected)
         {
             var rowGo = MakeRect("SelRow", parent);
             var rowRect = rowGo.GetComponent<RectTransform>();
@@ -962,7 +1044,6 @@ namespace ProjectName.UI
                 iconRect.anchorMax = Vector2.one;
                 iconRect.offsetMin = Vector2.zero;
                 iconRect.offsetMax = Vector2.zero;
-                if (isWeapon) iconRect.localScale = Vector3.one * 2.5f;
 
                 var iconImg = iconGo.AddComponent<Image>();
                 iconImg.sprite = itemSprite;
