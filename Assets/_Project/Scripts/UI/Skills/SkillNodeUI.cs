@@ -64,6 +64,23 @@ namespace ProjectName.UI
             targetScale = originalScale;
         }
 
+        /// <summary>
+        /// Assigns serialized field references from the runtime UI builder.
+        /// Must be called on the prefab template before Instantiate.
+        /// </summary>
+        public void SetRuntimeReferences(Image iconImage, Image frameImage,
+            Image backgroundImage, Image lockOverlay, TMP_Text levelText,
+            GameObject spCostBadge, TMP_Text spCostText)
+        {
+            this.iconImage = iconImage;
+            this.frameImage = frameImage;
+            this.backgroundImage = backgroundImage;
+            this.lockOverlay = lockOverlay;
+            this.levelText = levelText;
+            this.spCostBadge = spCostBadge;
+            this.spCostText = spCostText;
+        }
+
         private void Update()
         {
             // Smooth scale animation

@@ -140,6 +140,14 @@ namespace ProjectName.UI
         }
 
         /// <summary>
+        /// Sets the skill node prefab for runtime-built UIs.
+        /// </summary>
+        public void SetRuntimeNodePrefab(GameObject prefab)
+        {
+            this.skillNodePrefab = prefab;
+        }
+
+        /// <summary>
         /// Loads and displays a skill tree.
         /// </summary>
         public void LoadTree(SkillTreeData treeData)
@@ -194,6 +202,7 @@ namespace ProjectName.UI
 
                 // Instantiate node
                 var nodeGO = Instantiate(skillNodePrefab, nodesContainer);
+                nodeGO.SetActive(true);
                 var nodeUI = nodeGO.GetComponent<SkillNodeUI>();
 
                 if (nodeUI == null)

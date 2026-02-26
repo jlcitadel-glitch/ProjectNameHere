@@ -694,6 +694,9 @@ namespace ProjectName.UI
             learnBtnTmp.alignment = TextAlignmentOptions.Center;
             FontManager.EnsureFont(learnBtnTmp);
 
+            // --- Build skill node prefab template ---
+            var nodePrefab = BuildSkillNodePrefab();
+
             // --- Wire SkillTreePanel ---
             var treePanel = panelGo.AddComponent<SkillTreePanel>();
             treePanel.SetRuntimeReferences(
@@ -705,6 +708,7 @@ namespace ProjectName.UI
                 learnBtn, learnBtnTmp,
                 assignBtn, assignBtnTmp
             );
+            treePanel.SetRuntimeNodePrefab(nodePrefab);
 
             // --- Wire SkillTreeController ---
             // Note: Awake() fires during AddComponent and auto-finds canvas/canvasGroup/panel,
@@ -718,6 +722,129 @@ namespace ProjectName.UI
 
             Debug.Log("[SkillTreeController] Runtime UI created.");
             return controller;
+        }
+
+        /// <summary>
+        /// Builds a runtime skill node prefab (disabled template for Instantiate).
+        /// Layout: 70x70 square with background, frame, icon, lock overlay, level text, SP badge.
+        /// </summary>
+        private static GameObject BuildSkillNodePrefab()
+        {
+            float nodeSize = 70f;
+
+            // Root node object
+            var nodeGo = new GameObject("SkillNodePrefab", typeof(RectTransform));
+            var nodeRect = nodeGo.GetComponent<RectTransform>();
+            nodeRect.sizeDelta = new Vector2(nodeSize, nodeSize);
+
+            // Background (dark fill)
+            var bgGo = MakeChildRect("Background", nodeGo.transform, Vector2.zero, Vector2.one);
+            var bgImg = bgGo.AddComponent<Image>();
+            bgImg.sprite = RTBWhiteSprite;
+            bgImg.color = new Color(0.06f, 0.06f, 0.08f, 0.95f);
+
+            // Frame (colored border — state-dependent color set by SkillNodeUI)
+            var frameGo = MakeChildRect("Frame", nodeGo.transform, Vector2.zero, Vector2.one);
+            var frameRect = frameGo.GetComponent<RectTransform>();
+            frameRect.offsetMin = new Vector2(-2, -2);
+            frameRect.offsetMax = new Vector2(2, 2);
+            var frameImg = frameGo.AddComponent<Image>();
+            frameImg.sprite = RTBWhiteSprite;
+            frameImg.color = new Color(0.3f, 0.3f, 0.3f, 1f);
+            // Push behind background by reordering
+            frameGo.transform.SetAsFirstSibling();
+
+            // Icon (centered, slightly inset)
+            var iconGo = MakeChildRect("Icon", nodeGo.transform, Vector2.zero, Vector2.one);
+            var iconRect = iconGo.GetComponent<RectTransform>();
+            iconRect.offsetMin = new Vector2(6, 6);
+            iconRect.offsetMax = new Vector2(-6, -6);
+            var iconImg = iconGo.AddComponent<Image>();
+            iconImg.sprite = RTBWhiteSprite;
+            iconImg.color = Color.white;
+            iconImg.preserveAspect = true;
+            iconImg.raycastTarget = false;
+
+            // Lock overlay (semi-transparent dark, covers entire node)
+            var lockGo = MakeChildRect("LockOverlay", nodeGo.transform, Vector2.zero, Vector2.one);
+            var lockImg = lockGo.AddComponent<Image>();
+            lockImg.sprite = RTBWhiteSprite;
+            lockImg.color = new Color(0f, 0f, 0f, 0.6f);
+            lockImg.raycastTarget = false;
+
+            // Lock icon text
+            var lockTextGo = MakeChildRect("LockText", lockGo.transform, Vector2.zero, Vector2.one);
+            var lockTmp = lockTextGo.AddComponent<TextMeshProUGUI>();
+            lockTmp.text = "\u2716"; // X mark
+            lockTmp.fontSize = 24;
+            lockTmp.color = new Color(0.5f, 0.5f, 0.5f, 0.8f);
+            lockTmp.alignment = TextAlignmentOptions.Center;
+            lockTmp.raycastTarget = false;
+            FontManager.EnsureFont(lockTmp);
+
+            // Level text (bottom center, outside node)
+            var levelGo = new GameObject("LevelText", typeof(RectTransform));
+            levelGo.transform.SetParent(nodeGo.transform, false);
+            var levelRect = levelGo.GetComponent<RectTransform>();
+            levelRect.anchorMin = new Vector2(0, 0);
+            levelRect.anchorMax = new Vector2(1, 0);
+            levelRect.pivot = new Vector2(0.5f, 1);
+            levelRect.anchoredPosition = new Vector2(0, -2);
+            levelRect.sizeDelta = new Vector2(0, 16);
+            var levelTmp = levelGo.AddComponent<TextMeshProUGUI>();
+            levelTmp.text = "0/3";
+            levelTmp.fontSize = 12;
+            levelTmp.color = RTBBoneWhite;
+            levelTmp.alignment = TextAlignmentOptions.Center;
+            levelTmp.raycastTarget = false;
+            FontManager.EnsureFont(levelTmp);
+
+            // SP cost badge (top-right corner)
+            var badgeGo = new GameObject("SPBadge", typeof(RectTransform));
+            badgeGo.transform.SetParent(nodeGo.transform, false);
+            var badgeRect = badgeGo.GetComponent<RectTransform>();
+            badgeRect.anchorMin = new Vector2(1, 1);
+            badgeRect.anchorMax = new Vector2(1, 1);
+            badgeRect.pivot = new Vector2(0.5f, 0.5f);
+            badgeRect.anchoredPosition = new Vector2(4, 4);
+            badgeRect.sizeDelta = new Vector2(24, 18);
+
+            var badgeBg = badgeGo.AddComponent<Image>();
+            badgeBg.sprite = RTBWhiteSprite;
+            badgeBg.color = new Color(0.15f, 0.15f, 0.2f, 0.95f);
+
+            var badgeTextGo = MakeChildRect("Text", badgeGo.transform, Vector2.zero, Vector2.one);
+            var badgeTmp = badgeTextGo.AddComponent<TextMeshProUGUI>();
+            badgeTmp.text = "1";
+            badgeTmp.fontSize = 11;
+            badgeTmp.color = RTBAgedGold;
+            badgeTmp.alignment = TextAlignmentOptions.Center;
+            badgeTmp.raycastTarget = false;
+            FontManager.EnsureFont(badgeTmp);
+
+            // Add SkillNodeUI and wire references
+            var nodeUI = nodeGo.AddComponent<SkillNodeUI>();
+            nodeUI.SetRuntimeReferences(iconImg, frameImg, bgImg, lockImg, levelTmp, badgeGo, badgeTmp);
+
+            // Disable the template — Instantiate will clone it, then it gets activated
+            nodeGo.SetActive(false);
+
+            return nodeGo;
+        }
+
+        /// <summary>
+        /// Creates a stretched child RectTransform.
+        /// </summary>
+        private static GameObject MakeChildRect(string name, Transform parent, Vector2 anchorMin, Vector2 anchorMax)
+        {
+            var go = new GameObject(name, typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = anchorMin;
+            rt.anchorMax = anchorMax;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            return go;
         }
 
         private static void BuildDivider(Transform parent, float yOffset)
