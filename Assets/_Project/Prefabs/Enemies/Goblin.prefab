@@ -114,7 +114,7 @@ GameObject:
   - component: {fileID: 5428636245695165160}
   m_Layer: 13
   m_Name: Goblin
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -262,7 +262,7 @@ BoxCollider2D:
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 1.5, y: 1.5}
+    oldSize: {x: 2.34375, y: 2.34375}
     newSize: {x: 1.5, y: 1.5}
     adaptiveTilingThreshold: 0.5
     drawMode: 0
@@ -416,8 +416,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyController
   enemyData: {fileID: 11400000, guid: b1c2d3e4f5a6b7c80000000000000001, type: 2}
-  animator: {fileID: 0}
-  audioSource: {fileID: 0}
+  animator: {fileID: 4082066617649109130}
+  audioSource: {fileID: 6766044070272605636}
   experienceOrbPrefab: {fileID: 0}
   orbCount: 3
   fallbackHurtSound: {fileID: 0}
@@ -435,14 +435,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GroundPatrolMovement
-  groundCheck: {fileID: 0}
+  groundCheck: {fileID: 531864000111198795}
   groundCheckRadius: 0.2
   groundLayer:
     serializedVersion: 2
-    m_Bits: 0
-  wallCheck: {fileID: 0}
+    m_Bits: 128
+  wallCheck: {fileID: 3735380269127946427}
   wallCheckDistance: 0.5
-  ledgeCheck: {fileID: 0}
+  ledgeCheck: {fileID: 8314225932468280496}
   ledgeCheckDistance: 0.5
   idleWaitTime: 1
   turnAtLedges: 1
@@ -459,7 +459,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyCombat
-  attackOrigin: {fileID: 0}
+  attackOrigin: {fileID: 2241034485377361650}
   debugLogging: 0
   showHitboxGizmos: 1
 --- !u!114 &5428636245695165160
@@ -476,10 +476,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemySensors
   targetLayers:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 64
   obstacleLayers:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 128
   targetTag: Player
   sensorOrigin: {fileID: 0}
   debugLogging: 0

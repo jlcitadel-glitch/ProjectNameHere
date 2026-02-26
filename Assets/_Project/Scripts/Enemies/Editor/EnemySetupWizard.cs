@@ -41,6 +41,13 @@ public class EnemySetupWizard : EditorWindow
         GetWindow<EnemySetupWizard>("Enemy Setup Wizard");
     }
 
+    [MenuItem("Tools/Repair All Enemy Prefabs")]
+    public static void RepairAllFromMenu()
+    {
+        var wizard = GetWindow<EnemySetupWizard>("Enemy Setup Wizard");
+        wizard.RepairAllPrefabs();
+    }
+
     private void OnGUI()
     {
         scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
