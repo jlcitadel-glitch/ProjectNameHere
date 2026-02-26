@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -7,7 +9,7 @@ namespace ProjectName.UI
 {
     /// <summary>
     /// Controller for the equipment menu. Opens with E key, shows 4 equipment slots
-    /// with character preview. Follows the StatMenuController/SkillTreeController pattern.
+    /// with character preview. Clicking a slot opens a selection panel to swap gear.
     /// </summary>
     public class EquipmentMenuController : MonoBehaviour
     {
@@ -45,6 +47,13 @@ namespace ProjectName.UI
         private InputAction escapeAction;
 
         private EquipmentManager equipmentManager;
+
+        // Selection panel for swapping gear
+        private GameObject selectionPanel;
+        private TMP_Text selectionTitleText;
+        private Transform selectionListContent;
+        private EquipmentSlotType selectedSlotType;
+        private readonly List<GameObject> selectionRows = new List<GameObject>();
 
         public bool IsOpen => isOpen;
 
@@ -146,7 +155,13 @@ namespace ProjectName.UI
 
         private void HandleEquipmentChanged(EquipmentSlotType slot, EquipmentData item)
         {
-            if (isOpen) RefreshDisplay();
+            if (isOpen)
+            {
+                RefreshDisplay();
+                // If selection panel is open for the changed slot, refresh it too
+                if (selectionPanel != null && selectionPanel.activeSelf && selectedSlotType == slot)
+                    PopulateSelectionList(slot);
+            }
         }
 
         private void HandleGameStateChanged(GameManager.GameState previousState, GameManager.GameState newState)
@@ -164,6 +179,11 @@ namespace ProjectName.UI
 
         private void OnEscapeInput(InputAction.CallbackContext context)
         {
+            if (selectionPanel != null && selectionPanel.activeSelf)
+            {
+                HideSelectionPanel();
+                return;
+            }
             if (isOpen) Close();
         }
 
@@ -201,6 +221,7 @@ namespace ProjectName.UI
                 equipmentCanvasGroup.blocksRaycasts = true;
             }
 
+            HideSelectionPanel();
             RefreshDisplay();
 
             if (UIManager.Instance != null)
@@ -224,6 +245,8 @@ namespace ProjectName.UI
                 return;
 
             isOpen = false;
+
+            HideSelectionPanel();
 
             if (equipmentCanvasGroup != null)
             {
@@ -267,18 +290,15 @@ namespace ProjectName.UI
             {
                 if (icon != null)
                 {
-                    // Use dedicated icon if set, otherwise fall back to the visual part's preview sprite.
-                    // For weapons, prefer an attack frame since idle frames are barely visible.
-                    var displaySprite = item.icon;
-                    if (displaySprite == null && item.visualPart != null)
-                    {
-                        if (slot == EquipmentSlotType.Weapon)
-                            displaySprite = FindBestWeaponFrame(item.visualPart);
-                        displaySprite ??= item.visualPart.previewSprite;
-                    }
-
+                    var displaySprite = ResolveEquipmentSprite(item, slot);
                     icon.sprite = displaySprite;
+                    icon.enabled = true;
                     icon.color = displaySprite != null ? Color.white : EmptySlotColor;
+
+                    if (displaySprite == null)
+                        Debug.LogWarning($"[EquipmentMenu] No sprite for {item.displayName} in {slot}: " +
+                            $"icon={item.icon != null}, visualPart={item.visualPart != null}, " +
+                            $"previewSprite={item.visualPart?.previewSprite != null}");
                 }
                 if (nameText != null)
                     nameText.text = item.displayName;
@@ -293,24 +313,59 @@ namespace ProjectName.UI
                 if (icon != null)
                 {
                     icon.sprite = null;
+                    icon.enabled = true;
                     icon.color = EmptySlotColor;
                 }
                 if (nameText != null)
                     nameText.text = "Empty";
                 if (statsText != null)
-                    statsText.text = "";
+                    statsText.text = "Click to equip";
             }
+        }
+
+        /// <summary>
+        /// Resolves the best display sprite for a piece of equipment.
+        /// Priority: dedicated icon > weapon attack frame > visualPart preview > first frame.
+        /// </summary>
+        private static Sprite ResolveEquipmentSprite(EquipmentData item, EquipmentSlotType slot)
+        {
+            if (item.icon != null)
+                return item.icon;
+
+            if (item.visualPart == null)
+                return null;
+
+            // For weapons, prefer a mid-attack frame where the weapon is fully visible
+            if (slot == EquipmentSlotType.Weapon)
+            {
+                var weaponFrame = FindBestWeaponFrame(item.visualPart);
+                if (weaponFrame != null) return weaponFrame;
+            }
+
+            // Fall back to preview sprite
+            if (item.visualPart.previewSprite != null)
+                return item.visualPart.previewSprite;
+
+            // Last resort: first non-null frame
+            if (item.visualPart.frames != null)
+            {
+                foreach (var f in item.visualPart.frames)
+                {
+                    if (f != null) return f;
+                }
+            }
+
+            return null;
         }
 
         /// <summary>
         /// Returns a visible attack frame from a weapon's BodyPartData.
         /// Weapon idle frames are tiny (just a handle), so we look for a slash frame instead.
-        /// Attack1 (slash) starts at frame index 20 in the standard LPC frame map.
         /// </summary>
         private static Sprite FindBestWeaponFrame(BodyPartData part)
         {
             if (part?.frames == null) return null;
-            // Try slash/attack frames (indices 20-25) — mid-swing frames are most visible
+            // Try slash/attack frames (indices 20-25)
             for (int i = 23; i >= 20 && i < part.frames.Length; i--)
             {
                 if (part.frames[i] != null) return part.frames[i];
@@ -322,13 +377,119 @@ namespace ProjectName.UI
         {
             if (characterPreview == null) return;
 
-            // Try to get the player's current appearance
             if (equipmentManager == null) return;
 
             var playerAppearance = equipmentManager.GetComponent<PlayerAppearance>();
             if (playerAppearance != null && playerAppearance.CurrentConfig != null)
                 characterPreview.ApplyConfig(playerAppearance.CurrentConfig);
         }
+
+        #region Selection Panel
+
+        private void OnSlotClicked(EquipmentSlotType slot)
+        {
+            FindEquipmentManager();
+            selectedSlotType = slot;
+            ShowSelectionPanel(slot);
+        }
+
+        private void ShowSelectionPanel(EquipmentSlotType slot)
+        {
+            if (selectionPanel == null) return;
+
+            selectionPanel.SetActive(true);
+
+            if (selectionTitleText != null)
+                selectionTitleText.text = $"Select {slot}";
+
+            PopulateSelectionList(slot);
+        }
+
+        private void HideSelectionPanel()
+        {
+            if (selectionPanel != null)
+                selectionPanel.SetActive(false);
+        }
+
+        private void PopulateSelectionList(EquipmentSlotType slot)
+        {
+            // Clear previous entries
+            foreach (var row in selectionRows)
+            {
+                if (row != null) Destroy(row);
+            }
+            selectionRows.Clear();
+
+            if (selectionListContent == null) return;
+
+            // Load all equipment from Resources
+            var allEquipment = Resources.LoadAll<EquipmentData>("Equipment");
+            var currentItem = equipmentManager != null ? equipmentManager.GetEquipped(slot) : null;
+
+            // Filter to items that fit this slot
+            var matchingItems = allEquipment.Where(e => e.slotType == slot).ToList();
+
+            float yPos = 0f;
+            float rowHeight = 70f;
+            float spacing = 6f;
+
+            // "Unequip" option at the top (if something is equipped)
+            if (currentItem != null)
+            {
+                var unequipRow = BuildSelectionRow(selectionListContent, "-- Unequip --", "",
+                    null, yPos, currentItem == null);
+                var unequipBtn = unequipRow.GetComponent<Button>();
+                unequipBtn.onClick.AddListener(() =>
+                {
+                    equipmentManager.Unequip(slot);
+                    HideSelectionPanel();
+                });
+                selectionRows.Add(unequipRow);
+                yPos -= rowHeight + spacing;
+            }
+
+            // List each matching item
+            foreach (var item in matchingItems)
+            {
+                bool isCurrentlyEquipped = currentItem != null && currentItem.equipmentId == item.equipmentId;
+                var sprite = ResolveEquipmentSprite(item, slot);
+                string stats = item.GetStatSummary();
+                string label = isCurrentlyEquipped ? $"{item.displayName} (Equipped)" : item.displayName;
+
+                var row = BuildSelectionRow(selectionListContent, label, stats, sprite, yPos, isCurrentlyEquipped);
+
+                if (!isCurrentlyEquipped)
+                {
+                    var capturedItem = item;
+                    var btn = row.GetComponent<Button>();
+                    btn.onClick.AddListener(() =>
+                    {
+                        equipmentManager.Equip(capturedItem);
+                        HideSelectionPanel();
+                    });
+                }
+
+                selectionRows.Add(row);
+                yPos -= rowHeight + spacing;
+            }
+
+            if (matchingItems.Count == 0 && currentItem == null)
+            {
+                var emptyRow = BuildSelectionRow(selectionListContent, "No equipment available", "",
+                    null, yPos, false);
+                var emptyBtn = emptyRow.GetComponent<Button>();
+                emptyBtn.interactable = false;
+                selectionRows.Add(emptyRow);
+                yPos -= rowHeight + spacing;
+            }
+
+            // Resize content area
+            var contentRect = selectionListContent.GetComponent<RectTransform>();
+            if (contentRect != null)
+                contentRect.sizeDelta = new Vector2(contentRect.sizeDelta.x, Mathf.Abs(yPos));
+        }
+
+        #endregion
 
         #region Runtime UI Builder
 
@@ -342,6 +503,8 @@ namespace ProjectName.UI
         private static readonly Color BtnPress = new Color(0.15f, 0.15f, 0.2f, 1f);
         private static readonly Color SubtleText = new Color(0.7f, 0.65f, 0.55f, 1f);
         private static readonly Color EmptySlotColor = new Color(0.3f, 0.3f, 0.3f, 0.5f);
+        private static readonly Color SelectedRowBg = new Color(0.25f, 0.22f, 0.12f, 0.9f);
+        private static readonly Color SelectionRowBg = new Color(0.14f, 0.14f, 0.17f, 0.9f);
 
         private static Sprite _whiteSprite;
         private static Sprite WhiteSprite
@@ -389,13 +552,13 @@ namespace ProjectName.UI
             overlayImg.sprite = WhiteSprite;
             overlayImg.color = new Color(0f, 0f, 0f, 0.6f);
 
-            // Center panel
+            // Center panel (wider to accommodate selection panel)
             var panelGo = MakeRect("Panel", canvasGo.transform);
             var panelRect = panelGo.GetComponent<RectTransform>();
             panelRect.anchorMin = new Vector2(0.5f, 0.5f);
             panelRect.anchorMax = new Vector2(0.5f, 0.5f);
             panelRect.pivot = new Vector2(0.5f, 0.5f);
-            panelRect.sizeDelta = new Vector2(700f, 520f);
+            panelRect.sizeDelta = new Vector2(900f, 540f);
 
             var panelImg = panelGo.AddComponent<Image>();
             panelImg.sprite = WhiteSprite;
@@ -455,7 +618,7 @@ namespace ProjectName.UI
             // Divider
             BuildDivider(panelGo.transform, 50f);
 
-            // Body: left = character preview, right = equipment slots
+            // Body: left = character preview, center = equipment slots, right = selection panel
             var bodyGo = MakeRect("Body", panelGo.transform);
             var bodyRect = bodyGo.GetComponent<RectTransform>();
             bodyRect.anchorMin = new Vector2(0, 0);
@@ -467,7 +630,7 @@ namespace ProjectName.UI
             var previewContainer = MakeRect("PreviewContainer", bodyGo.transform);
             var previewContainerRect = previewContainer.GetComponent<RectTransform>();
             previewContainerRect.anchorMin = new Vector2(0, 0);
-            previewContainerRect.anchorMax = new Vector2(0.35f, 1);
+            previewContainerRect.anchorMax = new Vector2(0.25f, 1);
             previewContainerRect.offsetMin = Vector2.zero;
             previewContainerRect.offsetMax = Vector2.zero;
 
@@ -475,7 +638,6 @@ namespace ProjectName.UI
             previewBg.sprite = WhiteSprite;
             previewBg.color = Charcoal;
 
-            // Add layered sprite preview
             var previewGo = MakeRect("CharacterPreview", previewContainer.transform);
             var previewGoRect = previewGo.GetComponent<RectTransform>();
             previewGoRect.anchorMin = new Vector2(0.05f, 0.05f);
@@ -484,22 +646,14 @@ namespace ProjectName.UI
             previewGoRect.offsetMax = Vector2.zero;
             var charPreview = previewGo.AddComponent<UILayeredSpritePreview>();
 
-            // Vertical divider
-            var vDivGo = MakeRect("VerticalDivider", bodyGo.transform);
-            var vDivRect = vDivGo.GetComponent<RectTransform>();
-            vDivRect.anchorMin = new Vector2(0.37f, 0.02f);
-            vDivRect.anchorMax = new Vector2(0.37f, 0.98f);
-            vDivRect.pivot = new Vector2(0.5f, 0.5f);
-            vDivRect.sizeDelta = new Vector2(2, 0);
-            var vDivImg = vDivGo.AddComponent<Image>();
-            vDivImg.sprite = WhiteSprite;
-            vDivImg.color = DividerCol;
+            // Vertical divider (preview | slots)
+            BuildVerticalDivider(bodyGo.transform, 0.27f);
 
-            // Right side: equipment slots
+            // Center: equipment slots
             var slotsContainer = MakeRect("SlotsContainer", bodyGo.transform);
             var slotsRect = slotsContainer.GetComponent<RectTransform>();
-            slotsRect.anchorMin = new Vector2(0.39f, 0);
-            slotsRect.anchorMax = new Vector2(1, 1);
+            slotsRect.anchorMin = new Vector2(0.29f, 0);
+            slotsRect.anchorMax = new Vector2(0.58f, 1);
             slotsRect.offsetMin = Vector2.zero;
             slotsRect.offsetMax = Vector2.zero;
 
@@ -507,13 +661,19 @@ namespace ProjectName.UI
             float slotHeight = 90f;
             float slotSpacing = 15f;
 
-            var (wIcon, wName, wStats) = BuildEquipmentSlotRow(slotsContainer.transform, "Weapon", slotY);
+            var (wRow, wIcon, wName, wStats) = BuildEquipmentSlotRow(slotsContainer.transform, "Weapon", slotY);
             slotY -= slotHeight + slotSpacing;
-            var (aIcon, aName, aStats) = BuildEquipmentSlotRow(slotsContainer.transform, "Armor", slotY);
+            var (aRow, aIcon, aName, aStats) = BuildEquipmentSlotRow(slotsContainer.transform, "Armor", slotY);
             slotY -= slotHeight + slotSpacing;
-            var (bIcon, bName, bStats) = BuildEquipmentSlotRow(slotsContainer.transform, "Boots", slotY);
+            var (bRow, bIcon, bName, bStats) = BuildEquipmentSlotRow(slotsContainer.transform, "Boots", slotY);
             slotY -= slotHeight + slotSpacing;
-            var (accIcon, accName, accStats) = BuildEquipmentSlotRow(slotsContainer.transform, "Accessory", slotY);
+            var (accRow, accIcon, accName, accStats) = BuildEquipmentSlotRow(slotsContainer.transform, "Accessory", slotY);
+
+            // Vertical divider (slots | selection)
+            BuildVerticalDivider(bodyGo.transform, 0.60f);
+
+            // Right side: selection panel (hidden initially)
+            var selPanel = BuildSelectionPanel(bodyGo.transform);
 
             // Wire controller
             var controller = canvasGo.AddComponent<EquipmentMenuController>();
@@ -535,13 +695,23 @@ namespace ProjectName.UI
             controller.accessoryNameText = accName;
             controller.accessoryStatsText = accStats;
 
+            controller.selectionPanel = selPanel.panel;
+            controller.selectionTitleText = selPanel.title;
+            controller.selectionListContent = selPanel.content;
+
+            // Wire slot click handlers
+            wRow.onClick.AddListener(() => controller.OnSlotClicked(EquipmentSlotType.Weapon));
+            aRow.onClick.AddListener(() => controller.OnSlotClicked(EquipmentSlotType.Armor));
+            bRow.onClick.AddListener(() => controller.OnSlotClicked(EquipmentSlotType.Boots));
+            accRow.onClick.AddListener(() => controller.OnSlotClicked(EquipmentSlotType.Accessory));
+
             controller.WireButtonListeners();
 
             Debug.Log("[EquipmentMenuController] Runtime UI created.");
             return controller;
         }
 
-        private static (Image icon, TMP_Text name, TMP_Text stats) BuildEquipmentSlotRow(
+        private static (Button rowBtn, Image icon, TMP_Text name, TMP_Text stats) BuildEquipmentSlotRow(
             Transform parent, string slotLabel, float yOffset)
         {
             var rowGo = MakeRect(slotLabel + "Row", parent);
@@ -556,6 +726,17 @@ namespace ProjectName.UI
             rowBg.sprite = WhiteSprite;
             rowBg.color = new Color(0.12f, 0.12f, 0.15f, 0.8f);
 
+            // Make the row clickable
+            var rowBtn = rowGo.AddComponent<Button>();
+            var btnColors = rowBtn.colors;
+            btnColors.normalColor = new Color(0.12f, 0.12f, 0.15f, 0.8f);
+            btnColors.highlightedColor = new Color(0.18f, 0.18f, 0.22f, 0.9f);
+            btnColors.pressedColor = new Color(0.25f, 0.22f, 0.12f, 0.9f);
+            btnColors.selectedColor = new Color(0.18f, 0.18f, 0.22f, 0.9f);
+            btnColors.fadeDuration = 0.1f;
+            rowBtn.colors = btnColors;
+            rowBtn.targetGraphic = rowBg;
+
             // Slot label (top-left corner)
             var labelGo = MakeRect("SlotLabel", rowGo.transform);
             var labelRect = labelGo.GetComponent<RectTransform>();
@@ -569,22 +750,38 @@ namespace ProjectName.UI
             labelTmp.fontSize = 14;
             labelTmp.color = SubtleText;
             labelTmp.alignment = TextAlignmentOptions.TopLeft;
+            labelTmp.raycastTarget = false;
             FontManager.EnsureFont(labelTmp);
 
-            // Icon (left side)
+            // Icon background (left side, behind icon)
+            var iconBgGo = MakeRect("IconBg", rowGo.transform);
+            var iconBgRect = iconBgGo.GetComponent<RectTransform>();
+            iconBgRect.anchorMin = new Vector2(0, 0);
+            iconBgRect.anchorMax = new Vector2(0, 1);
+            iconBgRect.pivot = new Vector2(0, 0.5f);
+            iconBgRect.anchoredPosition = new Vector2(6, -8);
+            iconBgRect.sizeDelta = new Vector2(60, -24);
+            var iconBgImg = iconBgGo.AddComponent<Image>();
+            iconBgImg.sprite = WhiteSprite;
+            iconBgImg.color = new Color(0.06f, 0.06f, 0.08f, 0.8f);
+            iconBgImg.raycastTarget = false;
+
+            // Icon (on top of background)
             var iconGo = MakeRect("Icon", rowGo.transform);
             var iconRect = iconGo.GetComponent<RectTransform>();
             iconRect.anchorMin = new Vector2(0, 0);
             iconRect.anchorMax = new Vector2(0, 1);
             iconRect.pivot = new Vector2(0, 0.5f);
-            iconRect.anchoredPosition = new Vector2(8, -10);
+            iconRect.anchoredPosition = new Vector2(8, -8);
             iconRect.sizeDelta = new Vector2(56, -28);
             var iconImg = iconGo.AddComponent<Image>();
-            iconImg.sprite = WhiteSprite;
+            iconImg.sprite = null;
             iconImg.color = EmptySlotColor;
             iconImg.preserveAspect = true;
+            iconImg.raycastTarget = false;
+            iconImg.type = Image.Type.Simple;
 
-            // Item name (center)
+            // Item name
             var nameGo = MakeRect("ItemName", rowGo.transform);
             var nameRect = nameGo.GetComponent<RectTransform>();
             nameRect.anchorMin = new Vector2(0, 0.5f);
@@ -593,12 +790,13 @@ namespace ProjectName.UI
             nameRect.offsetMax = new Vector2(-8, -4);
             var nameTmp = nameGo.AddComponent<TextMeshProUGUI>();
             nameTmp.text = "Empty";
-            nameTmp.fontSize = 20;
+            nameTmp.fontSize = 18;
             nameTmp.color = BoneWhite;
             nameTmp.alignment = TextAlignmentOptions.Left;
+            nameTmp.raycastTarget = false;
             FontManager.EnsureFont(nameTmp);
 
-            // Stats (below name)
+            // Stats
             var statsGo = MakeRect("Stats", rowGo.transform);
             var statsRect = statsGo.GetComponent<RectTransform>();
             statsRect.anchorMin = new Vector2(0, 0);
@@ -607,12 +805,175 @@ namespace ProjectName.UI
             statsRect.offsetMax = new Vector2(-8, 6);
             var statsTmp = statsGo.AddComponent<TextMeshProUGUI>();
             statsTmp.text = "";
-            statsTmp.fontSize = 16;
+            statsTmp.fontSize = 14;
             statsTmp.color = AgedGold;
             statsTmp.alignment = TextAlignmentOptions.Left;
+            statsTmp.raycastTarget = false;
             FontManager.EnsureFont(statsTmp);
 
-            return (iconImg, nameTmp, statsTmp);
+            return (rowBtn, iconImg, nameTmp, statsTmp);
+        }
+
+        private static (GameObject panel, TMP_Text title, Transform content) BuildSelectionPanel(Transform parent)
+        {
+            var panelGo = MakeRect("SelectionPanel", parent);
+            var panelRect = panelGo.GetComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.62f, 0);
+            panelRect.anchorMax = new Vector2(1, 1);
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
+
+            var panelBg = panelGo.AddComponent<Image>();
+            panelBg.sprite = WhiteSprite;
+            panelBg.color = new Color(0.06f, 0.06f, 0.08f, 0.95f);
+
+            // Title
+            var titleGo = MakeRect("SelectionTitle", panelGo.transform);
+            var titleRect = titleGo.GetComponent<RectTransform>();
+            titleRect.anchorMin = new Vector2(0, 1);
+            titleRect.anchorMax = new Vector2(1, 1);
+            titleRect.pivot = new Vector2(0.5f, 1);
+            titleRect.anchoredPosition = Vector2.zero;
+            titleRect.sizeDelta = new Vector2(0, 36);
+
+            var titleTmp = titleGo.AddComponent<TextMeshProUGUI>();
+            titleTmp.text = "Select Equipment";
+            titleTmp.fontSize = 20;
+            titleTmp.fontStyle = FontStyles.Bold;
+            titleTmp.color = AgedGold;
+            titleTmp.alignment = TextAlignmentOptions.Center;
+            FontManager.EnsureFont(titleTmp);
+
+            // Divider below title
+            var divGo = MakeRect("SelDivider", panelGo.transform);
+            var divRect = divGo.GetComponent<RectTransform>();
+            divRect.anchorMin = new Vector2(0.05f, 1);
+            divRect.anchorMax = new Vector2(0.95f, 1);
+            divRect.pivot = new Vector2(0.5f, 1);
+            divRect.anchoredPosition = new Vector2(0, -36);
+            divRect.sizeDelta = new Vector2(0, 1);
+            var divImg = divGo.AddComponent<Image>();
+            divImg.sprite = WhiteSprite;
+            divImg.color = DividerCol;
+
+            // Scroll view for equipment list
+            var scrollGo = MakeRect("ScrollView", panelGo.transform);
+            var scrollRect = scrollGo.GetComponent<RectTransform>();
+            scrollRect.anchorMin = new Vector2(0, 0);
+            scrollRect.anchorMax = new Vector2(1, 1);
+            scrollRect.offsetMin = new Vector2(4, 4);
+            scrollRect.offsetMax = new Vector2(-4, -40);
+
+            var scrollView = scrollGo.AddComponent<ScrollRect>();
+            scrollView.horizontal = false;
+            scrollView.vertical = true;
+            scrollView.movementType = ScrollRect.MovementType.Clamped;
+            scrollView.scrollSensitivity = 30f;
+
+            // Add mask
+            var maskImg = scrollGo.AddComponent<Image>();
+            maskImg.sprite = WhiteSprite;
+            maskImg.color = new Color(0, 0, 0, 0.01f); // near-invisible but needed for mask
+            scrollGo.AddComponent<Mask>().showMaskGraphic = false;
+
+            // Content container
+            var contentGo = MakeRect("Content", scrollGo.transform);
+            var contentRect = contentGo.GetComponent<RectTransform>();
+            contentRect.anchorMin = new Vector2(0, 1);
+            contentRect.anchorMax = new Vector2(1, 1);
+            contentRect.pivot = new Vector2(0, 1);
+            contentRect.anchoredPosition = Vector2.zero;
+            contentRect.sizeDelta = new Vector2(0, 0);
+
+            scrollView.content = contentRect;
+
+            panelGo.SetActive(false);
+
+            return (panelGo, titleTmp, contentGo.transform);
+        }
+
+        private static GameObject BuildSelectionRow(Transform parent, string itemName, string stats,
+            Sprite itemSprite, float yPos, bool isSelected)
+        {
+            var rowGo = MakeRect("SelRow", parent);
+            var rowRect = rowGo.GetComponent<RectTransform>();
+            rowRect.anchorMin = new Vector2(0, 1);
+            rowRect.anchorMax = new Vector2(1, 1);
+            rowRect.pivot = new Vector2(0, 1);
+            rowRect.anchoredPosition = new Vector2(0, yPos);
+            rowRect.sizeDelta = new Vector2(0, 70);
+
+            var rowBg = rowGo.AddComponent<Image>();
+            rowBg.sprite = WhiteSprite;
+            rowBg.color = isSelected ? SelectedRowBg : SelectionRowBg;
+
+            var rowBtn = rowGo.AddComponent<Button>();
+            var btnColors = rowBtn.colors;
+            btnColors.normalColor = isSelected ? SelectedRowBg : SelectionRowBg;
+            btnColors.highlightedColor = new Color(0.22f, 0.20f, 0.14f, 0.95f);
+            btnColors.pressedColor = new Color(0.30f, 0.26f, 0.14f, 1f);
+            btnColors.selectedColor = btnColors.highlightedColor;
+            btnColors.disabledColor = new Color(0.10f, 0.10f, 0.12f, 0.6f);
+            btnColors.fadeDuration = 0.1f;
+            rowBtn.colors = btnColors;
+            rowBtn.targetGraphic = rowBg;
+
+            // Icon
+            if (itemSprite != null)
+            {
+                var iconGo = MakeRect("SelIcon", rowGo.transform);
+                var iconRect = iconGo.GetComponent<RectTransform>();
+                iconRect.anchorMin = new Vector2(0, 0.1f);
+                iconRect.anchorMax = new Vector2(0, 0.9f);
+                iconRect.pivot = new Vector2(0, 0.5f);
+                iconRect.anchoredPosition = new Vector2(6, 0);
+                iconRect.sizeDelta = new Vector2(50, 0);
+
+                var iconImg = iconGo.AddComponent<Image>();
+                iconImg.sprite = itemSprite;
+                iconImg.color = Color.white;
+                iconImg.preserveAspect = true;
+                iconImg.raycastTarget = false;
+                iconImg.type = Image.Type.Simple;
+                iconImg.enabled = true;
+            }
+
+            float textLeft = itemSprite != null ? 62f : 8f;
+
+            // Name
+            var nameGo = MakeRect("SelName", rowGo.transform);
+            var nameRect = nameGo.GetComponent<RectTransform>();
+            nameRect.anchorMin = new Vector2(0, 0.5f);
+            nameRect.anchorMax = new Vector2(1, 1);
+            nameRect.offsetMin = new Vector2(textLeft, 0);
+            nameRect.offsetMax = new Vector2(-4, -4);
+            var nameTmp = nameGo.AddComponent<TextMeshProUGUI>();
+            nameTmp.text = itemName;
+            nameTmp.fontSize = 16;
+            nameTmp.color = isSelected ? AgedGold : BoneWhite;
+            nameTmp.alignment = TextAlignmentOptions.Left;
+            nameTmp.raycastTarget = false;
+            FontManager.EnsureFont(nameTmp);
+
+            // Stats
+            if (!string.IsNullOrEmpty(stats))
+            {
+                var statsGo = MakeRect("SelStats", rowGo.transform);
+                var statsRect = statsGo.GetComponent<RectTransform>();
+                statsRect.anchorMin = new Vector2(0, 0);
+                statsRect.anchorMax = new Vector2(1, 0.5f);
+                statsRect.offsetMin = new Vector2(textLeft, 4);
+                statsRect.offsetMax = new Vector2(-4, 0);
+                var statsTmp = statsGo.AddComponent<TextMeshProUGUI>();
+                statsTmp.text = stats;
+                statsTmp.fontSize = 13;
+                statsTmp.color = SubtleText;
+                statsTmp.alignment = TextAlignmentOptions.Left;
+                statsTmp.raycastTarget = false;
+                FontManager.EnsureFont(statsTmp);
+            }
+
+            return rowGo;
         }
 
         private static void BuildDivider(Transform parent, float yOffset)
@@ -628,6 +989,19 @@ namespace ProjectName.UI
             var divImg = divider.AddComponent<Image>();
             divImg.sprite = WhiteSprite;
             divImg.color = DividerCol;
+        }
+
+        private static void BuildVerticalDivider(Transform parent, float xAnchor)
+        {
+            var vDivGo = MakeRect("VerticalDivider", parent);
+            var vDivRect = vDivGo.GetComponent<RectTransform>();
+            vDivRect.anchorMin = new Vector2(xAnchor, 0.02f);
+            vDivRect.anchorMax = new Vector2(xAnchor, 0.98f);
+            vDivRect.pivot = new Vector2(0.5f, 0.5f);
+            vDivRect.sizeDelta = new Vector2(2, 0);
+            var vDivImg = vDivGo.AddComponent<Image>();
+            vDivImg.sprite = WhiteSprite;
+            vDivImg.color = DividerCol;
         }
 
         private static GameObject MakeRect(string name, Transform parent)
