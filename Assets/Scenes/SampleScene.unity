@@ -716,8 +716,43 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3216572142094666867, guid: d8fd0d851e821624eaf3a49bcf01e3ce, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 229402768}
   m_SourcePrefab: {fileID: 100100000, guid: d8fd0d851e821624eaf3a49bcf01e3ce, type: 3}
+--- !u!1 &229402767 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3216572142094666867, guid: d8fd0d851e821624eaf3a49bcf01e3ce, type: 3}
+  m_PrefabInstance: {fileID: 229402766}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &229402768
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 229402767}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 13e1773507d3490aa83dcb9c539a6661, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PowerUpVFX
+  bobAmplitude: 0.15
+  bobFrequency: 2
+  glowScale: 2
+  pulseSpeed: 2
+  pulseMin: 0.25
+  pulseMax: 0.6
+  ambientMaxParticles: 12
+  ambientEmissionRate: 4
+  orbitRadius: 0.4
+  orbitSpeed: 1.5
+  burstParticleCount: 15
+  burstSpeed: 4
+  burstLifetime: 0.35
+  flashAlpha: 0.15
+  flashDuration: 0.15
 --- !u!1 &229854328
 GameObject:
   m_ObjectHideFlags: 0
@@ -1366,6 +1401,50 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 302528892}
   m_CullTransparentMesh: 1
+--- !u!1 &326385363
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 326385365}
+  - component: {fileID: 326385364}
+  m_Layer: 0
+  m_Name: ScreenFlash
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &326385364
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 326385363}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 42237615c22913f44881eaf52f5ff6c2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ScreenFlash
+--- !u!4 &326385365
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 326385363}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &330662113
 GameObject:
   m_ObjectHideFlags: 0
@@ -4742,6 +4821,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SaveManager
   activeSlotIndex: 0
+  bodyPartRegistry: {fileID: 0}
 --- !u!114 &1931920742
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5216,8 +5296,43 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 8676371535261519569, guid: 1ba83183cde90e84a9c2666bd31ded3c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1971018088}
   m_SourcePrefab: {fileID: 100100000, guid: 1ba83183cde90e84a9c2666bd31ded3c, type: 3}
+--- !u!1 &1971018087 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8676371535261519569, guid: 1ba83183cde90e84a9c2666bd31ded3c, type: 3}
+  m_PrefabInstance: {fileID: 1971018086}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1971018088
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1971018087}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 13e1773507d3490aa83dcb9c539a6661, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PowerUpVFX
+  bobAmplitude: 0.15
+  bobFrequency: 2
+  glowScale: 2
+  pulseSpeed: 2
+  pulseMin: 0.25
+  pulseMax: 0.6
+  ambientMaxParticles: 12
+  ambientEmissionRate: 4
+  orbitRadius: 0.4
+  orbitSpeed: 1.5
+  burstParticleCount: 15
+  burstSpeed: 4
+  burstLifetime: 0.35
+  flashAlpha: 0.15
+  flashDuration: 0.15
 --- !u!1 &1996727770
 GameObject:
   m_ObjectHideFlags: 0
@@ -6179,3 +6294,4 @@ SceneRoots:
   - {fileID: 1931920743}
   - {fileID: 4848159029539843824}
   - {fileID: 1159355035}
+  - {fileID: 326385365}

@@ -113,6 +113,7 @@ GameObject:
   - component: {fileID: 5596342613721515753}
   - component: {fileID: 4162566674873098896}
   - component: {fileID: 3862120087867014741}
+  - component: {fileID: 2010165868973720996}
   m_Layer: 13
   m_Name: GuardianBoss
   m_TagString: Enemy
@@ -513,6 +514,31 @@ MonoBehaviour:
   phaseChangeSound: {fileID: 0}
   enrageSound: {fileID: 0}
   debugLogging: 1
+--- !u!114 &2010165868973720996
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7576660065920264478}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0522e8c9ceb59e04e93cf8aeb829de5b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossVFXController
+  entranceShakeMagnitude: 0.2
+  entranceShakeDuration: 0.3
+  fogParticleCount: 50
+  fogExpandSpeed: 4
+  fogLifetime: 1
+  phaseFlashColor: {r: 1, g: 0, b: 0, a: 0.4}
+  phaseFlashDuration: 0.2
+  shockwaveParticleCount: 40
+  shockwaveSpeed: 6
+  shockwaveLifetime: 0.5
+  auraEmissionRate: 20
+  auraParticleLifetime: 1
+  auraRadius: 1
 --- !u!1 &8622983151404344634
 GameObject:
   m_ObjectHideFlags: 0
