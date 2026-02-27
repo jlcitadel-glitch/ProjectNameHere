@@ -141,6 +141,8 @@ public class SaveManager : MonoBehaviour
         return SAVE_KEY_PREFIX + slotIndex;
     }
 
+    private GameObject FindPlayer() => GameObject.FindGameObjectWithTag("Player");
+
     private void OnDestroy()
     {
         if (Instance == this)
@@ -156,7 +158,7 @@ public class SaveManager : MonoBehaviour
     {
         var data = new SaveData();
 
-        var player = GameObject.FindGameObjectWithTag("Player");
+        var player = FindPlayer();
         if (player != null)
         {
             data.playerPositionX = player.transform.position.x;
@@ -497,7 +499,7 @@ public class SaveManager : MonoBehaviour
             return;
         }
 
-        var player = GameObject.FindGameObjectWithTag("Player");
+        var player = FindPlayer();
         if (player == null)
         {
             Debug.LogWarning("[SaveManager] Player not found. Cannot apply save data.");
@@ -617,7 +619,7 @@ public class SaveManager : MonoBehaviour
             return;
         }
 
-        var player = GameObject.FindGameObjectWithTag("Player");
+        var player = FindPlayer();
         if (player == null)
         {
             Debug.LogWarning("[SaveManager] Player not found. Cannot apply new game data.");

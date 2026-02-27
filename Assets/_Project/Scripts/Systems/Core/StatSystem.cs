@@ -63,8 +63,6 @@ public class StatSystem : MonoBehaviour
     private int GetEquipmentBonus(int statIndex)
     {
         if (equipmentManager == null)
-            equipmentManager = GetComponent<EquipmentManager>();
-        if (equipmentManager == null)
             return 0;
 
         return statIndex switch
@@ -84,12 +82,18 @@ public class StatSystem : MonoBehaviour
 
     private void Start()
     {
-        // Retry in Start in case LevelSystem was added dynamically during Awake
+        // Retry in Start in case components were added dynamically during Awake
         if (levelSystem == null) levelSystem = GetComponent<LevelSystem>();
+        if (equipmentManager == null) equipmentManager = GetComponent<EquipmentManager>();
 
         if (levelSystem != null)
         {
             levelSystem.OnLevelUp += HandleLevelUp;
+        }
+
+        if (equipmentManager != null)
+        {
+            equipmentManager.OnEquipmentChanged += HandleEquipmentChanged;
         }
     }
 
@@ -99,6 +103,16 @@ public class StatSystem : MonoBehaviour
         {
             levelSystem.OnLevelUp -= HandleLevelUp;
         }
+
+        if (equipmentManager != null)
+        {
+            equipmentManager.OnEquipmentChanged -= HandleEquipmentChanged;
+        }
+    }
+
+    private void HandleEquipmentChanged(EquipmentSlotType slot, EquipmentData item)
+    {
+        OnStatsChanged?.Invoke();
     }
 
     private void HandleLevelUp(int newLevel)

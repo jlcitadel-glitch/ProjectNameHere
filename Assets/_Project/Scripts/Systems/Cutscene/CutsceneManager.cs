@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 /// <summary>
 /// Plays a CutsceneData sequence beat-by-beat.
@@ -13,6 +14,7 @@ public class CutsceneManager : MonoBehaviour
     [SerializeField] private CutsceneUI cutsceneUI;
 
     [Header("Skip Settings")]
+    [SerializeField] private InputAction skipAction = new InputAction("Skip", InputActionType.Button, "<Keyboard>/space");
     [SerializeField] private float skipHoldDuration = 1f;
 
     [Header("Debug")]
@@ -29,13 +31,23 @@ public class CutsceneManager : MonoBehaviour
     public event Action OnCutsceneStarted;
     public event Action OnCutsceneCompleted;
 
+    private void OnEnable()
+    {
+        skipAction?.Enable();
+    }
+
+    private void OnDisable()
+    {
+        skipAction?.Disable();
+    }
+
     private void Update()
     {
         if (!isPlaying)
             return;
 
         // Hold Space to skip
-        if (Input.GetKey(KeyCode.Space))
+        if (skipAction.IsPressed())
         {
             skipHoldTimer += Time.unscaledDeltaTime;
             if (cutsceneUI != null)
