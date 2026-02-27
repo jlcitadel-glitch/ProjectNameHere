@@ -58,6 +58,7 @@ public class EnemyController : MonoBehaviour, IDamageable
 
     // Properties
     public EnemyData Data => enemyData;
+    public void SetData(EnemyData data) => enemyData = data;
     public EnemyState CurrentState => currentState;
     public Transform CurrentTarget => currentTarget;
     public bool IsDead => isDead;
@@ -128,6 +129,9 @@ public class EnemyController : MonoBehaviour, IDamageable
             audioSource.playOnAwake = false;
             audioSource.spatialBlend = 0f;
         }
+
+        // Cache player layer mask for contact damage detection
+        playerLayerMask = LayerMask.GetMask("Player");
     }
 
     private BaseEnemyMovement AddMovementComponent(EnemyType type)
@@ -787,6 +791,7 @@ public class EnemyController : MonoBehaviour, IDamageable
     [SerializeField] private float contactCheckRadius = 0.6f;
     private float contactDamageCooldown;
     private const float ContactDamageInterval = 0.5f;
+    private int playerLayerMask;
 
     /// <summary>
     /// Overlap-based contact damage. Player and Enemy layers don't physically collide
@@ -806,7 +811,6 @@ public class EnemyController : MonoBehaviour, IDamageable
         }
 
         // Check for player overlap using the Player layer
-        int playerLayerMask = 1 << 6; // Player layer index from TagManager
         Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, contactCheckRadius, playerLayerMask);
 
         foreach (Collider2D hit in hits)

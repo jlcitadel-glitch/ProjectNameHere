@@ -1,4 +1,3 @@
-using System.Reflection;
 using UnityEngine;
 
 /// <summary>
@@ -12,9 +11,6 @@ public class EnemyStatModifier : MonoBehaviour
 {
     private int wave;
     private WaveConfig config;
-
-    private static readonly FieldInfo enemyDataField = typeof(EnemyController)
-        .GetField("enemyData", BindingFlags.NonPublic | BindingFlags.Instance);
 
     /// <summary>
     /// Call immediately after Instantiate, before the first frame.
@@ -50,16 +46,8 @@ public class EnemyStatModifier : MonoBehaviour
         clonedData.chaseSpeed *= speedMult;
         clonedData.experienceValue = Mathf.RoundToInt(clonedData.experienceValue * healthMult);
 
-        // Assign the cloned data to EnemyController via reflection
-        // (enemyData is a private serialized field)
-        if (enemyDataField != null)
-        {
-            enemyDataField.SetValue(controller, clonedData);
-        }
-        else
-        {
-            Debug.LogWarning("[EnemyStatModifier] Could not find enemyData field on EnemyController.");
-        }
+        // Assign the cloned data to EnemyController
+        controller.SetData(clonedData);
 
         // Done — remove this component to keep the hierarchy clean
         Destroy(this);

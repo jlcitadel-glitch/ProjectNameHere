@@ -9,6 +9,8 @@ using ProjectName.UI;
 [RequireComponent(typeof(BoxCollider2D))]
 public class EnemyAttackHitbox : MonoBehaviour
 {
+    private const string EnemyHurtboxLayerName = "EnemyHurtbox";
+
     private EnemyAttackData attackData;
     private EnemyCombat owner;
     private BoxCollider2D hitboxCollider;
@@ -41,14 +43,14 @@ public class EnemyAttackHitbox : MonoBehaviour
         hitboxCollider.size = attackData.hitboxSize;
 
         // Set layer for collision filtering
-        int attackLayer = LayerMask.NameToLayer("EnemyHurtbox");
+        int attackLayer = LayerMask.NameToLayer(EnemyHurtboxLayerName);
         if (attackLayer >= 0)
         {
             gameObject.layer = attackLayer;
         }
         else
         {
-            // Fall back to parent's layer so it still exists in physics
+            Debug.LogWarning($"[EnemyAttackHitbox] '{EnemyHurtboxLayerName}' layer not found in TagManager. Falling back to parent layer.");
             gameObject.layer = owner != null ? owner.gameObject.layer : 0;
         }
     }

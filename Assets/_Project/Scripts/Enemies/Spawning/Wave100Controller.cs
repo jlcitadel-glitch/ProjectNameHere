@@ -203,6 +203,20 @@ public class Wave100Controller : MonoBehaviour
             healthSystem.SetMaxHealth(newMax, refill: true);
         }
 
+        // Apply damage boost via CombatController
+        var combatController = player.GetComponent<CombatController>();
+        if (combatController != null)
+        {
+            combatController.MultiplyBonusDamage(damageMultiplier);
+        }
+
+        // Apply speed boost via PlayerControllerScript
+        var playerController = player.GetComponent<PlayerControllerScript>();
+        if (playerController != null)
+        {
+            playerController.MultiplyBaseSpeed(speedMultiplier);
+        }
+
         // Show notification
         if (NotificationSystem.Instance != null)
         {
@@ -213,6 +227,6 @@ public class Wave100Controller : MonoBehaviour
         }
 
         if (debugLogging)
-            Debug.Log($"[Wave100Controller] Power absorption applied — HP x{hpMultiplier}");
+            Debug.Log($"[Wave100Controller] Power absorption applied — HP x{hpMultiplier}, DMG x{damageMultiplier}, SPD x{speedMultiplier}");
     }
 }

@@ -48,6 +48,7 @@ public class CombatController : MonoBehaviour
     private PlayerControllerScript playerController;
     private StatSystem statSystem;
     private AudioSource audioSource;
+    private float bonusDamageMultiplier = 1f;
 
     // Active hitbox reference
     private GameObject activeHitbox;
@@ -704,7 +705,16 @@ public class CombatController : MonoBehaviour
                 jobModifier = currentJob.attackModifier;
         }
 
-        return statMultiplier * jobModifier;
+        return statMultiplier * jobModifier * bonusDamageMultiplier;
+    }
+
+    /// <summary>
+    /// Permanently scales the bonus damage multiplier by the given factor.
+    /// Used by milestone rewards (e.g., Wave 100 power absorption).
+    /// </summary>
+    public void MultiplyBonusDamage(float multiplier)
+    {
+        bonusDamageMultiplier *= multiplier;
     }
 
     /// <summary>

@@ -450,4 +450,13 @@ public class PlayerControllerScript : MonoBehaviour
     {
         return animator;
     }
+
+    /// <summary>
+    /// Permanently scales the base movement speed by the given multiplier.
+    /// Used by milestone rewards (e.g., Wave 100 power absorption).
+    /// </summary>
+    public void MultiplyBaseSpeed(float multiplier)
+    {
+        speed *= multiplier;
+    }
 }

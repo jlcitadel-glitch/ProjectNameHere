@@ -17,6 +17,7 @@ public class EnemyCombat : MonoBehaviour
     private BossController bossController;
     private EnemyData enemyData;
     private Animator animator;
+    private AudioSource audioSource;
 
     private EnemyAttackData currentAttack;
     private Transform currentTarget;
@@ -51,6 +52,7 @@ public class EnemyCombat : MonoBehaviour
         controller = GetComponent<EnemyController>();
         bossController = GetComponent<BossController>();
         animator = GetComponent<Animator>();
+        audioSource = GetComponent<AudioSource>();
 
         // Auto-create attack origin if not assigned
         if (attackOrigin == null)
@@ -187,13 +189,9 @@ public class EnemyCombat : MonoBehaviour
         attackTimer = currentAttack.activeDuration;
 
         // Play attack sound
-        if (currentAttack.attackSound != null)
+        if (currentAttack.attackSound != null && audioSource != null)
         {
-            AudioSource audioSource = GetComponent<AudioSource>();
-            if (audioSource != null)
-            {
-                SFXManager.PlayOneShot(audioSource, currentAttack.attackSound);
-            }
+            SFXManager.PlayOneShot(audioSource, currentAttack.attackSound);
         }
 
         // Spawn hitbox or projectile
