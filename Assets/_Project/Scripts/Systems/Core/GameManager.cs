@@ -26,6 +26,7 @@ public class GameManager : MonoBehaviour
     private GameState currentState;
     private GameState previousState;
     private float previousTimeScale = 1f;
+    private int menuPauseCount;
 
     public GameState CurrentState => currentState;
     public GameState PreviousState => previousState;
@@ -238,6 +239,33 @@ public class GameManager : MonoBehaviour
         if (currentState == GameState.Loading)
         {
             SetState(GameState.Playing);
+        }
+    }
+
+    /// <summary>
+    /// Request a menu pause (ref-counted). Multiple overlay menus can request pause;
+    /// time only unfreezes when all release.
+    /// </summary>
+    public void RequestMenuPause()
+    {
+        menuPauseCount++;
+        if (menuPauseCount == 1)
+        {
+            previousTimeScale = Time.timeScale > 0f ? Time.timeScale : 1f;
+            Time.timeScale = 0f;
+        }
+    }
+
+    /// <summary>
+    /// Release a menu pause request. Time unfreezes when all requests are released.
+    /// </summary>
+    public void ReleaseMenuPause()
+    {
+        menuPauseCount--;
+        if (menuPauseCount <= 0)
+        {
+            menuPauseCount = 0;
+            Time.timeScale = previousTimeScale > 0f ? previousTimeScale : 1f;
         }
     }
 
