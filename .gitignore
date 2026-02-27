@@ -103,3 +103,11 @@ InitTestScene*.unity*
 .claude/agents/*/PAUSE
 .claude/agents/*/STOP
 .claude/agents/*/runner.log
+
+# Webhook secrets
+scripts/webhook.conf
+
+# Logs directory — track activity log, ignore everything else
+logs/*
+!logs/.gitkeep
+!logs/agent_activity.log

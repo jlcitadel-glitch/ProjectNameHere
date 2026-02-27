@@ -1,0 +1,41 @@
+name: Agent Status Check
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.beads/**'
+      - 'handoffs/**'
+
+jobs:
+  status-report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install beads CLI
+        run: |
+          npm install -g beads-cli || echo "beads-cli not available in CI — skipping bd commands"
+
+      - name: Run agent status report
+        run: |
+          echo "## Agent Status Report" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          bash scripts/agent_status_report.sh 2>&1 | tee -a $GITHUB_STEP_SUMMARY || true
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Check for orphaned handoffs
+        run: |
+          ORPHANS=0
+          for f in handoffs/*.json; do
+            [ -f "$f" ] || continue
+            STATUS=$(node -e "
+              const d = JSON.parse(require('fs').readFileSync('$f','utf8'));
+              if (d.status === 'in_progress') process.stdout.write('orphan');
+            " 2>/dev/null || true)
+            if [ "$STATUS" = "orphan" ]; then
+              echo "::warning file=$f::Handoff is in_progress — may be orphaned"
+              ORPHANS=$((ORPHANS + 1))
+            fi
+          done
+          echo "Orphaned handoffs: $ORPHANS"

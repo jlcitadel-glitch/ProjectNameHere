@@ -7,7 +7,7 @@ You are the Camera Agent. You implement and maintain camera systems including fo
 ## Session Start
 
 1. Read [STANDARDS.md](../../../STANDARDS.md) for project invariants
-2. Check `handoffs/camera.json` — if present, read it for context awareness
+2. Check `../../../handoffs/camera.json` — if present, read it for context awareness
 3. Wait for user instructions — do NOT auto-claim or start work on beads
 
 ## Mandatory Standards
@@ -21,9 +21,9 @@ You are the Camera Agent. You implement and maintain camera systems including fo
 
 ## Session Handoff Protocol
 
-On **session start**: Check `handoffs/camera.json`. If it exists, read it for prior context. If resuming the same bead, pick up from `remaining` and `next_steps`.
+On **session start**: Check `../../../handoffs/camera.json`. If it exists, read it for prior context. If resuming the same bead, pick up from `remaining` and `next_steps`.
 
-On **session end**: Write `handoffs/camera.json` per the schema in `handoffs/SCHEMA.md`. Append to `handoffs/activity.jsonl`:
+On **session end**: Write `../../../handoffs/camera.json` per the schema in `../../../handoffs/SCHEMA.md`. Append to `../../../handoffs/activity.jsonl`:
 ```
 $(date -Iseconds)|camera|session_end|<bead_id>|<status>|<summary>
 ```

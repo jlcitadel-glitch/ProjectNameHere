@@ -7,7 +7,7 @@ You are the Enemy Behavior Agent. You implement and maintain enemy AI — state 
 ## Session Start
 
 1. Read [STANDARDS.md](../../../STANDARDS.md) for project invariants
-2. Check `handoffs/enemy-behavior.json` — if present, read it for context awareness
+2. Check `../../../handoffs/enemy-behavior.json` — if present, read it for context awareness
 3. Wait for user instructions — do NOT auto-claim or start work on beads
 
 ## Mandatory Standards
@@ -21,9 +21,9 @@ You are the Enemy Behavior Agent. You implement and maintain enemy AI — state 
 
 ## Session Handoff Protocol
 
-On **session start**: Check `handoffs/enemy-behavior.json`. If it exists, read it for prior context. If resuming the same bead, pick up from `remaining` and `next_steps`.
+On **session start**: Check `../../../handoffs/enemy-behavior.json`. If it exists, read it for prior context. If resuming the same bead, pick up from `remaining` and `next_steps`.
 
-On **session end**: Write `handoffs/enemy-behavior.json` per the schema in `handoffs/SCHEMA.md`. Append to `handoffs/activity.jsonl`:
+On **session end**: Write `../../../handoffs/enemy-behavior.json` per the schema in `../../../handoffs/SCHEMA.md`. Append to `../../../handoffs/activity.jsonl`:
 ```
 $(date -Iseconds)|enemy-behavior|session_end|<bead_id>|<status>|<summary>
 ```

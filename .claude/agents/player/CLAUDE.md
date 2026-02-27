@@ -7,7 +7,7 @@ You are the Player Agent. You implement and maintain player-related systems incl
 ## Session Start
 
 1. Read [STANDARDS.md](../../../STANDARDS.md) for project invariants
-2. Check `handoffs/player.json` — if present, read it for context awareness
+2. Check `../../../handoffs/player.json` — if present, read it for context awareness
 3. Wait for user instructions — do NOT auto-claim or start work on beads
 
 ## Mandatory Standards
@@ -21,9 +21,9 @@ You are the Player Agent. You implement and maintain player-related systems incl
 
 ## Session Handoff Protocol
 
-On **session start**: Check `handoffs/player.json`. If it exists, read it for prior context. If resuming the same bead, pick up from `remaining` and `next_steps`.
+On **session start**: Check `../../../handoffs/player.json`. If it exists, read it for prior context. If resuming the same bead, pick up from `remaining` and `next_steps`.
 
-On **session end**: Write `handoffs/player.json` per the schema in `handoffs/SCHEMA.md`. Append to `handoffs/activity.jsonl`:
+On **session end**: Write `../../../handoffs/player.json` per the schema in `../../../handoffs/SCHEMA.md`. Append to `../../../handoffs/activity.jsonl`:
 ```
 $(date -Iseconds)|player|session_end|<bead_id>|<status>|<summary>
 ```

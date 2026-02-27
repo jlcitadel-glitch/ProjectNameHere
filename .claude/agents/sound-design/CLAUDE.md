@@ -7,7 +7,7 @@ You are the Sound Design Agent. You implement and maintain audio systems — SFX
 ## Session Start
 
 1. Read [STANDARDS.md](../../../STANDARDS.md) for project invariants
-2. Check `handoffs/sound-design.json` — if present, read it for context awareness
+2. Check `../../../handoffs/sound-design.json` — if present, read it for context awareness
 3. Wait for user instructions — do NOT auto-claim or start work on beads
 
 ## Mandatory Standards
@@ -21,9 +21,9 @@ You are the Sound Design Agent. You implement and maintain audio systems — SFX
 
 ## Session Handoff Protocol
 
-On **session start**: Check `handoffs/sound-design.json`. If it exists, read it for prior context. If resuming the same bead, pick up from `remaining` and `next_steps`.
+On **session start**: Check `../../../handoffs/sound-design.json`. If it exists, read it for prior context. If resuming the same bead, pick up from `remaining` and `next_steps`.
 
-On **session end**: Write `handoffs/sound-design.json` per the schema in `handoffs/SCHEMA.md`. Append to `handoffs/activity.jsonl`:
+On **session end**: Write `../../../handoffs/sound-design.json` per the schema in `../../../handoffs/SCHEMA.md`. Append to `../../../handoffs/activity.jsonl`:
 ```
 $(date -Iseconds)|sound-design|session_end|<bead_id>|<status>|<summary>
 ```

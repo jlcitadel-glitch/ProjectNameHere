@@ -12,7 +12,15 @@
       "Bash(git push:*)",
       "Bash(git pull:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "mcp__mcp-unity__recompile_scripts",
+      "mcp__mcp-unity__execute_menu_item",
+      "mcp__mcp-unity__get_console_logs",
+      "mcp__mcp-unity__get_gameobject"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "mcp-unity"
+  ]
 }

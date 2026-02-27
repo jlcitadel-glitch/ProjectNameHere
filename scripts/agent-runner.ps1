@@ -163,6 +163,12 @@ You are the $AgentName agent, auto-dispatched by the agent runner.
     # Launch Claude
     Write-Log "Launching claude session for $issueId"
 
+    # Log session start to activity log
+    $ActivityLog = Join-Path $ProjectRoot "logs\agent_activity.log"
+    $startTimestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssK"
+    $startLine = "$startTimestamp | $AgentName | session_start | $issueId | $issueTitle"
+    Add-Content -Path $ActivityLog -Value $startLine -ErrorAction SilentlyContinue
+
     try {
         Push-Location $AgentDir
 
@@ -172,6 +178,37 @@ You are the $AgentName agent, auto-dispatched by the agent runner.
         Pop-Location
 
         Write-Log "Claude session completed (exit=$exitCode) for $issueId"
+
+        # --- Post-session: witness check + logging ---
+        $HandoffFile = Join-Path $ProjectRoot "handoffs\$AgentName.json"
+        $ActivityLog = Join-Path $ProjectRoot "logs\agent_activity.log"
+        $timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssK"
+
+        # Log session end
+        $logLine = "$timestamp | $AgentName | session_end | $issueId | exit=$exitCode"
+        Add-Content -Path $ActivityLog -Value $logLine -ErrorAction SilentlyContinue
+
+        if (Test-Path $HandoffFile) {
+            Write-Log "Handoff found at $HandoffFile"
+            try {
+                $handoff = Get-Content $HandoffFile -Raw | ConvertFrom-Json -ErrorAction Stop
+                $handoffStatus = $handoff.status
+                $handoffBead = $handoff.bead_id
+
+                if ($handoffStatus -eq "completed" -and $handoffBead) {
+                    Write-Log "Running witness check for closed bead $handoffBead"
+                    $witnessResult = & bash "$ProjectRoot/scripts/witness_check.sh" $handoffBead 2>&1 | Out-String
+                    Write-Log "Witness check result: $witnessResult"
+                    $witnessLine = "$timestamp | $AgentName | witness_check | $handoffBead | $witnessResult"
+                    Add-Content -Path $ActivityLog -Value $witnessLine -ErrorAction SilentlyContinue
+                }
+            } catch {
+                Write-Log "Could not parse handoff: $_" "WARN"
+            }
+        } else {
+            Write-Log "No handoff written for $AgentName (expected at $HandoffFile)" "WARN"
+        }
+
         Write-Host ""
         Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Session complete for $issueId." -ForegroundColor DarkGray
         $consecutiveFailures = 0

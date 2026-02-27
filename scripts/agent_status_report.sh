@@ -15,9 +15,16 @@ set -euo pipefail
 HANDOFFS_DIR="handoffs"
 ACTIVITY_LOG="$HANDOFFS_DIR/activity.jsonl"
 WEBHOOK_URL=""
+ACTIVITY_LOG_FILE="logs/agent_activity.log"
 AGENTS="architect camera enemy-behavior environment player sound-design systems ui-ux vfx"
 
-# Parse args
+# Load webhook config if available
+WEBHOOK_CONF="scripts/webhook.conf"
+if [ -f "$WEBHOOK_CONF" ]; then
+    source "$WEBHOOK_CONF"
+fi
+
+# Parse args (CLI --webhook overrides config)
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --webhook) WEBHOOK_URL="$2"; shift 2 ;;
@@ -196,6 +203,12 @@ append "  End of Report"
 append "============================================"
 
 echo "$REPORT"
+
+# Append summary to human-readable activity log
+if [ -d "logs" ]; then
+    SUMMARY_LINE="$(date -Iseconds 2>/dev/null || date +%Y-%m-%dT%H:%M:%S) | status_report | generated"
+    echo "$SUMMARY_LINE" >> "$ACTIVITY_LOG_FILE" 2>/dev/null || true
+fi
 
 # Optional webhook delivery
 if [ -n "$WEBHOOK_URL" ]; then

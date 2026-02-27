@@ -11,6 +11,9 @@ Specialized Claude Code agents for this project. Each agent has its own CLAUDE.m
 | **Camera** | `.claude/agents/camera/` | Camera follow, parallax, bounds, transitions |
 | **VFX** | `.claude/agents/vfx/` | Particles, fog, precipitation, atmospheric effects |
 | **Systems** | `.claude/agents/systems/` | Managers, save/load, events, scene management |
+| **Enemy Behavior** | `.claude/agents/enemy-behavior/` | Enemy AI, state machines, boss phases, spawning |
+| **Environment** | `.claude/agents/environment/` | Tilemaps, terrain, hazards, level geometry |
+| **Sound Design** | `.claude/agents/sound-design/` | SFX, music, audio integration |
 | **UI/UX** | `.claude/agents/ui-ux/` | Gothic UI design (SOTN/Soul Reaver), metroidvania menus, Unity UI systems |
 
 ## Usage

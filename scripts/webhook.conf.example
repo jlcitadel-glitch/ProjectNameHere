@@ -1,0 +1,8 @@
+# Webhook configuration for agent_status_report.sh
+# Copy this file to webhook.conf and fill in your URL.
+# webhook.conf is gitignored (contains secrets).
+#
+# Supported: Discord webhook URL, Slack incoming webhook, or any
+# endpoint that accepts POST with JSON { "content": "..." }
+
+WEBHOOK_URL=
