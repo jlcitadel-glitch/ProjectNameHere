@@ -1,0 +1,58 @@
+{
+  "$schema": "handoff-v1",
+  "agent": "ui-ux",
+  "bead_id": "ProjectNameHere-i48",
+  "status": "completed",
+  "timestamp": "2026-02-27T02:00:00-05:00",
+  "session_summary": "Audited full UI codebase, filed 18 beads, fixed 12 bugs across volume, lifecycle, null safety, time, transitions",
+  "done": [
+    "Full UI codebase audit (46 scripts) — filed 18 beads",
+    "ProjectNameHere-4s2: UI sounds respect volume sliders (SFXManager.GetVolume())",
+    "ProjectNameHere-g1n: SkillHotbar FindReferences moved to Awake",
+    "ProjectNameHere-6jw: MenuTransitions spectralPulseCoroutine tracked, no more StopAllCoroutines",
+    "ProjectNameHere-59h: Init race conditions verified already fixed (closed)",
+    "ProjectNameHere-8cd: Event subscription leaks verified already fixed (closed)",
+    "ProjectNameHere-kui: TimeScale race verified already fixed (closed)",
+    "ProjectNameHere-748: ResourceBarDisplay flash uses unscaledDeltaTime",
+    "ProjectNameHere-ud2: HUD lifecycle verified already fixed (closed)",
+    "ProjectNameHere-nof: DestroyImmediate replaced with Destroy",
+    "ProjectNameHere-46p: UILayeredSpritePreview namespace added",
+    "ProjectNameHere-a6z: TabbedMenuController isTransitioning wired",
+    "ProjectNameHere-i48: Null safety guards in UIStyleGuide + MenuTransitions coroutines",
+    "Removed unused eased variable in MenuTransitions (bnh partial)"
+  ],
+  "remaining": [],
+  "decisions": [
+    "Many P2 beads (59h, 8cd, kui, ud2) were already fixed by prior sessions — verified and closed",
+    "Used SFXManager.GetVolume() multiplier rather than setting AudioSource.volume to avoid double-application",
+    "Removed OptionsMenuController uiAudioSource.volume workaround to prevent double-apply with new fix"
+  ],
+  "files_touched": [
+    "Assets/_Project/Scripts/UI/Core/MenuTransitions.cs",
+    "Assets/_Project/Scripts/UI/Core/UIStyleGuide.cs",
+    "Assets/_Project/Scripts/UI/Core/UIManager.cs",
+    "Assets/_Project/Scripts/UI/Components/TabbedMenuController.cs",
+    "Assets/_Project/Scripts/UI/Components/UILayeredSpritePreview.cs",
+    "Assets/_Project/Scripts/UI/HUD/ResourceBarDisplay.cs",
+    "Assets/_Project/Scripts/UI/Menus/OptionsMenuController.cs",
+    "Assets/_Project/Scripts/UI/Skills/SkillHotbar.cs"
+  ],
+  "beads_created": [
+    "ProjectNameHere-4s2", "ProjectNameHere-g1n", "ProjectNameHere-6jw",
+    "ProjectNameHere-59h", "ProjectNameHere-8cd", "ProjectNameHere-kui",
+    "ProjectNameHere-748", "ProjectNameHere-ud2", "ProjectNameHere-nof",
+    "ProjectNameHere-46p", "ProjectNameHere-a6z", "ProjectNameHere-i48",
+    "ProjectNameHere-4o3", "ProjectNameHere-ddm", "ProjectNameHere-cgl",
+    "ProjectNameHere-g9m", "ProjectNameHere-xbc", "ProjectNameHere-bnh",
+    "ProjectNameHere-ebe"
+  ],
+  "next_steps": [
+    "ProjectNameHere-ddm (P3): Static Texture2D/Sprite memory leaks in 4+ UI files",
+    "ProjectNameHere-4o3 (P3): CharacterCreationController expensive Resource lookups",
+    "ProjectNameHere-g9m (P3): EquipmentMenuController static sprite cache never cleared",
+    "ProjectNameHere-xbc (P3): FontManager loads all TMP fonts into memory",
+    "ProjectNameHere-cgl (P3): Excessive Debug.Log in production paths",
+    "ProjectNameHere-bnh (P4): SO convention violations",
+    "ProjectNameHere-ebe (P4): Hardcoded UI strings (localization)"
+  ]
+}
