@@ -90,6 +90,7 @@ public class PrecipitationController : MonoBehaviour
     private float currentEmissionRate;
     private bool isTransitioning;
     private Texture2D defaultTexture;
+    private Material currentMaterial;
     private float windUpdateTimer;
     private const float WIND_UPDATE_INTERVAL = 0.1f; // Update wind curves every 100ms
 
@@ -143,6 +144,12 @@ public class PrecipitationController : MonoBehaviour
         {
             ApplyPreset(preset);
         }
+    }
+
+    private void OnDestroy()
+    {
+        if (currentMaterial != null) Destroy(currentMaterial);
+        if (defaultTexture != null) Destroy(defaultTexture);
     }
 
     private void Update()
@@ -522,6 +529,12 @@ public class PrecipitationController : MonoBehaviour
             psRenderer.renderMode = ParticleSystemRenderMode.Billboard;
         }
 
+        // Destroy previous runtime material before creating new one
+        if (currentMaterial != null)
+        {
+            Destroy(currentMaterial);
+        }
+
         Material mat;
 
         // Use override material if provided
@@ -570,6 +583,7 @@ public class PrecipitationController : MonoBehaviour
             mat.mainTexture = defaultTexture;
         }
 
+        currentMaterial = mat;
         psRenderer.material = mat;
 
         // Sorting

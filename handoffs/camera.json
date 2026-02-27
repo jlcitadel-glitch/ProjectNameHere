@@ -1,0 +1,37 @@
+{
+  "$schema": "handoff-v1",
+  "agent": "camera",
+  "bead_id": "5w65,73qq,7pkh,t2nd,qh9z,7j4q",
+  "status": "completed",
+  "timestamp": "2026-02-26T12:00:00-05:00",
+  "session_summary": "Batch fixed all 6 camera domain beads: parallax formula, null refs, boss detection, SmoothDamp, standards",
+  "done": [
+    "ParallaxLayer: Replaced inverted linear parallax formula with asymptotic curve 1/(1+depth*0.05)",
+    "CameraBoundsTrigger: Moved Camera.main from Awake to Start with null check, cached Collider2D in Awake",
+    "CameraBoundsTrigger: Null-guarded gizmo Collider2D access",
+    "BossRoomTrigger: Added activeInHierarchy check + BossController event subscription for boss defeat",
+    "AdvancedCameraController: Replaced Lerp with SmoothDamp for room lock, added velocity reset",
+    "AdvancedCameraController: Added null check + LogError for Camera component",
+    "All 5 camera scripts: Added explicit private to all SerializeField fields",
+    "ParallaxBackgroundManager: Changed public Layer[] to [SerializeField] private"
+  ],
+  "remaining": [],
+  "decisions": [
+    "Used 0.05 divisor for parallax curve — gives good spread from depth 5 (0.80) to depth 50 (0.29)",
+    "Used 1/roomLockSpeed as SmoothDamp time to preserve existing speed semantics (higher = faster)",
+    "BossRoomTrigger: Hook added BossController event subscription with polling as fallback for bosses without BossController"
+  ],
+  "files_touched": [
+    "Assets/_Project/Scripts/Camera/ParallaxLayer.cs",
+    "Assets/_Project/Scripts/Camera/CameraBoundsTriggers.cs",
+    "Assets/_Project/Scripts/Camera/BossRoomTrigger.cs",
+    "Assets/_Project/Scripts/Camera/AdvancedCameraController.cs",
+    "Assets/_Project/Scripts/Camera/ParallaxBackgroundManager.cs"
+  ],
+  "beads_created": [],
+  "next_steps": [
+    "Playtest parallax at various Z depths to verify visual spread",
+    "Playtest boss room lock/unlock with both Destroy and SetActive(false) patterns",
+    "Verify camera bounds triggers work when MainCamera loads after scene start"
+  ]
+}

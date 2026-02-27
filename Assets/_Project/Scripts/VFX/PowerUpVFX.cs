@@ -41,6 +41,9 @@ public class PowerUpVFX : MonoBehaviour
     private ParticleSystem.Particle[] particleBuffer;
     private Vector3 startPosition;
     private float perlinOffset;
+    private Material glowMaterial;
+    private Material ambientMaterial;
+    private Texture2D glowTexture;
 
     private void Awake()
     {
@@ -174,7 +177,8 @@ public class PowerUpVFX : MonoBehaviour
             shader = Shader.Find("Sprites/Default");
         if (shader != null)
         {
-            glowRenderer.material = new Material(shader);
+            glowMaterial = new Material(shader);
+            glowRenderer.material = glowMaterial;
         }
     }
 
@@ -236,9 +240,9 @@ public class PowerUpVFX : MonoBehaviour
             shader = Shader.Find("Sprites/Default");
         if (shader != null)
         {
-            Material mat = new Material(shader);
-            mat.SetFloat("_Surface", 1f); // Transparent
-            psRenderer.material = mat;
+            ambientMaterial = new Material(shader);
+            ambientMaterial.SetFloat("_Surface", 1f); // Transparent
+            psRenderer.material = ambientMaterial;
         }
 
         // Cache particle buffer
@@ -311,9 +315,17 @@ public class PowerUpVFX : MonoBehaviour
         burstObj.AddComponent<SelfDestructVFX>();
     }
 
+    private void OnDestroy()
+    {
+        if (glowMaterial != null) Destroy(glowMaterial);
+        if (ambientMaterial != null) Destroy(ambientMaterial);
+        if (glowTexture != null) Destroy(glowTexture);
+    }
+
     private Sprite CreateSoftCircleSprite(int size, float pixelsPerUnit = 128f, float falloffPower = 3f)
     {
-        Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        glowTexture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        Texture2D tex = glowTexture;
         tex.filterMode = FilterMode.Bilinear;
         Color[] pixels = new Color[size * size];
         Vector2 center = new Vector2(size / 2f, size / 2f);

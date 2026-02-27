@@ -18,6 +18,7 @@ public class DashTrailVFX : MonoBehaviour
     private DashAbility dashAbility;
     private ParticleSystem trailParticles;
     private ParticleSystem.EmissionModule emissionModule;
+    private Material trailMaterial;
 
     private void Awake()
     {
@@ -90,9 +91,14 @@ public class DashTrailVFX : MonoBehaviour
             shader = Shader.Find("Sprites/Default");
         if (shader != null)
         {
-            Material mat = new Material(shader);
-            mat.SetFloat("_Surface", 1f);
-            psRenderer.material = mat;
+            trailMaterial = new Material(shader);
+            trailMaterial.SetFloat("_Surface", 1f);
+            psRenderer.material = trailMaterial;
         }
+    }
+
+    private void OnDestroy()
+    {
+        if (trailMaterial != null) Destroy(trailMaterial);
     }
 }

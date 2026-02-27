@@ -31,6 +31,9 @@ public class LevelUpVFXController : MonoBehaviour
 
     private LevelSystem levelSystem;
     private AudioSource audioSource;
+    private Material beamMaterial;
+    private Texture2D rectTexture;
+    private Texture2D circleTexture;
 
     private void Start()
     {
@@ -48,15 +51,15 @@ public class LevelUpVFXController : MonoBehaviour
         {
             levelSystem.OnLevelUp -= HandleLevelUp;
         }
+        if (beamMaterial != null) Destroy(beamMaterial);
+        if (rectTexture != null) Destroy(rectTexture);
+        if (circleTexture != null) Destroy(circleTexture);
     }
 
     private void HandleLevelUp(int newLevel)
     {
         StartCoroutine(PlayBeamSequence());
-        if (audioSource != null && levelUpSound != null)
-        {
-            audioSource.PlayOneShot(levelUpSound, SFXManager.GetVolume() * levelUpVolume);
-        }
+        SFXManager.PlayOneShot(audioSource, levelUpSound, levelUpVolume);
 
         if (ScreenFlash.Instance != null)
         {
@@ -162,11 +165,11 @@ public class LevelUpVFXController : MonoBehaviour
         // Sprite is 32x128 pixels at 32 PPU = 1x4 world units base
         obj.transform.localScale = new Vector3(width, height / 4f, 1f);
 
-        // Use additive-like material for glow
-        Shader shader = Shader.Find("Sprites/Default");
-        if (shader != null)
+        // Use additive-like material for glow (shared instance)
+        EnsureBeamMaterial();
+        if (beamMaterial != null)
         {
-            sr.material = new Material(shader);
+            sr.sharedMaterial = beamMaterial;
         }
 
         return sr;
@@ -185,10 +188,10 @@ public class LevelUpVFXController : MonoBehaviour
         sr.sortingLayerName = "Foreground";
         sr.sortingOrder = sortOrder;
 
-        Shader shader = Shader.Find("Sprites/Default");
-        if (shader != null)
+        EnsureBeamMaterial();
+        if (beamMaterial != null)
         {
-            sr.material = new Material(shader);
+            sr.sharedMaterial = beamMaterial;
         }
 
         return sr;
@@ -207,33 +210,48 @@ public class LevelUpVFXController : MonoBehaviour
         sr.color = new Color(baseColor.r, baseColor.g, baseColor.b, 0.5f * alpha);
     }
 
+    private void EnsureBeamMaterial()
+    {
+        if (beamMaterial != null) return;
+        Shader shader = Shader.Find("Sprites/Default");
+        if (shader != null)
+        {
+            beamMaterial = new Material(shader);
+        }
+    }
+
     /// <summary>
-    /// Creates a soft-edged rectangle texture for the beam.
-    /// Bright center column with smooth falloff on all edges.
+    /// Creates a soft-edged rectangle texture for the beam. Cached for reuse.
     /// </summary>
     private Sprite CreateSoftRectSprite(int width, int height)
     {
-        Texture2D tex = new Texture2D(width, height, TextureFormat.RGBA32, false);
-        tex.filterMode = FilterMode.Bilinear;
-        tex.wrapMode = TextureWrapMode.Clamp;
-        Color[] pixels = new Color[width * height];
+        if (rectTexture == null)
+        {
+            rectTexture = new Texture2D(width, height, TextureFormat.RGBA32, false);
+            rectTexture.filterMode = FilterMode.Bilinear;
+            rectTexture.wrapMode = TextureWrapMode.Clamp;
+            GenerateRectPixels(rectTexture, width, height);
+        }
+        return Sprite.Create(rectTexture, new Rect(0, 0, width, height),
+            new Vector2(0.5f, 0.5f), 32f);
+    }
 
+    private static void GenerateRectPixels(Texture2D tex, int width, int height)
+    {
+        Color[] pixels = new Color[width * height];
         float halfW = width * 0.5f;
-        float halfH = height * 0.5f;
 
         for (int y = 0; y < height; y++)
         {
             for (int x = 0; x < width; x++)
             {
-                // Horizontal falloff (wide bright center, soft edges)
                 float dx = Mathf.Abs(x - halfW) / halfW;
                 float alphaX = 1f - Mathf.Clamp01(dx);
-                alphaX = Mathf.Pow(alphaX, 0.8f); // Gentle falloff, stays bright across most of the width
+                alphaX = Mathf.Pow(alphaX, 0.8f);
 
-                // Vertical falloff (fade at top, slight fade at bottom)
                 float dy = (float)y / height;
                 float alphaTop = 1f - Mathf.Pow(Mathf.Clamp01((dy - 0.7f) / 0.3f), 1.5f);
-                float alphaBot = Mathf.Clamp01(dy / 0.05f); // Quick fade-in at bottom
+                float alphaBot = Mathf.Clamp01(dy / 0.05f);
 
                 float alpha = alphaX * alphaTop * alphaBot;
                 pixels[y * width + x] = new Color(1f, 1f, 1f, alpha);
@@ -242,17 +260,25 @@ public class LevelUpVFXController : MonoBehaviour
 
         tex.SetPixels(pixels);
         tex.Apply();
-        return Sprite.Create(tex, new Rect(0, 0, width, height),
-            new Vector2(0.5f, 0.5f), 32f);
     }
 
     /// <summary>
-    /// Creates a soft circle texture for the base glow.
+    /// Creates a soft circle texture for the base glow. Cached for reuse.
     /// </summary>
     private Sprite CreateSoftCircleSprite(int size)
     {
-        Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
-        tex.filterMode = FilterMode.Bilinear;
+        if (circleTexture == null)
+        {
+            circleTexture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            circleTexture.filterMode = FilterMode.Bilinear;
+            GenerateCirclePixels(circleTexture, size);
+        }
+        return Sprite.Create(circleTexture, new Rect(0, 0, size, size),
+            new Vector2(0.5f, 0.5f), size);
+    }
+
+    private static void GenerateCirclePixels(Texture2D tex, int size)
+    {
         Color[] pixels = new Color[size * size];
         Vector2 center = new Vector2(size * 0.5f, size * 0.5f);
         float radius = size * 0.5f;
@@ -270,7 +296,5 @@ public class LevelUpVFXController : MonoBehaviour
 
         tex.SetPixels(pixels);
         tex.Apply();
-        return Sprite.Create(tex, new Rect(0, 0, size, size),
-            new Vector2(0.5f, 0.5f), size);
     }
 }

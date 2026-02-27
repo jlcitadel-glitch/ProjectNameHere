@@ -10,10 +10,17 @@ public class ParticleFogSystem : MonoBehaviour
 
     private ParticleSystem ps;
     private ParticleSystem.Particle[] particles;
+    private Material fogMaterial;
+    private Texture2D fogTexture;
 
-    void Start()
+    private void Start()
     {
         ps = GetComponent<ParticleSystem>();
+        if (ps == null)
+        {
+            Debug.LogError($"[ParticleFogSystem] Missing ParticleSystem on {gameObject.name}", this);
+            return;
+        }
 
         // Configure particle system for rolling fog
         var main = ps.main;
@@ -60,14 +67,21 @@ public class ParticleFogSystem : MonoBehaviour
         // Fix the renderer - this was missing!
         var renderer = ps.GetComponent<ParticleSystemRenderer>();
         renderer.renderMode = ParticleSystemRenderMode.Billboard;
-        renderer.material = new Material(Shader.Find("Sprites/Default"));
+        fogMaterial = new Material(Shader.Find("Sprites/Default"));
+        renderer.material = fogMaterial;
 
         // Create a soft circular texture for fog
-        Texture2D fogTexture = CreateFogTexture();
-        renderer.material.mainTexture = fogTexture;
+        fogTexture = CreateFogTexture();
+        fogMaterial.mainTexture = fogTexture;
     }
 
-    Texture2D CreateFogTexture()
+    private void OnDestroy()
+    {
+        if (fogMaterial != null) Destroy(fogMaterial);
+        if (fogTexture != null) Destroy(fogTexture);
+    }
+
+    private Texture2D CreateFogTexture()
     {
         int size = 128;
         Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
@@ -95,7 +109,7 @@ public class ParticleFogSystem : MonoBehaviour
         return texture;
     }
 
-    void LateUpdate()
+    private void LateUpdate()
     {
         if (ps == null) return;
 
