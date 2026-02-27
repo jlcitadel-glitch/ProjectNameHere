@@ -14,6 +14,9 @@ public class AttackHitbox : MonoBehaviour
     private BoxCollider2D hitboxCollider;
     private HashSet<Collider2D> hitTargets = new HashSet<Collider2D>();
 
+    [Header("Layer")]
+    [SerializeField] private string attackLayerName = "PlayerAttack";
+
     [Header("Debug")]
     [SerializeField] private bool showGizmos = true;
     [SerializeField] private Color gizmoColor = new Color(1f, 0f, 0f, 0.5f);
@@ -41,14 +44,14 @@ public class AttackHitbox : MonoBehaviour
         hitboxCollider.size = attackData.hitboxSize;
 
         // Set layer for collision filtering
-        int attackLayer = LayerMask.NameToLayer("PlayerAttack");
+        int attackLayer = LayerMask.NameToLayer(attackLayerName);
         if (attackLayer != -1)
         {
             gameObject.layer = attackLayer;
         }
         else
         {
-            Debug.LogWarning("AttackHitbox: 'PlayerAttack' layer not found. Create it in Project Settings > Tags and Layers.");
+            Debug.LogWarning($"[AttackHitbox] '{attackLayerName}' layer not found. Create it in Project Settings > Tags and Layers.");
         }
     }
 

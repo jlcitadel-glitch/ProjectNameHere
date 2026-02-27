@@ -11,6 +11,7 @@ public class SkillExecutor : MonoBehaviour
 {
     [Header("Layers")]
     [SerializeField] private LayerMask enemyLayers;
+    [SerializeField] private string attackLayerName = "PlayerAttack";
 
     [Header("Debug")]
     [SerializeField] private bool logExecution = true;
@@ -155,7 +156,7 @@ public class SkillExecutor : MonoBehaviour
         var go = new GameObject("SkillHitbox");
         go.transform.position = position;
 
-        int layer = LayerMask.NameToLayer("PlayerAttack");
+        int layer = LayerMask.NameToLayer(attackLayerName);
         if (layer != -1)
             go.layer = layer;
 
@@ -223,7 +224,7 @@ public class SkillExecutor : MonoBehaviour
         if (isCrit)
             finalDamage *= (baseCritMult * critDamageMult);
 
-        var projectile = SkillProjectile.Create(spawnPos, direction);
+        var projectile = SkillProjectile.Create(spawnPos, direction, attackLayerName);
         projectile.Initialize(finalDamage, skill.skillData.damageType, isCrit,
             speed, lifetime, direction, gameObject, enemyLayers,
             slowPercent, slowDuration);

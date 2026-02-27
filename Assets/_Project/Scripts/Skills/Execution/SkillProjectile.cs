@@ -166,7 +166,7 @@ public class SkillProjectile : MonoBehaviour
     /// <summary>
     /// Creates a runtime projectile GameObject with all required components.
     /// </summary>
-    public static SkillProjectile Create(Vector3 position, Vector2 direction)
+    public static SkillProjectile Create(Vector3 position, Vector2 direction, string layerName = "PlayerAttack")
     {
         var go = new GameObject("SkillProjectile");
         go.transform.position = position;
@@ -184,8 +184,8 @@ public class SkillProjectile : MonoBehaviour
         col.isTrigger = true;
         col.size = new Vector2(0.5f, 0.3f);
 
-        // Set to PlayerAttack layer if available
-        int layer = LayerMask.NameToLayer("PlayerAttack");
+        // Set to attack layer if available
+        int layer = LayerMask.NameToLayer(layerName);
         if (layer != -1)
             go.layer = layer;
 

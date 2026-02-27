@@ -9,6 +9,11 @@ using ProjectName.UI;
 [RequireComponent(typeof(Collider2D))]
 public class EnemyProjectile : MonoBehaviour
 {
+    [Header("Layers")]
+    [SerializeField] private string projectileLayerName = "EnemyHurtbox";
+    [SerializeField] private string reflectedLayerName = "PlayerAttack";
+    [SerializeField] private string groundLayerName = "Ground";
+
     [Header("Debug")]
     [SerializeField] private bool debugLogging = false;
 
@@ -18,6 +23,7 @@ public class EnemyProjectile : MonoBehaviour
     private Rigidbody2D rb;
     private HashSet<Collider2D> hitTargets = new HashSet<Collider2D>();
     private float lifetime;
+    private int cachedGroundLayer = -1;
 
     public void Initialize(EnemyAttackData attack, Vector2 moveDirection, EnemyCombat combatOwner = null)
     {
@@ -32,12 +38,17 @@ public class EnemyProjectile : MonoBehaviour
         lifetime = attack.projectileLifetime;
 
         // Set layer
-        gameObject.layer = LayerMask.NameToLayer("EnemyHurtbox");
-        if (gameObject.layer == -1)
+        int projLayer = LayerMask.NameToLayer(projectileLayerName);
+        if (projLayer != -1)
         {
-            Debug.LogWarning("EnemyProjectile: 'EnemyHurtbox' layer not found.");
-            gameObject.layer = 0;
+            gameObject.layer = projLayer;
         }
+        else
+        {
+            Debug.LogWarning($"EnemyProjectile: '{projectileLayerName}' layer not found.");
+        }
+
+        cachedGroundLayer = LayerMask.NameToLayer(groundLayerName);
 
         // Ensure collider is trigger
         Collider2D col = GetComponent<Collider2D>();
@@ -72,7 +83,7 @@ public class EnemyProjectile : MonoBehaviour
             return;
 
         // Check if we hit a wall/ground
-        if (other.gameObject.layer == LayerMask.NameToLayer("Ground"))
+        if (cachedGroundLayer != -1 && other.gameObject.layer == cachedGroundLayer)
         {
             SpawnImpactVFX(other);
             DestroyProjectile();
@@ -201,11 +212,15 @@ public class EnemyProjectile : MonoBehaviour
         direction = -direction;
         rb.linearVelocity = direction * attackData.projectileSpeed;
 
-        // Switch to enemy layer so it can hit enemies instead of the player
-        gameObject.layer = LayerMask.NameToLayer("PlayerAttack");
-        if (gameObject.layer == -1)
+        // Switch to player-attack layer so reflected projectile can hit enemies
+        int reflectLayer = LayerMask.NameToLayer(reflectedLayerName);
+        if (reflectLayer != -1)
         {
-            gameObject.layer = 0;
+            gameObject.layer = reflectLayer;
+        }
+        else
+        {
+            Debug.LogWarning($"EnemyProjectile: '{reflectedLayerName}' layer not found for reflection.");
         }
 
         // Clear hit targets so it can hit enemies

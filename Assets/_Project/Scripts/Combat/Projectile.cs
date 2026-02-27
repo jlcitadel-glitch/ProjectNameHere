@@ -14,6 +14,9 @@ public class Projectile : MonoBehaviour
     [SerializeField] private bool destroyOnHit = true;
     [SerializeField] private int maxPierceCount = 0;
 
+    [Header("Layer")]
+    [SerializeField] private string attackLayerName = "PlayerAttack";
+
     [Header("Debug")]
     [SerializeField] private bool showGizmos = true;
 
@@ -60,10 +63,14 @@ public class Projectile : MonoBehaviour
         projectileCollider.size = attackData.hitboxSize;
 
         // Set layer
-        gameObject.layer = LayerMask.NameToLayer("PlayerAttack");
-        if (gameObject.layer == -1)
+        int layer = LayerMask.NameToLayer(attackLayerName);
+        if (layer != -1)
         {
-            gameObject.layer = 0;
+            gameObject.layer = layer;
+        }
+        else
+        {
+            Debug.LogWarning($"Projectile: '{attackLayerName}' layer not found.");
         }
     }
 
