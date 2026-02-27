@@ -11,7 +11,7 @@ public class ParallaxBackgroundManager : MonoBehaviour
     }
 
     [Header("Parallax Layers")]
-    public Layer[] layers;
+    [SerializeField] private Layer[] layers;
 
     void Start()
     {

@@ -3,38 +3,39 @@ using UnityEngine;
 public class AdvancedCameraController : MonoBehaviour
 {
     [Header("Target")]
-    [SerializeField] Transform target;
+    [SerializeField] private Transform target;
 
     [Header("Follow Settings")]
-    [SerializeField] float smoothSpeed = 0.2f;
-    [SerializeField] Vector3 offset = new Vector3(0, 0, -10f);
+    [SerializeField] private float smoothSpeed = 0.2f;
+    [SerializeField] private Vector3 offset = new Vector3(0, 0, -10f);
 
     [Header("Look Ahead")]
-    [SerializeField] float lookAheadDistance = 2f;
-    [SerializeField] float lookAheadSmooth = 5f;
+    [SerializeField] private float lookAheadDistance = 2f;
+    [SerializeField] private float lookAheadSmooth = 5f;
 
     [Header("Fall Look Down")]
-    [SerializeField] float fallLookDownDistance = 3f;
-    [SerializeField] float fallLookDownSpeed = 2f;
-    [SerializeField] float minFallVelocity = -5f; // How fast player must be falling
+    [SerializeField] private float fallLookDownDistance = 3f;
+    [SerializeField] private float fallLookDownSpeed = 2f;
+    [SerializeField] private float minFallVelocity = -5f; // How fast player must be falling
 
     [Header("Camera Bounds (Level Edges)")]
-    [SerializeField] bool useBounds = true;
+    [SerializeField] private bool useBounds = true;
     [Tooltip("Left edge of level (ground sprites)")]
-    [SerializeField] float minX = -100f;
+    [SerializeField] private float minX = -100f;
     [Tooltip("Right edge of level (ground sprites)")]
-    [SerializeField] float maxX = 100f;
+    [SerializeField] private float maxX = 100f;
     [Tooltip("Bottom edge of level (ground sprites)")]
-    [SerializeField] float minY = -100f;
+    [SerializeField] private float minY = -100f;
     [Tooltip("Top edge of level (ground sprites)")]
-    [SerializeField] float maxY = 100f;
+    [SerializeField] private float maxY = 100f;
 
     [Header("Room Lock (Boss Fights)")]
-    [SerializeField] bool isLockedToRoom = false;
-    [SerializeField] Vector3 lockedRoomCenter;
-    [SerializeField] float roomLockSpeed = 3f;
+    [SerializeField] private bool isLockedToRoom = false;
+    [SerializeField] private Vector3 lockedRoomCenter;
+    [SerializeField] private float roomLockSpeed = 3f;
 
     private Vector3 currentVelocity;
+    private Vector3 roomLockVelocity;
     private float currentLookAhead;
     private float currentFallOffset;
     private Rigidbody2D targetRb;
@@ -48,6 +49,8 @@ public class AdvancedCameraController : MonoBehaviour
     void Awake()
     {
         cam = GetComponent<Camera>();
+        if (cam == null)
+            Debug.LogError($"[AdvancedCameraController] {gameObject.name}: No Camera component found!");
 
         if (target)
         {
@@ -66,7 +69,7 @@ public class AdvancedCameraController : MonoBehaviour
         {
             desiredPosition = lockedRoomCenter;
             desiredPosition.z = offset.z;
-            transform.position = Vector3.Lerp(transform.position, desiredPosition, roomLockSpeed * Time.deltaTime);
+            transform.position = Vector3.SmoothDamp(transform.position, desiredPosition, ref roomLockVelocity, 1f / roomLockSpeed);
 
             // Apply shake even during room lock
             if (shakeTimer > 0f)
@@ -174,6 +177,7 @@ public class AdvancedCameraController : MonoBehaviour
         isLockedToRoom = true;
         lockedRoomCenter = roomCenter;
         lockedRoomCenter.z = offset.z;
+        roomLockVelocity = Vector3.zero;
     }
 
     // Call this to unlock camera

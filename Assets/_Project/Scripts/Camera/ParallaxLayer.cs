@@ -73,11 +73,10 @@ public class ParallaxLayer : MonoBehaviour
         }
         else if (depth > 0)
         {
-            // Background: moves much slower than camera (Hollow Knight style - very subtle)
-            // Far backgrounds should barely move at all
-            float slowdownFactor = depth / 20f; // Divide by 20 instead of multiplying
-            parallaxEffectX = Mathf.Max(0.0f, 1.0f - slowdownFactor);
-            parallaxEffectY = Mathf.Max(0.0f, 1.0f - slowdownFactor);
+            // Background: far layers move almost with camera (barely scroll in view)
+            // Asymptotic curve — never saturates at 0, spread stays visible at any depth
+            parallaxEffectX = 1f / (1f + depth * 0.05f);
+            parallaxEffectY = 1f / (1f + depth * 0.05f);
         }
         else
         {
