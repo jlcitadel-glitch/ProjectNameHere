@@ -15,9 +15,6 @@ namespace ProjectName.UI
         [Tooltip("Default element to select when nothing is selected")]
         [SerializeField] private Selectable defaultSelection;
 
-        [Tooltip("Wrap navigation at edges")]
-        [SerializeField] private bool wrapNavigation = true;
-
         [Header("Device Detection")]
         [Tooltip("Show keyboard/mouse button prompts")]
         [SerializeField] private GameObject keyboardPrompts;
@@ -90,11 +87,14 @@ namespace ProjectName.UI
             }
             else
             {
-                // Track the current selection
-                Selectable selectable = currentSelected.GetComponent<Selectable>();
-                if (selectable != null)
+                // Track the current selection (skip GetComponent when unchanged)
+                if (lastSelected == null || lastSelected.gameObject != currentSelected)
                 {
-                    lastSelected = selectable;
+                    Selectable selectable = currentSelected.GetComponent<Selectable>();
+                    if (selectable != null)
+                    {
+                        lastSelected = selectable;
+                    }
                 }
             }
         }
@@ -157,6 +157,9 @@ namespace ProjectName.UI
             if (eventSystem == null || eventSystem.currentSelectedGameObject == null)
                 return null;
 
+            if (lastSelected != null && lastSelected.gameObject == eventSystem.currentSelectedGameObject)
+                return lastSelected;
+
             return eventSystem.currentSelectedGameObject.GetComponent<Selectable>();
         }
 
@@ -196,10 +199,6 @@ namespace ProjectName.UI
             if (next != null && next.interactable)
             {
                 SetFocus(next);
-            }
-            else if (wrapNavigation)
-            {
-                // Could implement wrap logic here
             }
         }
 
