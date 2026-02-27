@@ -115,11 +115,11 @@ public class SkillManager : MonoBehaviour
         if (hasJobs || hasSkills)
             return;
 
-        // Try to find existing assets before creating runtime fallbacks.
+        // Load from Resources/ folders. Assets live in Resources/Jobs/ and Resources/Skills/.
         // This handles the case where SystemsBootstrap creates SkillManager via
         // AddComponent (no serialized refs) but real assets exist in the project.
-        var foundJobs = Resources.FindObjectsOfTypeAll<JobClassData>();
-        var foundSkills = Resources.FindObjectsOfTypeAll<SkillData>();
+        var foundJobs = Resources.LoadAll<JobClassData>("Jobs");
+        var foundSkills = Resources.LoadAll<SkillData>("Skills");
 
         if (foundJobs.Length > 0 && foundSkills.Length > 0)
         {

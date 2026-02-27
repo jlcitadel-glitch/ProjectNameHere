@@ -92,7 +92,7 @@ namespace ProjectName.UI
             if (clip == null || source == null)
                 return;
 
-            source.PlayOneShot(clip, volumeMultiplier);
+            source.PlayOneShot(clip, volumeMultiplier * SFXManager.GetVolume());
         }
 
         /// <summary>

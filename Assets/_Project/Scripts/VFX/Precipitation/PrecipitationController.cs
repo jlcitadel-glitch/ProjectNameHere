@@ -64,7 +64,7 @@ public class PrecipitationController : MonoBehaviour
     [SerializeField] private float transitionDuration = 1f;
 
     [Header("Debug")]
-    [SerializeField] private bool showZoneBounds = true;
+    [SerializeField] private bool showZoneBounds = false;
     [SerializeField] private Color boundsColor = new Color(0.3f, 0.7f, 1f, 0.5f);
 
     // Components
@@ -767,6 +767,7 @@ public class PrecipitationController : MonoBehaviour
         Gizmos.DrawWireCube(spawnCenter, spawnSize);
     }
 
+#if UNITY_EDITOR
     private void OnGUI()
     {
         if (!showZoneBounds || ps == null) return;
@@ -780,4 +781,5 @@ public class PrecipitationController : MonoBehaviour
         GUILayout.Label($"Preset: {(currentPreset != null ? currentPreset.displayName : "None")}");
         GUILayout.EndArea();
     }
+#endif
 }

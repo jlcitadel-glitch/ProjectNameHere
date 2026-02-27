@@ -756,7 +756,7 @@ namespace ProjectName.UI
             if (clip == null || uiAudioSource == null)
                 return;
 
-            uiAudioSource.PlayOneShot(clip, volumeMultiplier);
+            uiAudioSource.PlayOneShot(clip, volumeMultiplier * SFXManager.GetVolume());
         }
 
         /// <summary>

@@ -3,9 +3,9 @@ using UnityEngine;
 public class DashAbility : MonoBehaviour
 {
     [Header("Dash Settings")]
-    [SerializeField] float dashSpeed = 20f;
-    [SerializeField] float dashDuration = 0.2f;
-    [SerializeField] float dashCooldown = 1f;
+    [SerializeField] private float dashSpeed = 20f;
+    [SerializeField] private float dashDuration = 0.2f;
+    [SerializeField] private float dashCooldown = 1f;
 
     private Rigidbody2D rb;
     private Animator animator;
@@ -16,13 +16,16 @@ public class DashAbility : MonoBehaviour
     private float dashCooldownRemaining;
     private float dashDirection;
 
-    void Awake()
+    private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+        if (rb == null)
+            Debug.LogError($"[{gameObject.name}] DashAbility: Missing Rigidbody2D");
+
         animator = GetComponent<Animator>();
     }
 
-    void Update()
+    private void Update()
     {
         dashCooldownRemaining -= Time.deltaTime;
 
@@ -37,7 +40,7 @@ public class DashAbility : MonoBehaviour
         }
     }
 
-    void FixedUpdate()
+    private void FixedUpdate()
     {
         if (isDashing)
         {

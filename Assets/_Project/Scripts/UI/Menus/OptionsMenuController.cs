@@ -1104,17 +1104,6 @@ namespace ProjectName.UI
         private void OnSFXVolumeChanged(float value)
         {
             PlayerPrefs.SetFloat("Audio_SFX", value);
-
-            // Apply to UIManager AudioSource for immediate feedback
-            if (UIManager.Instance != null)
-            {
-                var uiAudioSource = UIManager.Instance.GetComponent<AudioSource>();
-                if (uiAudioSource != null)
-                {
-                    uiAudioSource.volume = SFXManager.GetVolume();
-                }
-            }
-
             UpdateVolumeTexts();
         }
 

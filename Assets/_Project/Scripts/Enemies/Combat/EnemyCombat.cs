@@ -305,7 +305,7 @@ public class EnemyCombat : MonoBehaviour
             projectile = projectileObj.AddComponent<EnemyProjectile>();
         }
 
-        projectile.Initialize(currentAttack, direction);
+        projectile.Initialize(currentAttack, direction, this);
     }
 
     private Vector2 CalculateHitboxOffset()

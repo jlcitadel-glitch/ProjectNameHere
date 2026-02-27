@@ -4,28 +4,28 @@ using UnityEngine.InputSystem;
 public class PlayerControllerScript : MonoBehaviour
 {
     [Header("Player Component References")]
-    [SerializeField] Rigidbody2D rb;
+    [SerializeField] private Rigidbody2D rb;
 
     [Header("Movement")]
-    [SerializeField] float speed = 8f;
+    [SerializeField] private float speed = 8f;
 
     [Header("Jump")]
-    [SerializeField] float jumpingPower = 12f;
-    [SerializeField] float jumpCutMultiplier = 0.5f;
+    [SerializeField] private float jumpingPower = 12f;
+    [SerializeField] private float jumpCutMultiplier = 0.5f;
 
     [Header("Jump Forgiveness")]
-    [SerializeField] float coyoteTime = 0.15f;
-    [SerializeField] float jumpBufferTime = 0.15f;
+    [SerializeField] private float coyoteTime = 0.15f;
+    [SerializeField] private float jumpBufferTime = 0.15f;
 
     [Header("Gravity")]
-    [SerializeField] float baseGravityScale = 1f;
-    [SerializeField] float fallGravityMultiplier = 2.5f;
-    [SerializeField] float maxFallSpeed = -20f;
+    [SerializeField] private float baseGravityScale = 1f;
+    [SerializeField] private float fallGravityMultiplier = 2.5f;
+    [SerializeField] private float maxFallSpeed = -20f;
 
     [Header("Grounding")]
-    [SerializeField] LayerMask groundLayer;
-    [SerializeField] Transform groundCheck;
-    [SerializeField] float groundCheckRadius = 0.2f;
+    [SerializeField] private LayerMask groundLayer;
+    [SerializeField] private Transform groundCheck;
+    [SerializeField] private float groundCheckRadius = 0.2f;
 
     [Header("Audio")]
     [SerializeField] private AudioClip jumpSound;
@@ -151,18 +151,6 @@ public class PlayerControllerScript : MonoBehaviour
         if (IsDead)
             return;
 
-        // Refresh ability references each frame (only checks if null)
-        if (doubleJumpAbility == null)
-            doubleJumpAbility = GetComponent<DoubleJumpAbility>();
-        if (dashAbility == null)
-            dashAbility = GetComponent<DashAbility>();
-        if (combatController == null)
-            combatController = GetComponent<CombatController>();
-        if (parrySystem == null)
-            parrySystem = GetComponent<ParrySystem>();
-        if (statSystem == null)
-            statSystem = GetComponent<StatSystem>();
-
         bool grounded = IsGrounded();
 
         // Only reset coyote time when transitioning from air to ground
@@ -177,7 +165,8 @@ public class PlayerControllerScript : MonoBehaviour
             }
 
             // Play landing sound
-            audioSource.PlayOneShot(landSound, SFXManager.GetVolume() * landVolume);
+            if (landSound != null)
+                audioSource.PlayOneShot(landSound, SFXManager.GetVolume() * landVolume);
         }
 
         // Only decrement coyote time when in the air
@@ -194,7 +183,8 @@ public class PlayerControllerScript : MonoBehaviour
             footstepTimer -= Time.deltaTime;
             if (footstepTimer <= 0f)
             {
-                audioSource.PlayOneShot(footstepSound, SFXManager.GetVolume() * footstepVolume);
+                if (footstepSound != null)
+                    audioSource.PlayOneShot(footstepSound, SFXManager.GetVolume() * footstepVolume);
                 footstepTimer = footstepInterval;
             }
         }
@@ -220,17 +210,17 @@ public class PlayerControllerScript : MonoBehaviour
             jumpBufferCounter = 0;
         }
 
-        // Update animator parameters
-        UpdateAnimator();
+        // Update animator parameters (pass cached grounded state)
+        UpdateAnimator(grounded);
     }
 
-    private void UpdateAnimator()
+    private void UpdateAnimator(bool grounded)
     {
         if (animator == null)
             return;
 
         animator.SetFloat(AnimSpeed, Mathf.Abs(horizontal));
-        animator.SetBool(AnimIsGrounded, IsGrounded());
+        animator.SetBool(AnimIsGrounded, grounded);
         animator.SetFloat(AnimVelocityY, rb.linearVelocity.y);
     }
 
@@ -394,7 +384,8 @@ public class PlayerControllerScript : MonoBehaviour
     private void PerformJump()
     {
         rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpingPower);
-        audioSource.PlayOneShot(jumpSound, SFXManager.GetVolume() * jumpVolume);
+        if (jumpSound != null)
+            audioSource.PlayOneShot(jumpSound, SFXManager.GetVolume() * jumpVolume);
     }
 
     private bool IsGrounded()
@@ -433,7 +424,7 @@ public class PlayerControllerScript : MonoBehaviour
     {
         if (groundCheck != null)
         {
-            Gizmos.color = IsGrounded() ? Color.green : Color.red;
+            Gizmos.color = Application.isPlaying ? (wasGrounded ? Color.green : Color.red) : Color.yellow;
             Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
         }
     }

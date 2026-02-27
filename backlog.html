@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProjectNameHere — Beads Backlog</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2333;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --p0: #ff4444;
+    --p1: #ff8c00;
+    --p2: #ffd700;
+    --p3: #58a6ff;
+    --p4: #8b949e;
+    --bug: #f85149;
+    --task: #3fb950;
+    --feature: #a371f7;
+    --open: #3fb950;
+    --closed: #8b949e;
+    --blocked: #f85149;
+    --accent: #58a6ff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    padding: 2rem;
+  }
+  h1 {
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+  .subtitle {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 2rem;
+  }
+
+  /* Stats bar */
+  .stats-bar {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.5rem;
+    min-width: 130px;
+    text-align: center;
+  }
+  .stat-card .number {
+    font-size: 2rem;
+    font-weight: 700;
+  }
+  .stat-card .label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* Priority breakdown bar */
+  .priority-bar {
+    display: flex;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+    background: var(--surface);
+  }
+  .priority-bar .seg { transition: width 0.3s; }
+
+  /* Filters */
+  .filters {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+  }
+  .filter-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .filter-btn:hover { border-color: var(--accent); color: var(--text); }
+  .filter-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .filter-btn .count {
+    display: inline-block;
+    background: rgba(255,255,255,0.15);
+    border-radius: 10px;
+    padding: 0 0.4rem;
+    margin-left: 0.3rem;
+    font-size: 0.7rem;
+  }
+
+  /* Search */
+  .search-box {
+    width: 100%;
+    max-width: 400px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    margin-bottom: 1.5rem;
+    outline: none;
+  }
+  .search-box:focus { border-color: var(--accent); }
+  .search-box::placeholder { color: var(--text-muted); }
+
+  /* Table */
+  .table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 2rem;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  thead th {
+    background: var(--surface2);
+    text-align: left;
+    padding: 0.6rem 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+  thead th:hover { color: var(--text); }
+  thead th .sort-arrow { font-size: 0.7rem; margin-left: 0.25rem; }
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+  }
+  tbody tr:hover { background: var(--surface); }
+  tbody tr.closed-row { opacity: 0.5; }
+  tbody td { padding: 0.5rem 0.75rem; vertical-align: top; }
+
+  /* Badges */
+  .badge {
+    display: inline-block;
+    padding: 0.1rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .badge-p0 { background: var(--p0); color: #fff; }
+  .badge-p1 { background: var(--p1); color: #000; }
+  .badge-p2 { background: var(--p2); color: #000; }
+  .badge-p3 { background: var(--p3); color: #000; }
+  .badge-p4 { background: var(--p4); color: #000; }
+
+  .type-badge {
+    display: inline-block;
+    padding: 0.1rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+  }
+  .type-bug { background: rgba(248,81,73,0.2); color: var(--bug); }
+  .type-task { background: rgba(63,185,80,0.2); color: var(--task); }
+  .type-feature { background: rgba(163,113,247,0.2); color: var(--feature); }
+
+  .status-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 0.35rem;
+    vertical-align: middle;
+  }
+  .status-open { background: var(--open); }
+  .status-closed { background: var(--closed); }
+  .status-blocked { background: var(--blocked); }
+
+  .agent-tag {
+    display: inline-block;
+    background: rgba(88,166,255,0.15);
+    color: var(--accent);
+    padding: 0.05rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    margin-right: 0.2rem;
+  }
+
+  .bead-id {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .blocked-icon { color: var(--blocked); font-size: 0.75rem; }
+  .title-text { color: var(--text); }
+
+  /* Section headers */
+  .section-header {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 2rem 0 0.75rem 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    body { padding: 1rem; }
+    .stats-bar { gap: 0.75rem; }
+    .stat-card { min-width: 100px; padding: 0.75rem; }
+    .stat-card .number { font-size: 1.5rem; }
+  }
+
+  /* Toggle */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  .toggle-row label { color: var(--text-muted); font-size: 0.85rem; cursor: pointer; }
+  .toggle-row input[type="checkbox"] { accent-color: var(--accent); }
+</style>
+</head>
+<body>
+
+<h1>ProjectNameHere Backlog</h1>
+<p class="subtitle">Generated 2026-02-26 &middot; 174 total issues &middot; Beads issue tracker</p>
+
+<div class="stats-bar">
+  <div class="stat-card">
+    <div class="number" style="color:var(--open)">68</div>
+    <div class="label">Open</div>
+  </div>
+  <div class="stat-card">
+    <div class="number" style="color:var(--blocked)">1</div>
+    <div class="label">Blocked</div>
+  </div>
+  <div class="stat-card">
+    <div class="number" style="color:var(--closed)">106</div>
+    <div class="label">Closed</div>
+  </div>
+  <div class="stat-card">
+    <div class="number" style="color:var(--p0)">0</div>
+    <div class="label">P0 Open</div>
+  </div>
+  <div class="stat-card">
+    <div class="number" style="color:var(--p1)">6</div>
+    <div class="label">P1 Open</div>
+  </div>
+  <div class="stat-card">
+    <div class="number" style="color:var(--p2)">22</div>
+    <div class="label">P2 Open</div>
+  </div>
+  <div class="stat-card">
+    <div class="number" style="color:var(--p3)">36</div>
+    <div class="label">P3 Open</div>
+  </div>
+  <div class="stat-card">
+    <div class="number" style="color:var(--p4)">4</div>
+    <div class="label">P4 Open</div>
+  </div>
+</div>
+
+<div class="priority-bar" title="Open issues by priority">
+  <div class="seg" style="width:8.8%;background:var(--p1)" title="P1: 6"></div>
+  <div class="seg" style="width:32.4%;background:var(--p2)" title="P2: 22"></div>
+  <div class="seg" style="width:52.9%;background:var(--p3)" title="P3: 36"></div>
+  <div class="seg" style="width:5.9%;background:var(--p4)" title="P4: 4"></div>
+</div>
+
+<input type="text" class="search-box" id="search" placeholder="Search issues... (title, ID, agent)" oninput="filterTable()">
+
+<div class="filters" id="priorityFilters">
+  <button class="filter-btn active" data-filter="all" onclick="setPriorityFilter('all')">All<span class="count">68</span></button>
+  <button class="filter-btn" data-filter="p1" onclick="setPriorityFilter('p1')">P1<span class="count">6</span></button>
+  <button class="filter-btn" data-filter="p2" onclick="setPriorityFilter('p2')">P2<span class="count">22</span></button>
+  <button class="filter-btn" data-filter="p3" onclick="setPriorityFilter('p3')">P3<span class="count">36</span></button>
+  <button class="filter-btn" data-filter="p4" onclick="setPriorityFilter('p4')">P4<span class="count">4</span></button>
+</div>
+
+<div class="filters" id="typeFilters">
+  <button class="filter-btn active" data-filter="all" onclick="setTypeFilter('all')">All Types</button>
+  <button class="filter-btn" data-filter="bug" onclick="setTypeFilter('bug')">Bug<span class="count">46</span></button>
+  <button class="filter-btn" data-filter="task" onclick="setTypeFilter('task')">Task<span class="count">21</span></button>
+  <button class="filter-btn" data-filter="feature" onclick="setTypeFilter('feature')">Feature<span class="count">1</span></button>
+</div>
+
+<div class="filters" id="agentFilters">
+  <button class="filter-btn active" data-filter="all" onclick="setAgentFilter('all')">All Agents</button>
+  <button class="filter-btn" data-filter="systems" onclick="setAgentFilter('systems')">Systems</button>
+  <button class="filter-btn" data-filter="player" onclick="setAgentFilter('player')">Player</button>
+  <button class="filter-btn" data-filter="enemy-behavior" onclick="setAgentFilter('enemy-behavior')">Enemy</button>
+  <button class="filter-btn" data-filter="ui-ux" onclick="setAgentFilter('ui-ux')">UI/UX</button>
+  <button class="filter-btn" data-filter="vfx" onclick="setAgentFilter('vfx')">VFX</button>
+  <button class="filter-btn" data-filter="sound-design" onclick="setAgentFilter('sound-design')">Sound</button>
+  <button class="filter-btn" data-filter="camera" onclick="setAgentFilter('camera')">Camera</button>
+  <button class="filter-btn" data-filter="architect" onclick="setAgentFilter('architect')">Architect</button>
+  <button class="filter-btn" data-filter="environment" onclick="setAgentFilter('environment')">Environment</button>
+  <button class="filter-btn" data-filter="unassigned" onclick="setAgentFilter('unassigned')">Unassigned</button>
+</div>
+
+<div class="toggle-row">
+  <input type="checkbox" id="showClosed" onchange="filterTable()">
+  <label for="showClosed">Show closed issues (106)</label>
+</div>
+
+<div class="table-wrap">
+<table id="backlogTable">
+<thead>
+<tr>
+  <th onclick="sortTable(0)">ID <span class="sort-arrow"></span></th>
+  <th onclick="sortTable(1)">P <span class="sort-arrow"></span></th>
+  <th onclick="sortTable(2)">Type <span class="sort-arrow"></span></th>
+  <th onclick="sortTable(3)">Status <span class="sort-arrow"></span></th>
+  <th onclick="sortTable(4)">Title <span class="sort-arrow"></span></th>
+  <th onclick="sortTable(5)">Agent <span class="sort-arrow"></span></th>
+</tr>
+</thead>
+<tbody id="tableBody">
+</tbody>
+</table>
+</div>
+
+<p class="subtitle" style="margin-top:2rem;text-align:center;">ProjectNameHere &middot; Unity 6 2D Metroidvania &middot; Beads Issue Tracker</p>
+
+<script>
+const issues = [
+  // OPEN
+  {id:"0ee",p:1,type:"bug",status:"open",title:"SkillManager.EnsureRuntimeData uses FindObjectsOfTypeAll — fails at menu time",agents:["systems"]},
+  {id:"0eu",p:3,type:"bug",status:"open",title:"ExperienceOrb calls FindGameObjectWithTag every frame when player is null",agents:[]},
+  {id:"0wk",p:3,type:"task",status:"open",title:"ASSET: All enemy data missing hurtVFX — no damage feedback",agents:[]},
+  {id:"16nt",p:2,type:"bug",status:"open",title:"CameraBoundsTrigger: NullReferenceException on Camera.main in Awake",agents:[]},
+  {id:"16q",p:3,type:"task",status:"open",title:"ASSET: All enemy data have empty dropPrefabs despite configured dropChance",agents:[]},
+  {id:"1ry",p:2,type:"bug",status:"open",title:"AttackHitbox + Projectile use hardcoded PlayerAttack layer string",agents:["player"]},
+  {id:"1wp",p:3,type:"task",status:"open",title:"ASSET: All enemy data missing audio clips (idle/alert/attack/hurt/death)",agents:[]},
+  {id:"2di",p:2,type:"bug",status:"open",title:"GetComponent calls in PlayerControllerScript.Update loop violate STANDARDS",agents:[]},
+  {id:"46p",p:3,type:"bug",status:"open",title:"UILayeredSpritePreview missing ProjectName.UI namespace",agents:[]},
+  {id:"48q",p:2,type:"bug",status:"open",title:"PERF: EnemyCombat calls GetComponent<AudioSource> every attack",agents:[]},
+  {id:"4o3",p:3,type:"bug",status:"open",title:"CharacterCreationController expensive Resource lookups and ScriptableObject/Texture leaks",agents:[]},
+  {id:"4s2",p:1,type:"bug",status:"open",title:"UI sounds ignore volume sliders (UISoundBank + UIManager)",agents:[]},
+  {id:"59h",p:2,type:"bug",status:"open",title:"UIManager GameManager subscription race + FocusManager stale EventSystem reference",agents:[]},
+  {id:"5ca",p:3,type:"task",status:"blocked",title:"Non-standard inline SFXManager.GetVolume() pattern in 3 scripts",agents:[],blockedBy:"rj9"},
+  {id:"5o1",p:3,type:"task",status:"open",title:"VFX: Remove or implement DynamicFogSystem dead code",agents:[]},
+  {id:"5w65",p:2,type:"bug",status:"open",title:"ParallaxLayer: auto-calculated parallax from Z depth is inverted",agents:[]},
+  {id:"6jw",p:2,type:"bug",status:"open",title:"UIManager single currentTransition coroutine stomps concurrent canvas fades",agents:[]},
+  {id:"73qq",p:2,type:"bug",status:"open",title:"CameraBoundsTrigger: null reference crash — Camera.main unchecked in Awake",agents:[]},
+  {id:"748",p:2,type:"bug",status:"open",title:"HUD elements use Time.deltaTime inconsistently — some freeze during pause",agents:[]},
+  {id:"75f",p:1,type:"bug",status:"open",title:"WindManager missing DontDestroyOnLoad — destroyed on scene load",agents:["systems"]},
+  {id:"7ac4",p:3,type:"bug",status:"open",title:"StatSystem.GetEquipmentBonus calls GetComponent on every property access",agents:["systems"]},
+  {id:"7j4q",p:3,type:"task",status:"open",title:"Camera scripts: missing explicit private keyword and public field violations",agents:[]},
+  {id:"7pkh",p:2,type:"bug",status:"open",title:"BossRoomTrigger: boss defeat detection misses disabled bosses",agents:[]},
+  {id:"7tj",p:2,type:"bug",status:"open",title:"Wave100Controller.ApplyPowerAbsorption ignores damage and speed multipliers",agents:[]},
+  {id:"8cd",p:2,type:"bug",status:"open",title:"Event subscription leaks: lambda subscriptions, missing OnDestroy, duplicate listeners",agents:[]},
+  {id:"8rg",p:3,type:"bug",status:"open",title:"VFX: Fix static material sharing pattern in SkillVFXFactory and BuffAuraVFX",agents:[]},
+  {id:"9vy",p:3,type:"bug",status:"open",title:"OnDrawGizmosSelected calls IsGrounded() which runs physics queries in editor",agents:[]},
+  {id:"a6z",p:3,type:"bug",status:"open",title:"TabbedMenuController.isTransitioning flag is never set — guard is dead code",agents:[]},
+  {id:"ak1z",p:3,type:"task",status:"open",title:"Create Prefabs/Environment/ directory structure",agents:[]},
+  {id:"bnh",p:4,type:"task",status:"open",title:"MenuTransitions unused variable and ScriptableObject public field convention violations",agents:[]},
+  {id:"c2a",p:4,type:"task",status:"open",title:"ASSET: FlyingEye prefab has misleading HealthSystem maxHealth override (100 vs 20)",agents:[]},
+  {id:"c5d",p:3,type:"bug",status:"open",title:"SaveManager version mismatch: equippedItemIds labeled v7 but CURRENT_SAVE_VERSION is 6",agents:[]},
+  {id:"cgl",p:3,type:"task",status:"open",title:"Excessive Debug.Log statements in production paths across UI scripts",agents:[]},
+  {id:"d4u",p:2,type:"bug",status:"open",title:"IsGrounded() called twice per frame in PlayerControllerScript.Update",agents:[]},
+  {id:"d6f",p:3,type:"bug",status:"open",title:"FocusManager GetComponent<Selectable> in Update + unimplemented wrapNavigation",agents:[]},
+  {id:"ddm",p:3,type:"bug",status:"open",title:"Static Texture2D/Sprite memory leaks in 4+ UI files — duplicated white texture pattern",agents:[]},
+  {id:"ebe",p:4,type:"task",status:"open",title:"Hardcoded UI strings across menus violate localization-readiness requirement",agents:[]},
+  {id:"fmq",p:3,type:"bug",status:"open",title:"Missing explicit private keyword on SerializeField declarations across player scripts",agents:[]},
+  {id:"g1n",p:2,type:"bug",status:"open",title:"SkillHotbar OnEnable/Start ordering bug — events never subscribed on first enable",agents:[]},
+  {id:"g9m",p:3,type:"bug",status:"open",title:"EquipmentMenuController static sprite cache never cleared + GetPixels32 full-texture read",agents:[]},
+  {id:"hjt",p:2,type:"bug",status:"open",title:"CutsceneManager uses legacy Input.GetKey instead of InputSystem",agents:[]},
+  {id:"i48",p:3,type:"bug",status:"open",title:"Null safety gaps in UIStyleGuide Apply methods and MenuTransitions coroutines",agents:[]},
+  {id:"ih0",p:2,type:"bug",status:"open",title:"EnemyAttackHitbox hardcoded EnemyHurtbox layer string",agents:["enemy-behavior"]},
+  {id:"jxi",p:2,type:"bug",status:"open",title:"SaveManager calls FindGameObjectWithTag(Player) 3 times without caching",agents:["systems"]},
+  {id:"kui",p:2,type:"bug",status:"open",title:"Time.timeScale race condition across overlay menus",agents:[]},
+  {id:"l85d",p:3,type:"bug",status:"open",title:"CameraBoundsTrigger: uncached GetComponent in OnDrawGizmosSelected",agents:[]},
+  {id:"lsj",p:2,type:"bug",status:"open",title:"DashAbility.Awake missing null safety checks on GetComponent",agents:[]},
+  {id:"nof",p:3,type:"bug",status:"open",title:"OptionsMenuController uses DestroyImmediate at runtime (line 680)",agents:[]},
+  {id:"pfi",p:3,type:"bug",status:"open",title:"PlayerControllerScript audio PlayOneShot calls lack null checks on AudioClip references",agents:[]},
+  {id:"qh9z",p:3,type:"bug",status:"open",title:"AdvancedCameraController: room lock uses Lerp instead of SmoothDamp",agents:[]},
+  {id:"rj9",p:1,type:"bug",status:"open",title:"Gameplay scripts bypass SFXManager volume control",agents:[]},
+  {id:"rnc",p:3,type:"task",status:"open",title:"CODE: EnemyStatModifier uses reflection to access private enemyData field",agents:[]},
+  {id:"ruc",p:2,type:"bug",status:"open",title:"VFX: Fix material and texture leaks across VFX scripts",agents:[]},
+  {id:"s1q",p:1,type:"bug",status:"open",title:"VFX: Wire orphaned VFX components to prefabs/scenes",agents:[]},
+  {id:"s8f",p:1,type:"bug",status:"open",title:"MusicManager OnEnable/OnDisable subscription fragile with DontDestroyOnLoad",agents:["sound-design"]},
+  {id:"sdr",p:2,type:"bug",status:"open",title:"PowerUpPickup.GrantPowerUp missing null safety on GetComponent<PlayerControllerScript>",agents:[]},
+  {id:"sg9",p:1,type:"bug",status:"open",title:"EnemyProjectile missing boss phase damage multiplier",agents:[]},
+  {id:"sjd",p:3,type:"task",status:"open",title:"VFX: Add missing private keywords and null-safety guards per STANDARDS.md",agents:[]},
+  {id:"sm6",p:2,type:"bug",status:"open",title:"CODE: EnemyController uses hardcoded player layer bitmask (1 << 6)",agents:[]},
+  {id:"t2nd",p:3,type:"bug",status:"open",title:"CameraBoundsTrigger: uncached GetComponent in OnDrawGizmosSelected (dup)",agents:[]},
+  {id:"ud2",p:2,type:"bug",status:"open",title:"HUD scripts use Start/OnDestroy instead of OnEnable/OnDisable for event subscriptions",agents:[]},
+  {id:"urv",p:3,type:"bug",status:"open",title:"PowerUpPickup.cs uses other.tag string access instead of CompareTag",agents:[]},
+  {id:"vnt",p:3,type:"task",status:"open",title:"ASSET: Most enemy prefabs missing experienceOrbPrefab reference",agents:[]},
+  {id:"wao",p:1,type:"bug",status:"open",title:"VFX: PrecipitationController OnGUI debug HUD visible in production builds",agents:[]},
+  {id:"xbc",p:3,type:"bug",status:"open",title:"FontManager Resources.LoadAll loads all TMP fonts into memory",agents:[]},
+  {id:"xls",p:4,type:"task",status:"open",title:"AudioClip fields hardcoded on MonoBehaviours instead of ScriptableObjects",agents:[]},
+  {id:"zbj",p:3,type:"bug",status:"open",title:"DeathScreen: overlapping audio playback and redundant scene load",agents:[]},
+  {id:"zwo",p:3,type:"bug",status:"open",title:"ExperienceOrb leaks runtime Material and Texture2D objects",agents:[]},
+
+  // CLOSED
+  {id:"00r",p:3,type:"bug",status:"closed",title:"ParallaxBackgroundManager adds ParallaxLayer without configuring parallax values",agents:[]},
+  {id:"0am",p:1,type:"bug",status:"closed",title:"Fix equipment icons and stats character preview",agents:[]},
+  {id:"0cj",p:2,type:"feature",status:"closed",title:"PowerUp VFX: idle glow/bobbing + collection burst",agents:["vfx"]},
+  {id:"0ka",p:1,type:"task",status:"closed",title:"Make sure all SFX are open source for commercial use",agents:["sound-design"]},
+  {id:"1e1",p:1,type:"bug",status:"closed",title:"Fix weapon icon visibility with runtime sprite cropping",agents:[]},
+  {id:"1ff",p:2,type:"task",status:"closed",title:"Wire animation triggers to all 19 SkillData assets",agents:[]},
+  {id:"1iv",p:2,type:"task",status:"closed",title:"Highscores page",agents:["systems","ui-ux"]},
+  {id:"1jf",p:1,type:"bug",status:"closed",title:"Fix animation desync between body and equipment layers",agents:[]},
+  {id:"1on",p:2,type:"task",status:"closed",title:"Audit: Sound design and audio system review",agents:[]},
+  {id:"1s2",p:0,type:"task",status:"closed",title:"Create ScriptableObject data assets (SkillData, JobClassData, EnemyData, AttackData, WaveConfig)",agents:["systems"]},
+  {id:"1xd",p:0,type:"bug",status:"closed",title:"Escape key breaks after closing ability points menu on level-up",agents:["systems","ui-ux"]},
+  {id:"1xp",p:2,type:"task",status:"closed",title:"Integrate Goblin enemy",agents:["enemy-behavior"]},
+  {id:"22d",p:0,type:"bug",status:"closed",title:"Enemies spawning on top of each other",agents:["enemy-behavior"]},
+  {id:"2ry",p:0,type:"bug",status:"closed",title:"New enemies are invisible — sprites not connected to hierarchy objects",agents:["enemy-behavior"]},
+  {id:"2tl9",p:2,type:"task",status:"closed",title:"MCP Runtime Audit Pass 2: Resume inspection",agents:[]},
+  {id:"3ce1",p:1,type:"bug",status:"closed",title:"Enemy sensors targetLayers and obstacleLayers are zero",agents:[]},
+  {id:"3h6",p:1,type:"bug",status:"closed",title:"Fix hair color tinting: desaturate sprites and add color label",agents:[]},
+  {id:"3j8",p:2,type:"feature",status:"closed",title:"Add 4K and additional resolution options",agents:["ui-ux"]},
+  {id:"3rn",p:2,type:"task",status:"closed",title:"Impact SFX for 3 basic enemies getting hit",agents:["sound-design"]},
+  {id:"3vf",p:1,type:"feature",status:"closed",title:"Character Class Visual System — Skeletal animation support",agents:[]},
+  {id:"415",p:2,type:"task",status:"closed",title:"Audit: Skills system review",agents:[]},
+  {id:"49v",p:3,type:"bug",status:"closed",title:"Jump cut multiplier applies identically to double jump and normal jump",agents:[]},
+  {id:"4dk",p:2,type:"task",status:"closed",title:"Create a build",agents:["architect"]},
+  {id:"4e2",p:0,type:"bug",status:"closed",title:"Damage numbers not showing",agents:["ui-ux"]},
+  {id:"4fe",p:0,type:"bug",status:"closed",title:"Character creation appearance/sprites not showing as class selection",agents:["ui-ux"]},
+  {id:"4kd",p:1,type:"feature",status:"closed",title:"Build equipment system with E-key UI and starter gear",agents:[]},
+  {id:"4o4",p:1,type:"task",status:"closed",title:"Revert Miniature Army visual system, restore HeroKnight",agents:[]},
+  {id:"4t5",p:1,type:"bug",status:"closed",title:"Fix equipment disappearing on second character creation",agents:[]},
+  {id:"4vp",p:2,type:"task",status:"closed",title:"Integrate Mushroom enemy",agents:["enemy-behavior"]},
+  {id:"640",p:1,type:"bug",status:"closed",title:"Fix appearance confirm button text from 'Start Game' to 'Next'",agents:[]},
+  {id:"6c3",p:1,type:"bug",status:"closed",title:"BossRoomTrigger: Camera.main NRE in Awake",agents:[]},
+  {id:"6e3t",p:1,type:"bug",status:"closed",title:"MCP: GuardianBoss Animator has null AnimatorController",agents:[]},
+  {id:"6hv",p:3,type:"task",status:"closed",title:"Track player death count for dynamic death text",agents:["systems"]},
+  {id:"6m9",p:3,type:"task",status:"closed",title:"Speech-to-text integration",agents:["systems"]},
+  {id:"6n1",p:2,type:"task",status:"closed",title:"Audit: VFX system review",agents:[]},
+  {id:"6ru",p:1,type:"task",status:"closed",title:"Normalize world scale: PPU, camera, and movement retuning",agents:[]},
+  {id:"7ai",p:1,type:"bug",status:"closed",title:"Add PlayerAppearance component to Player prefab",agents:["player"]},
+  {id:"7sm",p:4,type:"task",status:"closed",title:"Remove unused Unity packages",agents:["architect"]},
+  {id:"7v4",p:1,type:"bug",status:"closed",title:"BossRoomTrigger: unlockOnBossDefeat fires when no boss assigned",agents:[]},
+  {id:"87i3",p:1,type:"bug",status:"closed",title:"Enemy movement groundLayer mask is zero",agents:[]},
+  {id:"8gd",p:0,type:"bug",status:"closed",title:"Towers float and don't shoot",agents:["enemy-behavior","player"]},
+  {id:"8o4",p:3,type:"task",status:"closed",title:"Add VTT (voice-to-text) integration",agents:["architect","systems"]},
+  {id:"8zvs",p:1,type:"bug",status:"closed",title:"Enemy prefabs have null animator and audioSource refs",agents:[]},
+  {id:"92p",p:2,type:"task",status:"closed",title:"Integrate Flying Eye enemy",agents:["enemy-behavior"]},
+  {id:"945",p:1,type:"feature",status:"closed",title:"Implement paper-doll animation system",agents:[]},
+  {id:"9e4",p:2,type:"feature",status:"closed",title:"Skill VFX system (SkillVFXFactory + wiring)",agents:[]},
+  {id:"9nl",p:1,type:"bug",status:"closed",title:"Fix CurrentConfig not reflecting equipped gear",agents:[]},
+  {id:"9wu",p:2,type:"task",status:"closed",title:"Audit: Camera system review",agents:[]},
+  {id:"ajf",p:2,type:"task",status:"closed",title:"Enemy spawn VFX: materialization effect on spawn",agents:["vfx"]},
+  {id:"aro",p:1,type:"task",status:"closed",title:"Player hurt VFX: flash and hit particles on damage",agents:["vfx"]},
+  {id:"b99",p:2,type:"task",status:"closed",title:"Audit: Architecture and cross-cutting concerns review",agents:[]},
+  {id:"bc6",p:1,type:"bug",status:"closed",title:"Health bar flips direction when player changes facing",agents:["ui-ux"]},
+  {id:"bnl5",p:1,type:"bug",status:"closed",title:"Enemy movement components have null groundCheck/wallCheck/ledgeCheck",agents:[]},
+  {id:"bw6",p:1,type:"bug",status:"closed",title:"Fix animation binding and preview rendering",agents:[]},
+  {id:"ch6",p:2,type:"task",status:"closed",title:"Pseudo-ending narrative design: wave 100 boss, endless horde trigger",agents:["architect"]},
+  {id:"chj",p:1,type:"task",status:"closed",title:"Wave system design: enemy counts, types, boss intervals, difficulty scaling",agents:["architect","enemy-behavior"]},
+  {id:"cl8",p:1,type:"task",status:"closed",title:"Add a boss enemy",agents:["enemy-behavior"]},
+  {id:"crb",p:1,type:"task",status:"closed",title:"Dash trail VFX: afterimage/particle trail during dash",agents:["vfx"]},
+  {id:"csy",p:1,type:"bug",status:"closed",title:"Fix weapon icon visibility and filter equipment by class",agents:[]},
+  {id:"cu1",p:2,type:"task",status:"closed",title:"Add new enemies to wave config",agents:["enemy-behavior"]},
+  {id:"cw3y",p:2,type:"task",status:"closed",title:"MCP Runtime Audit: Scene hierarchy and prefab inspection",agents:[]},
+  {id:"d0r",p:2,type:"task",status:"closed",title:"Import head and hair LPC sprite assets",agents:["player"]},
+  {id:"d5g",p:1,type:"bug",status:"closed",title:"Fix input key 1/2 conflicts blocking Skill1/Skill2",agents:[]},
+  {id:"d5i",p:0,type:"bug",status:"closed",title:"Enemies and player push each other around",agents:["enemy-behavior","player"]},
+  {id:"dlx",p:2,type:"task",status:"closed",title:"Enemies should have sound effects",agents:["sound-design"]},
+  {id:"ds4",p:2,type:"task",status:"closed",title:"Combat SFX for new basic skills",agents:["sound-design"]},
+  {id:"dt1",p:1,type:"bug",status:"closed",title:"Fix equipment menu: sprites not showing + add slot interaction",agents:[]},
+  {id:"dtk",p:1,type:"task",status:"closed",title:"Ensure waves 1-10 exist with proper enemy configurations",agents:["enemy-behavior"]},
+  {id:"e5q",p:2,type:"task",status:"closed",title:"Audit: Player movement and abilities review",agents:[]},
+  {id:"efz",p:0,type:"bug",status:"closed",title:"Stat increases don't affect displayed health/mana, damage and crit do nothing",agents:["player","systems"]},
+  {id:"eha",p:2,type:"task",status:"closed",title:"Create BodyPartData and CharacterAppearanceConfig assets",agents:["player"]},
+  {id:"evp",p:1,type:"feature",status:"closed",title:"Implement LPC layered sprite character system",agents:["player"]},
+  {id:"f62",p:2,type:"bug",status:"closed",title:"Attack speed multiplier makes attacks slower when stat increases",agents:[]},
+  {id:"fyz",p:1,type:"task",status:"closed",title:"Remove dangerous and one-time editor wizard tools",agents:[]},
+  {id:"gz3",p:1,type:"bug",status:"closed",title:"Character creation UI changes/breaks on second run",agents:["architect"]},
+  {id:"iwf",p:2,type:"bug",status:"closed",title:"Update hair color presets to 9 distinct colors",agents:[]},
+  {id:"jzf",p:3,type:"task",status:"closed",title:"Knockback VFX: directional impact particles on knockback",agents:["vfx"]},
+  {id:"k4j",p:1,type:"feature",status:"closed",title:"Expand LPC hair styles + equipment system",agents:[]},
+  {id:"k65",p:2,type:"task",status:"closed",title:"Audit: UI/UX system review",agents:[]},
+  {id:"kbk",p:0,type:"bug",status:"closed",title:"Enemies randomly teleport away then reappear",agents:["enemy-behavior"]},
+  {id:"kdd",p:1,type:"task",status:"closed",title:"Add basic skills for each class",agents:["player"]},
+  {id:"kia",p:2,type:"task",status:"closed",title:"Skill impact VFX: hit effect prefabs for DamageSkillEffect",agents:["vfx"]},
+  {id:"mlo",p:4,type:"feature",status:"closed",title:"LPC Phase 3: Character creation UI",agents:["player"]},
+  {id:"n6z",p:1,type:"bug",status:"closed",title:"Fix weapon class card preview: wrong frames and invisible weapons",agents:[]},
+  {id:"o59",p:3,type:"task",status:"closed",title:"Game over sound effect",agents:["sound-design"]},
+  {id:"owju",p:1,type:"bug",status:"closed",title:"Enemy prefabs tagged Untagged instead of Enemy",agents:[]},
+  {id:"pa3",p:1,type:"feature",status:"closed",title:"Skill-to-hotbar assignment UI (auto-assign + button + popup)",agents:[]},
+  {id:"q5b",p:1,type:"feature",status:"closed",title:"Show customized character in class selection cards",agents:[]},
+  {id:"qzh",p:2,type:"task",status:"closed",title:"Audit: Environment and level design assets review",agents:[]},
+  {id:"rgj",p:3,type:"task",status:"closed",title:"Add credits screen",agents:["architect","ui-ux"]},
+  {id:"rw0",p:1,type:"bug",status:"closed",title:"Fix class visual system: animations, hitbox, preview, colors",agents:[]},
+  {id:"s3l",p:1,type:"bug",status:"closed",title:"Fix LPC wizard download failures: hair styles, equipment paths, animation fallbacks",agents:[]},
+  {id:"s8o",p:2,type:"task",status:"closed",title:"Review markdown files to ensure context issue is addressed",agents:["architect"]},
+  {id:"swi",p:2,type:"task",status:"closed",title:"Change Rogue stat scaling: remove speed, add attack speed and crit multiplication",agents:["player"]},
+  {id:"te1",p:0,type:"bug",status:"closed",title:"No SFX on enemy hit",agents:["sound-design"]},
+  {id:"tkb",p:1,type:"task",status:"closed",title:"Implement parry system (Fighter/Mage/Rogue variants)",agents:["player"]},
+  {id:"uem",p:2,type:"task",status:"closed",title:"Set up linter",agents:["architect"]},
+  {id:"ustt",p:2,type:"bug",status:"closed",title:"Projectile does not spawn damage numbers unlike AttackHitbox",agents:[]},
+  {id:"w0k",p:3,type:"feature",status:"closed",title:"Buff visual aura indicators (BuffAuraVFX)",agents:[]},
+  {id:"wii",p:1,type:"bug",status:"closed",title:"Fix weapon preview sprites: use attack frame instead of invisible idle",agents:[]},
+  {id:"x2n",p:2,type:"task",status:"closed",title:"Audit: Enemy system review",agents:[]},
+  {id:"x75",p:2,type:"task",status:"closed",title:"Slimes need to jump",agents:["enemy-behavior"]},
+  {id:"yga",p:1,type:"task",status:"closed",title:"Enemy death VFX: burst particles on kill",agents:["vfx"]},
+  {id:"z5f",p:2,type:"task",status:"closed",title:"Integrate Skeleton enemy",agents:["enemy-behavior"]},
+  {id:"zei",p:3,type:"feature",status:"closed",title:"LPC Phase 2: Save/load character appearance",agents:["player"]},
+  {id:"zl5",p:1,type:"bug",status:"closed",title:"LPC wizard only downloads one hair style",agents:["architect"]},
+];
+
+let currentPriorityFilter = 'all';
+let currentTypeFilter = 'all';
+let currentAgentFilter = 'all';
+let sortCol = 1;
+let sortAsc = true;
+
+function renderTable() {
+  const tbody = document.getElementById('tableBody');
+  const search = document.getElementById('search').value.toLowerCase();
+  const showClosed = document.getElementById('showClosed').checked;
+
+  let filtered = issues.filter(issue => {
+    if (!showClosed && issue.status === 'closed') return false;
+    if (currentPriorityFilter !== 'all' && `p${issue.p}` !== currentPriorityFilter) return false;
+    if (currentTypeFilter !== 'all' && issue.type !== currentTypeFilter) return false;
+    if (currentAgentFilter !== 'all') {
+      if (currentAgentFilter === 'unassigned') {
+        if (issue.agents.length > 0) return false;
+      } else {
+        if (!issue.agents.includes(currentAgentFilter)) return false;
+      }
+    }
+    if (search) {
+      const haystack = `${issue.id} ${issue.title} ${issue.agents.join(' ')} ${issue.type} p${issue.p}`.toLowerCase();
+      if (!haystack.includes(search)) return false;
+    }
+    return true;
+  });
+
+  // Sort
+  filtered.sort((a, b) => {
+    let va, vb;
+    switch(sortCol) {
+      case 0: va = a.id; vb = b.id; break;
+      case 1: va = a.p; vb = b.p; break;
+      case 2: va = a.type; vb = b.type; break;
+      case 3: va = a.status; vb = b.status; break;
+      case 4: va = a.title.toLowerCase(); vb = b.title.toLowerCase(); break;
+      case 5: va = a.agents.join(','); vb = b.agents.join(','); break;
+    }
+    if (va < vb) return sortAsc ? -1 : 1;
+    if (va > vb) return sortAsc ? 1 : -1;
+    return 0;
+  });
+
+  tbody.innerHTML = filtered.map(issue => {
+    const statusClass = issue.status === 'blocked' ? 'blocked' : issue.status;
+    const statusLabel = issue.status === 'blocked' ? `blocked by ${issue.blockedBy}` : issue.status;
+    const rowClass = issue.status === 'closed' ? 'closed-row' : '';
+    const blockedIcon = issue.blockedBy ? ' <span class="blocked-icon" title="Blocked by ' + issue.blockedBy + '">&#x1f6ab;</span>' : '';
+    const agentHtml = issue.agents.map(a => `<span class="agent-tag">${a}</span>`).join('');
+
+    return `<tr class="${rowClass}" data-p="p${issue.p}" data-type="${issue.type}" data-status="${issue.status}" data-agents="${issue.agents.join(',')}">
+      <td><span class="bead-id">${issue.id}</span></td>
+      <td><span class="badge badge-p${issue.p}">P${issue.p}</span></td>
+      <td><span class="type-badge type-${issue.type}">${issue.type}</span></td>
+      <td><span class="status-dot status-${statusClass}"></span>${statusLabel}</td>
+      <td><span class="title-text">${issue.title}</span>${blockedIcon}</td>
+      <td>${agentHtml || '<span style="color:var(--text-muted)">—</span>'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function setPriorityFilter(val) {
+  currentPriorityFilter = val;
+  document.querySelectorAll('#priorityFilters .filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === val));
+  renderTable();
+}
+
+function setTypeFilter(val) {
+  currentTypeFilter = val;
+  document.querySelectorAll('#typeFilters .filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === val));
+  renderTable();
+}
+
+function setAgentFilter(val) {
+  currentAgentFilter = val;
+  document.querySelectorAll('#agentFilters .filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === val));
+  renderTable();
+}
+
+function filterTable() { renderTable(); }
+
+function sortTable(col) {
+  if (sortCol === col) sortAsc = !sortAsc;
+  else { sortCol = col; sortAsc = true; }
+  renderTable();
+}
+
+renderTable();
+</script>
+</body>
+</html>

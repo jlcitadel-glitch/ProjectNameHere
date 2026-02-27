@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 633dba24c6646aa4cbe1b103bdff7496, type: 3}
+  m_Name: ManaMastery
+  m_EditorClassIdentifier: Assembly-CSharp::SkillData
+  skillId: mana_mastery
+  skillName: Mana Mastery
+  description: Passively increases max MP by {damage}% and MP regen by {damage}%.
+  icon: {fileID: 0}
+  skillType: 1
+  damageType: 1
+  requiredJobId: mage
+  requiredPlayerLevel: 15
+  maxSkillLevel: 10
+  prerequisiteSkills:
+  - {fileID: 11400000, guid: e8dbd858b30443b4a8c9c1e5f75b19fd, type: 2}
+  prerequisiteLevels: 05000000
+  spCost: 2
+  baseDamage: 5
+  baseManaCost: 0
+  baseCooldown: 0
+  baseDuration: 0
+  damagePerLevel: 2
+  manaCostPerLevel: 0
+  cooldownReductionPerLevel: 0
+  durationPerLevel: 0
+  minimumCooldown: 0.5
+  nodePosition: {x: 1.5, y: 1}
+  tier: 1
+  effects: []
+  skillPrefab: {fileID: 0}
+  castSound: {fileID: 0}
+  animationTrigger: 
+  castTime: 0

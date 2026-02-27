@@ -1252,7 +1252,7 @@ namespace ProjectName.UI
             // project assets were loaded before the runtime fallback was created.
             if (SkillManager.Instance != null)
             {
-                var smJobs = Resources.FindObjectsOfTypeAll<JobClassData>();
+                var smJobs = Resources.LoadAll<JobClassData>("Jobs");
                 foreach (var job in smJobs)
                 {
                     if (job == null || string.IsNullOrEmpty(job.jobId)) continue;
@@ -1269,7 +1269,7 @@ namespace ProjectName.UI
 
             // Second pass: search all loaded JobClassData assets.
             // Always upgrade to an asset with visual data if we have one without.
-            var allJobs = Resources.FindObjectsOfTypeAll<JobClassData>();
+            var allJobs = Resources.LoadAll<JobClassData>("Jobs");
             foreach (var job in allJobs)
             {
                 if (string.IsNullOrEmpty(job.jobName)) continue;

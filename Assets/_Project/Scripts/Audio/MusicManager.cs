@@ -37,20 +37,17 @@ public class MusicManager : MonoBehaviour
         gameplayMusic = Resources.Load<AudioClip>("GameplayMusic");
     }
 
-    private void OnEnable()
+    private void Start()
     {
         if (GameManager.Instance != null)
             GameManager.Instance.OnGameStateChanged += OnGameStateChanged;
     }
 
-    private void OnDisable()
+    private void OnDestroy()
     {
         if (GameManager.Instance != null)
             GameManager.Instance.OnGameStateChanged -= OnGameStateChanged;
-    }
 
-    private void OnDestroy()
-    {
         if (Instance == this)
             Instance = null;
     }

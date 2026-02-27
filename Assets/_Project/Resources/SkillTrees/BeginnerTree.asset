@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d87a50995c6f9634ea52ba4accfc634b, type: 3}
+  m_Name: BeginnerTree
+  m_EditorClassIdentifier: Assembly-CSharp::SkillTreeData
+  treeId: beginner_tree
+  treeName: Beginner Skills
+  nodes:
+  - skill: {fileID: 11400000, guid: 367c7f856835cad44a4a46c66aee1973, type: 2}
+    position: {x: 0, y: 0}
+    childNodeIndices: 02000000
+    row: 0
+    column: 0
+  - skill: {fileID: 11400000, guid: 458fd5547c5cd194fb0d8da7ae73f82f, type: 2}
+    position: {x: 0, y: 0}
+    childNodeIndices: 03000000
+    row: 0
+    column: 1
+  - skill: {fileID: 11400000, guid: 5e0e1561ee084a74fa8317ebfd4095c5, type: 2}
+    position: {x: 0, y: 0}
+    childNodeIndices: 
+    row: 1
+    column: 0
+  - skill: {fileID: 11400000, guid: e52598721d9007141a84ff561a21555d, type: 2}
+    position: {x: 0, y: 0}
+    childNodeIndices: 
+    row: 1
+    column: 1
+  connections:
+  - fromNodeIndex: 0
+    toNodeIndex: 2
+    curvePoints: []
+  - fromNodeIndex: 1
+    toNodeIndex: 3
+    curvePoints: []
+  horizontalSpacing: 150
+  verticalSpacing: 120
+  treeOffset: {x: 0, y: 0}
+  backgroundImage: {fileID: 0}
+  backgroundColor: {r: 0.1, g: 0.1, b: 0.1, a: 0.9}

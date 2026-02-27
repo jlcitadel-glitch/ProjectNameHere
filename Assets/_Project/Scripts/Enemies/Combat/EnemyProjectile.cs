@@ -13,14 +13,16 @@ public class EnemyProjectile : MonoBehaviour
     [SerializeField] private bool debugLogging = false;
 
     private EnemyAttackData attackData;
+    private EnemyCombat owner;
     private Vector2 direction;
     private Rigidbody2D rb;
     private HashSet<Collider2D> hitTargets = new HashSet<Collider2D>();
     private float lifetime;
 
-    public void Initialize(EnemyAttackData attack, Vector2 moveDirection)
+    public void Initialize(EnemyAttackData attack, Vector2 moveDirection, EnemyCombat combatOwner = null)
     {
         attackData = attack;
+        owner = combatOwner;
         direction = moveDirection.normalized;
 
         rb = GetComponent<Rigidbody2D>();
@@ -95,7 +97,9 @@ public class EnemyProjectile : MonoBehaviour
             ParrySystem parrySystem = other.GetComponentInParent<ParrySystem>();
             if (parrySystem != null)
             {
-                ParryResult result = parrySystem.TryParry(attackData.baseDamage, transform, attackData);
+                float damageMultiplier = owner != null ? owner.GetDamageMultiplier() : 1f;
+                float parryDamage = attackData.baseDamage * damageMultiplier;
+                ParryResult result = parrySystem.TryParry(parryDamage, transform, attackData);
                 if (result.wasParried)
                 {
                     hitTargets.Add(other);
@@ -131,6 +135,9 @@ public class EnemyProjectile : MonoBehaviour
 
     private void ApplyDamage(Collider2D target)
     {
+        float damageMultiplier = owner != null ? owner.GetDamageMultiplier() : 1f;
+        float finalDamage = attackData.baseDamage * damageMultiplier;
+
         HealthSystem healthSystem = target.GetComponent<HealthSystem>();
         if (healthSystem == null)
         {
@@ -139,12 +146,12 @@ public class EnemyProjectile : MonoBehaviour
 
         if (healthSystem != null)
         {
-            healthSystem.TakeDamage(attackData.baseDamage);
-            SpawnDamageNumber(target, attackData.baseDamage);
+            healthSystem.TakeDamage(finalDamage);
+            SpawnDamageNumber(target, finalDamage);
 
             if (debugLogging)
             {
-                Debug.Log($"[EnemyProjectile] Dealt {attackData.baseDamage} damage to {target.name}");
+                Debug.Log($"[EnemyProjectile] Dealt {finalDamage} damage to {target.name}");
             }
         }
     }

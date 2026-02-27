@@ -9,17 +9,17 @@ public enum PowerUpType
 public class PowerUpPickup : MonoBehaviour
 {
     [Header("PowerUp Settings")]
-    [SerializeField] PowerUpType powerUpType;
-    [SerializeField] bool destroyOnPickup = true;
+    [SerializeField] private PowerUpType powerUpType;
+    [SerializeField] private bool destroyOnPickup = true;
 
     public PowerUpType Type => powerUpType;
 
     [Header("Debug")]
-    [SerializeField] bool logDebug = false;
+    [SerializeField] private bool logDebug = false;
 
-    void OnTriggerEnter2D(Collider2D other)
+    private void OnTriggerEnter2D(Collider2D other)
     {
-        if (logDebug) Debug.Log($"Trigger detected! Object: {other.gameObject.name}, Tag: {other.tag}");
+        if (logDebug) Debug.Log($"Trigger detected! Object: {other.gameObject.name}, IsPlayer: {other.CompareTag("Player")}");
 
         if (other.CompareTag("Player"))
         {
@@ -29,8 +29,7 @@ public class PowerUpPickup : MonoBehaviour
             if (destroyOnPickup)
             {
                 // Spawn collection VFX before destroying
-                PowerUpVFX vfx = GetComponent<PowerUpVFX>();
-                if (vfx != null)
+                if (TryGetComponent<PowerUpVFX>(out var vfx))
                     vfx.SpawnCollectionVFX();
 
                 Destroy(gameObject);
@@ -38,15 +37,14 @@ public class PowerUpPickup : MonoBehaviour
         }
         else
         {
-            if (logDebug) Debug.Log($"Not player. Expected 'Player' tag but got '{other.tag}'");
+            if (logDebug) Debug.Log($"Not player. Object: {other.gameObject.name}");
         }
     }
 
-    void GrantPowerUp(GameObject player)
+    private void GrantPowerUp(GameObject player)
     {
         // Get or add PowerUpManager
-        PowerUpManager powerUpManager = player.GetComponent<PowerUpManager>();
-        if (powerUpManager == null)
+        if (!player.TryGetComponent<PowerUpManager>(out var powerUpManager))
         {
             powerUpManager = player.AddComponent<PowerUpManager>();
         }
@@ -54,13 +52,19 @@ public class PowerUpPickup : MonoBehaviour
         // Register the unlock
         powerUpManager.UnlockPowerUp(powerUpType);
 
+        if (!player.TryGetComponent<PlayerControllerScript>(out var controller))
+        {
+            Debug.LogError($"[PowerUpPickup] PlayerControllerScript not found on {player.name}");
+            return;
+        }
+
         switch (powerUpType)
         {
             case PowerUpType.DoubleJump:
                 if (player.GetComponent<DoubleJumpAbility>() == null)
                 {
                     player.AddComponent<DoubleJumpAbility>();
-                    player.GetComponent<PlayerControllerScript>().RefreshAbilities();
+                    controller.RefreshAbilities();
                     if (logDebug) Debug.Log("Double Jump Unlocked!");
                 }
                 break;
@@ -69,7 +73,7 @@ public class PowerUpPickup : MonoBehaviour
                 if (player.GetComponent<DashAbility>() == null)
                 {
                     player.AddComponent<DashAbility>();
-                    player.GetComponent<PlayerControllerScript>().RefreshAbilities();
+                    controller.RefreshAbilities();
                     if (logDebug) Debug.Log("Dash Unlocked!");
                 }
                 break;
