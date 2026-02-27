@@ -1,18 +1,20 @@
+using System;
 using UnityEngine;
 
 public class BossRoomTrigger : MonoBehaviour
 {
     [Header("Boss Room Settings")]
-    [SerializeField] Transform roomCenter;
-    [SerializeField] bool lockOnEnter = true;
-    [SerializeField] bool unlockOnBossDefeat = true;
+    [SerializeField] private Transform roomCenter;
+    [SerializeField] private bool lockOnEnter = true;
+    [SerializeField] private bool unlockOnBossDefeat = true;
 
     [Header("Optional Boss Reference")]
-    [SerializeField] GameObject bossObject;
+    [SerializeField] private GameObject bossObject;
 
     private AdvancedCameraController cameraController;
     private bool isLocked = false;
     private bool bossWasAssigned;
+    private BossController bossController;
 
     void Awake()
     {
@@ -28,6 +30,19 @@ public class BossRoomTrigger : MonoBehaviour
             Debug.LogWarning($"[BossRoomTrigger] {gameObject.name}: No MainCamera found");
 
         bossWasAssigned = bossObject != null;
+
+        if (bossObject != null)
+        {
+            bossController = bossObject.GetComponent<BossController>();
+            if (bossController != null)
+                bossController.OnBossDefeated += OnBossDefeated;
+        }
+    }
+
+    void OnDestroy()
+    {
+        if (bossController != null)
+            bossController.OnBossDefeated -= OnBossDefeated;
     }
 
     void OnTriggerEnter2D(Collider2D other)
@@ -40,8 +55,11 @@ public class BossRoomTrigger : MonoBehaviour
 
     void Update()
     {
-        // Check if boss is defeated (only if a boss was actually assigned)
-        if (unlockOnBossDefeat && isLocked && bossWasAssigned && bossObject == null)
+        // Fallback polling for bosses without BossController component
+        if (bossController != null) return;
+
+        if (unlockOnBossDefeat && isLocked && bossWasAssigned
+            && (bossObject == null || !bossObject.activeInHierarchy))
         {
             UnlockCamera();
         }
@@ -65,7 +83,9 @@ public class BossRoomTrigger : MonoBehaviour
         }
     }
 
-    // Call this when boss is defeated
+    /// <summary>
+    /// Called via BossController event or manually as a fallback API.
+    /// </summary>
     public void OnBossDefeated()
     {
         UnlockCamera();

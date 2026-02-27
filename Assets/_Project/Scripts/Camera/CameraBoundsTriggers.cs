@@ -3,21 +3,30 @@ using UnityEngine;
 public class CameraBoundsTrigger : MonoBehaviour
 {
     [Header("New Camera Bounds")]
-    [SerializeField] float minX = -50f;
-    [SerializeField] float maxX = 50f;
-    [SerializeField] float minY = -50f;
-    [SerializeField] float maxY = 50f;
+    [SerializeField] private float minX = -50f;
+    [SerializeField] private float maxX = 50f;
+    [SerializeField] private float minY = -50f;
+    [SerializeField] private float maxY = 50f;
 
     [Header("Settings")]
-    [SerializeField] bool requiresAbility = false;
-    [SerializeField] PowerUpType requiredAbility;
+    [SerializeField] private bool requiresAbility = false;
+    [SerializeField] private PowerUpType requiredAbility;
 
     private AdvancedCameraController cameraController;
+    private Collider2D triggerCollider;
     private bool hasBeenActivated = false;
 
     void Awake()
     {
-        cameraController = Camera.main.GetComponent<AdvancedCameraController>();
+        triggerCollider = GetComponent<Collider2D>();
+    }
+
+    void Start()
+    {
+        if (Camera.main != null)
+            cameraController = Camera.main.GetComponent<AdvancedCameraController>();
+        else
+            Debug.LogWarning($"[CameraBoundsTrigger] {gameObject.name}: No MainCamera found");
     }
 
     void OnTriggerEnter2D(Collider2D other)
@@ -60,6 +69,8 @@ public class CameraBoundsTrigger : MonoBehaviour
 
         // Draw trigger area
         Gizmos.color = Color.green;
-        Gizmos.DrawWireCube(transform.position, GetComponent<Collider2D>().bounds.size);
+        Collider2D col = triggerCollider != null ? triggerCollider : GetComponent<Collider2D>();
+        if (col != null)
+            Gizmos.DrawWireCube(transform.position, col.bounds.size);
     }
 }
