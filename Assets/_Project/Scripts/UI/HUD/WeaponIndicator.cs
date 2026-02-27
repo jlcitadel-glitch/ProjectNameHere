@@ -44,12 +44,23 @@ namespace ProjectName.UI
 
         private void Start()
         {
-            FindCombatController();
             InitializeStyle();
             UpdateDisplay(currentWeaponType);
         }
 
-        private void OnDestroy()
+        private void OnEnable()
+        {
+            if (combatController == null)
+            {
+                FindCombatController();
+            }
+            else
+            {
+                combatController.OnWeaponSwitched += HandleWeaponSwitched;
+            }
+        }
+
+        private void OnDisable()
         {
             if (combatController != null)
             {
@@ -166,7 +177,7 @@ namespace ProjectName.UI
             if (!isAnimating)
                 return;
 
-            animTimer += Time.deltaTime;
+            animTimer += Time.unscaledDeltaTime;
             float progress = animTimer / switchAnimDuration;
 
             if (progress >= 1f)

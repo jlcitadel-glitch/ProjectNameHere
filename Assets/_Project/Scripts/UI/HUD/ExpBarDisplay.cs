@@ -31,11 +31,22 @@ namespace ProjectName.UI
 
         private void Start()
         {
-            FindPlayerLevelSystem();
             InitializeStyle();
         }
 
-        private void OnDestroy()
+        private void OnEnable()
+        {
+            if (levelSystem == null)
+            {
+                FindPlayerLevelSystem();
+            }
+            else
+            {
+                SubscribeToEvents();
+            }
+        }
+
+        private void OnDisable()
         {
             UnsubscribeFromEvents();
         }
@@ -152,7 +163,7 @@ namespace ProjectName.UI
             if (Mathf.Approximately(displayedProgress, targetProgress))
                 return;
 
-            displayedProgress = Mathf.Lerp(displayedProgress, targetProgress, smoothSpeed * Time.deltaTime);
+            displayedProgress = Mathf.Lerp(displayedProgress, targetProgress, smoothSpeed * Time.unscaledDeltaTime);
 
             if (Mathf.Abs(displayedProgress - targetProgress) < 0.001f)
             {
@@ -185,7 +196,7 @@ namespace ProjectName.UI
 
             while (elapsed < flashDuration)
             {
-                elapsed += Time.deltaTime;
+                elapsed += Time.unscaledDeltaTime;
                 float t = elapsed / flashDuration;
                 float flash = Mathf.Sin(t * Mathf.PI) * flashIntensity;
 

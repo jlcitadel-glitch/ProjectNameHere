@@ -348,9 +348,9 @@ namespace ProjectName.UI
                 UIManager.Instance.RegisterOverlayMenu();
             }
 
-            if (pauseGameWhenOpen)
+            if (pauseGameWhenOpen && GameManager.Instance != null)
             {
-                Time.timeScale = 0f;
+                GameManager.Instance.RequestMenuPause();
             }
 
             // Switch to UI input
@@ -386,9 +386,9 @@ namespace ProjectName.UI
             if (statMenuCanvas != null)
                 statMenuCanvas.enabled = false;
 
-            if (pauseGameWhenOpen)
+            if (pauseGameWhenOpen && GameManager.Instance != null)
             {
-                Time.timeScale = 1f;
+                GameManager.Instance.ReleaseMenuPause();
             }
 
             // Unregister overlay before switching input so UIManager knows we're done

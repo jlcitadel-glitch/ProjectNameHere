@@ -42,12 +42,25 @@ namespace ProjectName.UI
 
         private void Start()
         {
-            FindHealthSystem();
             InitializeAudio();
             SetVignetteAlpha(0f);
         }
 
-        private void OnDestroy()
+        private void OnEnable()
+        {
+            if (healthSystem == null)
+            {
+                FindReferences();
+            }
+
+            if (healthSystem != null)
+            {
+                healthSystem.OnHealthChanged += HandleHealthChanged;
+                HandleHealthChanged(healthSystem.CurrentHealth, healthSystem.MaxHealth);
+            }
+        }
+
+        private void OnDisable()
         {
             if (healthSystem != null)
             {
@@ -62,7 +75,7 @@ namespace ProjectName.UI
             UpdateHeartbeat();
         }
 
-        private void FindHealthSystem()
+        private void FindReferences()
         {
             GameObject player = GameObject.FindGameObjectWithTag("Player");
             if (player != null)
@@ -70,9 +83,6 @@ namespace ProjectName.UI
                 healthSystem = player.GetComponent<HealthSystem>();
                 if (healthSystem != null)
                 {
-                    healthSystem.OnHealthChanged += HandleHealthChanged;
-                    // Initialize based on current health
-                    HandleHealthChanged(healthSystem.CurrentHealth, healthSystem.MaxHealth);
                     Debug.Log("[LowHealthVignette] Connected to HealthSystem");
                 }
             }
@@ -116,7 +126,7 @@ namespace ProjectName.UI
                 return;
 
             float speed = isCritical ? criticalPulseSpeed : pulseSpeed;
-            pulseTimer += Time.deltaTime * speed;
+            pulseTimer += Time.unscaledDeltaTime * speed;
 
             // Calculate pulse using sine wave
             float pulse = (Mathf.Sin(pulseTimer * Mathf.PI * 2f) + 1f) / 2f;
@@ -128,7 +138,7 @@ namespace ProjectName.UI
 
         private void UpdateAlpha()
         {
-            currentAlpha = Mathf.MoveTowards(currentAlpha, targetAlpha, fadeSpeed * Time.deltaTime);
+            currentAlpha = Mathf.MoveTowards(currentAlpha, targetAlpha, fadeSpeed * Time.unscaledDeltaTime);
             SetVignetteAlpha(currentAlpha);
         }
 
@@ -139,7 +149,7 @@ namespace ProjectName.UI
 
             float interval = isCritical ? 0.5f : 0.8f;
 
-            if (Time.time - lastHeartbeat >= interval)
+            if (Time.unscaledTime - lastHeartbeat >= interval)
             {
                 PlayHeartbeat();
             }
@@ -149,8 +159,8 @@ namespace ProjectName.UI
         {
             if (heartbeatSound != null && audioSource != null && isLowHealth)
             {
-                audioSource.PlayOneShot(heartbeatSound, heartbeatVolume);
-                lastHeartbeat = Time.time;
+                audioSource.PlayOneShot(heartbeatSound, heartbeatVolume * SFXManager.GetVolume());
+                lastHeartbeat = Time.unscaledTime;
             }
         }
 

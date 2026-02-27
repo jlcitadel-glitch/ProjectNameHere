@@ -40,14 +40,19 @@ namespace ProjectName.UI
         private ManaSystem manaSystem;
         private SkillCooldownTracker cooldownTracker;
 
-        private void Start()
+        private void Awake()
         {
             FindReferences();
+        }
+
+        private void Start()
+        {
             InitializeSlots();
         }
 
         private void OnEnable()
         {
+            if (skillController == null) FindReferences();
             SubscribeToEvents();
         }
 

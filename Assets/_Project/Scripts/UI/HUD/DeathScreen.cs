@@ -80,19 +80,24 @@ namespace ProjectName.UI
 
         private void Start()
         {
-            FindHealthSystem();
             InitializeStyle();
             InitializeAudio();
             InitializeButtons();
             Hide();
         }
 
-        private void OnDestroy()
+        private void OnEnable()
         {
-            if (healthSystem != null)
+            if (healthSystem == null)
             {
-                healthSystem.OnDeath -= HandleDeath;
+                FindHealthSystem();
             }
+            SubscribeEvents();
+        }
+
+        private void OnDisable()
+        {
+            UnsubscribeEvents();
         }
 
         private void Update()
@@ -108,9 +113,24 @@ namespace ProjectName.UI
                 healthSystem = player.GetComponent<HealthSystem>();
                 if (healthSystem != null)
                 {
-                    healthSystem.OnDeath += HandleDeath;
                     Debug.Log("[DeathScreen] Connected to HealthSystem");
                 }
+            }
+        }
+
+        private void SubscribeEvents()
+        {
+            if (healthSystem != null)
+            {
+                healthSystem.OnDeath += HandleDeath;
+            }
+        }
+
+        private void UnsubscribeEvents()
+        {
+            if (healthSystem != null)
+            {
+                healthSystem.OnDeath -= HandleDeath;
             }
         }
 
@@ -272,7 +292,7 @@ namespace ProjectName.UI
                 GameManager.Instance.GameOver();
             }
 
-            PlaySound(gameOverSound);
+            // gameOverSound plays later when text becomes visible (see UpdateFadeIn)
         }
 
         private void Hide()
@@ -314,6 +334,7 @@ namespace ProjectName.UI
                 {
                     textVisible = true;
                     textFadeTimer = 0f;
+                    PlaySound(gameOverSound);
                 }
 
                 textFadeTimer += Time.unscaledDeltaTime;
@@ -369,9 +390,10 @@ namespace ProjectName.UI
             {
                 GameManager.Instance.ReturnToMainMenu();
             }
-
-            // Load main menu scene (index 0 in build settings)
-            SceneManager.LoadScene(0);
+            else
+            {
+                SceneManager.LoadScene(0);
+            }
         }
 
         private void PlaySound(AudioClip clip)

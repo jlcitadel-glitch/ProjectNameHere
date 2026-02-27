@@ -61,13 +61,25 @@ namespace ProjectName.UI
 
         private void Start()
         {
-            FindCombatController();
             InitializeStyle();
             InitializeAudio();
             Hide();
         }
 
-        private void OnDestroy()
+        private void OnEnable()
+        {
+            if (combatController == null)
+            {
+                FindReferences();
+            }
+
+            if (combatController != null)
+            {
+                combatController.OnAttackHit += HandleAttackHit;
+            }
+        }
+
+        private void OnDisable()
         {
             if (combatController != null)
             {
@@ -82,7 +94,7 @@ namespace ProjectName.UI
             UpdateVisibility();
         }
 
-        private void FindCombatController()
+        private void FindReferences()
         {
             GameObject player = GameObject.FindGameObjectWithTag("Player");
             if (player != null)
@@ -90,7 +102,6 @@ namespace ProjectName.UI
                 combatController = player.GetComponent<CombatController>();
                 if (combatController != null)
                 {
-                    combatController.OnAttackHit += HandleAttackHit;
                     Debug.Log("[ComboCounter] Connected to CombatController");
                 }
             }
@@ -140,7 +151,7 @@ namespace ProjectName.UI
         {
             // Increment combo
             currentCombo++;
-            lastHitTime = Time.time;
+            lastHitTime = Time.unscaledTime;
             displayTimer = displayDuration;
 
             // Update display
@@ -205,7 +216,7 @@ namespace ProjectName.UI
             if (currentCombo == 0)
                 return;
 
-            if (Time.time - lastHitTime > comboTimeout)
+            if (Time.unscaledTime - lastHitTime > comboTimeout)
             {
                 ResetCombo();
             }
@@ -222,7 +233,7 @@ namespace ProjectName.UI
             // Punch scale animation
             if (punchTimer > 0f)
             {
-                punchTimer -= Time.deltaTime;
+                punchTimer -= Time.unscaledDeltaTime;
                 float progress = 1f - (punchTimer / punchDuration);
                 float scale = Mathf.Lerp(punchScale, 1f, EaseOutBack(progress));
                 transform.localScale = originalScale * scale;
@@ -250,7 +261,7 @@ namespace ProjectName.UI
         {
             if (displayTimer > 0f)
             {
-                displayTimer -= Time.deltaTime;
+                displayTimer -= Time.unscaledDeltaTime;
             }
             else if (isVisible && currentCombo == 0)
             {
@@ -261,7 +272,7 @@ namespace ProjectName.UI
             if (canvasGroup != null && isVisible)
             {
                 float targetAlpha = displayTimer > 0.5f ? 1f : displayTimer / 0.5f;
-                canvasGroup.alpha = Mathf.MoveTowards(canvasGroup.alpha, targetAlpha, fadeSpeed * Time.deltaTime);
+                canvasGroup.alpha = Mathf.MoveTowards(canvasGroup.alpha, targetAlpha, fadeSpeed * Time.unscaledDeltaTime);
             }
         }
 
@@ -300,10 +311,7 @@ namespace ProjectName.UI
 
         private void PlaySound(AudioClip clip)
         {
-            if (clip != null && audioSource != null)
-            {
-                audioSource.PlayOneShot(clip);
-            }
+            SFXManager.PlayOneShot(audioSource, clip);
         }
 
         /// <summary>

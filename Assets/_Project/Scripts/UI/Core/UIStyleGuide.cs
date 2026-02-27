@@ -171,6 +171,7 @@ namespace ProjectName.UI
         /// </summary>
         public void ApplyHeaderStyle(TMP_Text text)
         {
+            if (text == null) return;
             if (headerFont != null)
                 text.font = headerFont;
             text.fontSize = headerSize;
@@ -183,6 +184,7 @@ namespace ProjectName.UI
         /// </summary>
         public void ApplyBodyStyle(TMP_Text text)
         {
+            if (text == null) return;
             if (bodyFont != null)
                 text.font = bodyFont;
             text.fontSize = bodySize;
@@ -194,6 +196,7 @@ namespace ProjectName.UI
         /// </summary>
         public void ApplyNumberStyle(TMP_Text text)
         {
+            if (text == null) return;
             if (numbersFont != null)
                 text.font = numbersFont;
             text.fontSize = bodySize;

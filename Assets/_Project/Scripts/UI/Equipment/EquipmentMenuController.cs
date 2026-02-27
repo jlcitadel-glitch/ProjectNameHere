@@ -227,8 +227,8 @@ namespace ProjectName.UI
             if (UIManager.Instance != null)
                 UIManager.Instance.RegisterOverlayMenu();
 
-            if (pauseGameWhenOpen)
-                Time.timeScale = 0f;
+            if (pauseGameWhenOpen && GameManager.Instance != null)
+                GameManager.Instance.RequestMenuPause();
 
             if (UIManager.Instance != null)
                 UIManager.Instance.SwitchToUIInput();
@@ -258,8 +258,8 @@ namespace ProjectName.UI
             if (equipmentCanvas != null)
                 equipmentCanvas.enabled = false;
 
-            if (pauseGameWhenOpen)
-                Time.timeScale = 1f;
+            if (pauseGameWhenOpen && GameManager.Instance != null)
+                GameManager.Instance.ReleaseMenuPause();
 
             if (UIManager.Instance != null)
                 UIManager.Instance.UnregisterOverlayMenu();

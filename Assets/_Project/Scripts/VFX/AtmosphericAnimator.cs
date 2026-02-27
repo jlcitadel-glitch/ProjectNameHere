@@ -23,10 +23,14 @@ public class AtmosphericAnimator : MonoBehaviour
     private float driftOffsetY;
     private float pulseOffset;
 
-    void Start()
+    private void Start()
     {
         startPosition = transform.localPosition;
         spriteRenderer = GetComponent<SpriteRenderer>();
+        if (spriteRenderer == null)
+        {
+            Debug.LogError($"[AtmosphericAnimator] Missing SpriteRenderer on {gameObject.name}", this);
+        }
 
         // Random starting offsets so multiple effects don't sync
         driftOffsetX = Random.Range(0f, 100f);
@@ -34,7 +38,7 @@ public class AtmosphericAnimator : MonoBehaviour
         pulseOffset = Random.Range(0f, 100f);
     }
 
-    void Update()
+    private void Update()
     {
         // Drift movement using Perlin noise for smooth random motion
         if (enableDrift)

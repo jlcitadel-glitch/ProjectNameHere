@@ -43,13 +43,21 @@ namespace ProjectName.UI
 
         private void Start()
         {
-            FindPlayerSkillController();
             InitializeStyle();
             InitializeAudio();
             Hide();
         }
 
-        private void OnDestroy()
+        private void OnEnable()
+        {
+            if (skillController == null)
+            {
+                FindReferences();
+            }
+            SubscribeToEvents();
+        }
+
+        private void OnDisable()
         {
             UnsubscribeFromEvents();
         }
@@ -60,7 +68,7 @@ namespace ProjectName.UI
             UpdateVisibility();
         }
 
-        private void FindPlayerSkillController()
+        private void FindReferences()
         {
             GameObject player = GameObject.FindGameObjectWithTag("Player");
             if (player != null)
@@ -68,7 +76,6 @@ namespace ProjectName.UI
                 skillController = player.GetComponent<PlayerSkillController>();
                 if (skillController != null)
                 {
-                    SubscribeToEvents();
                     Debug.Log("[CastBar] Connected to PlayerSkillController");
                 }
             }
@@ -136,7 +143,7 @@ namespace ProjectName.UI
             // Get current casting skill info from skill controller
             // We need to find the skill being cast - check pending skill via reflection or track it
             isCasting = true;
-            castStartTime = Time.time;
+            castStartTime = Time.unscaledTime;
             showDelayTimer = showDelay;
 
             // Try to get skill info
@@ -194,7 +201,7 @@ namespace ProjectName.UI
 
             if (showDelayTimer > 0f)
             {
-                showDelayTimer -= Time.deltaTime;
+                showDelayTimer -= Time.unscaledDeltaTime;
                 if (showDelayTimer <= 0f)
                 {
                     targetAlpha = 1f;
@@ -202,7 +209,7 @@ namespace ProjectName.UI
                 return;
             }
 
-            float elapsed = Time.time - castStartTime;
+            float elapsed = Time.unscaledTime - castStartTime;
             float progress = castDuration > 0f ? Mathf.Clamp01(elapsed / castDuration) : 1f;
 
             fillImage.fillAmount = progress;
@@ -213,7 +220,7 @@ namespace ProjectName.UI
             if (canvasGroup == null)
                 return;
 
-            canvasGroup.alpha = Mathf.MoveTowards(canvasGroup.alpha, targetAlpha, fadeSpeed * Time.deltaTime);
+            canvasGroup.alpha = Mathf.MoveTowards(canvasGroup.alpha, targetAlpha, fadeSpeed * Time.unscaledDeltaTime);
 
             if (canvasGroup.alpha <= 0.01f && !isCasting)
             {
@@ -241,10 +248,7 @@ namespace ProjectName.UI
 
         private void PlaySound(AudioClip clip)
         {
-            if (clip != null && audioSource != null)
-            {
-                audioSource.PlayOneShot(clip);
-            }
+            SFXManager.PlayOneShot(audioSource, clip);
         }
 
         /// <summary>

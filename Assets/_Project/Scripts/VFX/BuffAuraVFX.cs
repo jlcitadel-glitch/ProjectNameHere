@@ -11,6 +11,17 @@ public class BuffAuraVFX : MonoBehaviour
     private Dictionary<string, ParticleSystem> activeAuras = new Dictionary<string, ParticleSystem>();
 
     private static Material _particleMaterial;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void Cleanup()
+    {
+        if (_particleMaterial != null)
+        {
+            Destroy(_particleMaterial);
+            _particleMaterial = null;
+        }
+    }
+
     private static Material ParticleMaterial
     {
         get
@@ -33,6 +44,10 @@ public class BuffAuraVFX : MonoBehaviour
     private void Awake()
     {
         buffTracker = GetComponent<ActiveBuffTracker>();
+        if (buffTracker == null)
+        {
+            Debug.LogError($"[BuffAuraVFX] Missing ActiveBuffTracker on {gameObject.name}", this);
+        }
     }
 
     private void OnEnable()
@@ -140,7 +155,7 @@ public class BuffAuraVFX : MonoBehaviour
         renderer.sortingOrder = 8;
 
         if (ParticleMaterial != null)
-            renderer.material = ParticleMaterial;
+            renderer.sharedMaterial = ParticleMaterial;
 
         return ps;
     }

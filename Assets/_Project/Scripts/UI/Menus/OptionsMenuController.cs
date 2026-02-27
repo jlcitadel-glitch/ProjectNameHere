@@ -677,7 +677,7 @@ namespace ProjectName.UI
                 {
                     needsNewTemplate = true;
                     // Destroy the broken template
-                    DestroyImmediate(templateTransform.gameObject);
+                    Destroy(templateTransform.gameObject);
                     Debug.Log($"[OptionsMenu] Destroyed broken template for {dropdown.name}");
                 }
             }
@@ -1120,5 +1120,21 @@ namespace ProjectName.UI
         }
 
         #endregion
+
+        private void OnDestroy()
+        {
+            if (displayTabButton != null) displayTabButton.onClick.RemoveAllListeners();
+            if (audioTabButton != null) audioTabButton.onClick.RemoveAllListeners();
+            if (controlsTabButton != null) controlsTabButton.onClick.RemoveAllListeners();
+            if (applyDisplayButton != null) applyDisplayButton.onClick.RemoveAllListeners();
+
+            if (resolutionDropdown != null) resolutionDropdown.onValueChanged.RemoveListener(OnResolutionChanged);
+            if (windowModeDropdown != null) windowModeDropdown.onValueChanged.RemoveListener(OnWindowModeChanged);
+            if (aspectRatioDropdown != null) aspectRatioDropdown.onValueChanged.RemoveListener(OnAspectRatioChanged);
+
+            if (masterVolumeSlider != null) masterVolumeSlider.onValueChanged.RemoveListener(OnMasterVolumeChanged);
+            if (musicVolumeSlider != null) musicVolumeSlider.onValueChanged.RemoveListener(OnMusicVolumeChanged);
+            if (sfxVolumeSlider != null) sfxVolumeSlider.onValueChanged.RemoveListener(OnSFXVolumeChanged);
+        }
     }
 }

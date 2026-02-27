@@ -86,6 +86,7 @@ namespace ProjectName.UI
             // Resolution dropdown
             if (resolutionDropdown != null)
             {
+                resolutionDropdown.onValueChanged.RemoveListener(OnResolutionChanged);
                 resolutionDropdown.ClearOptions();
                 resolutionDropdown.AddOptions(new System.Collections.Generic.List<string>(
                     DisplaySettings.Instance.GetResolutionStrings()));
@@ -95,6 +96,7 @@ namespace ProjectName.UI
             // Window mode dropdown
             if (windowModeDropdown != null)
             {
+                windowModeDropdown.onValueChanged.RemoveListener(OnWindowModeChanged);
                 windowModeDropdown.ClearOptions();
                 windowModeDropdown.AddOptions(new System.Collections.Generic.List<string>(
                     DisplaySettings.Instance.GetWindowModeStrings()));
@@ -104,6 +106,7 @@ namespace ProjectName.UI
             // Aspect ratio dropdown
             if (aspectRatioDropdown != null)
             {
+                aspectRatioDropdown.onValueChanged.RemoveListener(OnAspectRatioChanged);
                 aspectRatioDropdown.ClearOptions();
                 aspectRatioDropdown.AddOptions(new System.Collections.Generic.List<string>(
                     DisplaySettings.Instance.GetAspectRatioStrings()));

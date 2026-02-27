@@ -9,6 +9,16 @@ public static class SkillVFXFactory
 {
     private static Material _particleMaterial;
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void Cleanup()
+    {
+        if (_particleMaterial != null)
+        {
+            Object.Destroy(_particleMaterial);
+            _particleMaterial = null;
+        }
+    }
+
     private static Material ParticleMaterial
     {
         get
@@ -257,6 +267,6 @@ public static class SkillVFXFactory
         renderer.sortingOrder = 12;
 
         if (ParticleMaterial != null)
-            renderer.material = ParticleMaterial;
+            renderer.sharedMaterial = ParticleMaterial;
     }
 }

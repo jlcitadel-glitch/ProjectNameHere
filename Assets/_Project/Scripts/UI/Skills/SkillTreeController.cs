@@ -234,9 +234,9 @@ namespace ProjectName.UI
             }
 
             // Freeze time if configured (without triggering pause menu)
-            if (pauseGameWhenOpen)
+            if (pauseGameWhenOpen && GameManager.Instance != null)
             {
-                Time.timeScale = 0f;
+                GameManager.Instance.RequestMenuPause();
             }
 
             // Switch to UI input
@@ -281,9 +281,9 @@ namespace ProjectName.UI
                 skillTreeCanvas.enabled = false;
 
             // Restore time if we froze it
-            if (pauseGameWhenOpen)
+            if (pauseGameWhenOpen && GameManager.Instance != null)
             {
-                Time.timeScale = 1f;
+                GameManager.Instance.ReleaseMenuPause();
             }
 
             // Unregister overlay before switching input so UIManager knows we're done

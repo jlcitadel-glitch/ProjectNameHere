@@ -283,7 +283,7 @@ namespace ProjectName.UI
 
             while (elapsed < duration)
             {
-                elapsed += Time.deltaTime;
+                elapsed += Time.unscaledDeltaTime;
                 float t = elapsed / duration;
                 float brightness = 1f + Mathf.Sin(t * Mathf.PI) * 0.5f;
                 fillImage.color = originalColor * brightness;

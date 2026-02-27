@@ -127,6 +127,9 @@ namespace ProjectName.UI
             if (isTransitioning)
                 return;
 
+            if (!immediate)
+                isTransitioning = true;
+
             // Deactivate current tab
             if (tabs[currentTabIndex] != null)
             {
@@ -231,6 +234,7 @@ namespace ProjectName.UI
             }
 
             group.alpha = 1f;
+            isTransitioning = false;
         }
 
         private void MoveIndicatorImmediate(RectTransform targetTab)
@@ -277,11 +281,18 @@ namespace ProjectName.UI
             tabIndicator.sizeDelta = targetSize;
         }
 
+        private bool tabButtonsInitialized;
+
         /// <summary>
         /// Sets up tab click handlers for mouse/touch input.
+        /// Safe to call multiple times — only initializes once.
         /// </summary>
         public void InitializeTabButtons()
         {
+            if (tabButtonsInitialized)
+                return;
+            tabButtonsInitialized = true;
+
             for (int i = 0; i < tabs.Length; i++)
             {
                 int tabIndex = i; // Capture for closure

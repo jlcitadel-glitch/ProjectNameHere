@@ -60,8 +60,18 @@ namespace ProjectName.UI
 
         private void Start()
         {
-            SubscribeToEvents();
             InitializeStyle();
+        }
+
+        private void OnEnable()
+        {
+            FindReferences();
+            SubscribeToEvents();
+        }
+
+        private void OnDisable()
+        {
+            UnsubscribeFromEvents();
         }
 
         private void OnDestroy()
@@ -70,7 +80,6 @@ namespace ProjectName.UI
             {
                 Instance = null;
             }
-            UnsubscribeFromEvents();
         }
 
         private void Update()
@@ -156,9 +165,16 @@ namespace ProjectName.UI
             notificationPrefab.transform.SetParent(transform);
         }
 
+        private void FindReferences()
+        {
+            if (skillManager == null)
+            {
+                skillManager = SkillManager.Instance;
+            }
+        }
+
         private void SubscribeToEvents()
         {
-            skillManager = SkillManager.Instance;
             if (skillManager != null)
             {
                 skillManager.OnPlayerLevelChanged += HandleLevelUp;
@@ -291,7 +307,7 @@ namespace ProjectName.UI
             for (int i = activeNotifications.Count - 1; i >= 0; i--)
             {
                 var notification = activeNotifications[i];
-                notification.timer += Time.deltaTime;
+                notification.timer += Time.unscaledDeltaTime;
 
                 switch (notification.state)
                 {
@@ -313,7 +329,7 @@ namespace ProjectName.UI
                 var notification = activeNotifications[i];
                 float targetY = -i * (notification.rectTransform.sizeDelta.y + notificationSpacing);
                 Vector2 pos = notification.rectTransform.anchoredPosition;
-                pos.y = Mathf.Lerp(pos.y, targetY, Time.deltaTime * 10f);
+                pos.y = Mathf.Lerp(pos.y, targetY, Time.unscaledDeltaTime * 10f);
                 notification.rectTransform.anchoredPosition = pos;
             }
         }
@@ -411,10 +427,7 @@ namespace ProjectName.UI
                 _ => genericSound
             };
 
-            if (clip != null && audioSource != null)
-            {
-                audioSource.PlayOneShot(clip, SFXManager.GetVolume());
-            }
+            SFXManager.PlayOneShot(audioSource, clip);
         }
 
         /// <summary>

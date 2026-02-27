@@ -65,7 +65,9 @@ namespace ProjectName.UI
         /// </summary>
         public bool IsInMenu => GameManager.Instance?.IsInMenu ?? false;
 
-        private Coroutine currentTransition;
+        private System.Collections.Generic.Dictionary<Canvas, Coroutine> activeTransitions
+            = new System.Collections.Generic.Dictionary<Canvas, Coroutine>();
+        private bool subscribedToGameManager;
 
         private void Awake()
         {
@@ -114,6 +116,9 @@ namespace ProjectName.UI
 
             // Ensure damage number spawner exists for gameplay scenes
             EnsureDamageNumberSpawner();
+
+            // Retry GameManager subscription if it wasn't available at Start
+            SubscribeToGameManager();
 
             // Re-setup pause input after scene change in case PlayerInput was recreated
             SetupPauseInput();
@@ -221,14 +226,18 @@ namespace ProjectName.UI
 
         private void SubscribeToGameManager()
         {
+            if (subscribedToGameManager)
+                return;
+
             if (GameManager.Instance != null)
             {
                 GameManager.Instance.OnGameStateChanged += HandleGameStateChanged;
+                subscribedToGameManager = true;
                 Debug.Log("[UIManager] Subscribed to GameManager");
             }
             else
             {
-                Debug.LogWarning("[UIManager] GameManager not found. UI will not respond to game state changes automatically.");
+                Debug.LogWarning("[UIManager] GameManager not found. Will retry on next scene load.");
             }
         }
 
@@ -314,8 +323,11 @@ namespace ProjectName.UI
                 Instance = null;
             }
 
-            if (currentTransition != null)
-                StopCoroutine(currentTransition);
+            foreach (var kvp in activeTransitions)
+            {
+                if (kvp.Value != null) StopCoroutine(kvp.Value);
+            }
+            activeTransitions.Clear();
 
             // Unsubscribe from scene loaded event
             SceneManager.sceneLoaded -= OnSceneLoaded;
@@ -616,8 +628,9 @@ namespace ProjectName.UI
                 return;
             }
 
-            if (currentTransition != null)
-                StopCoroutine(currentTransition);
+            // Stop any existing transition for THIS canvas only
+            if (activeTransitions.TryGetValue(canvas, out var existing) && existing != null)
+                StopCoroutine(existing);
 
             canvas.gameObject.SetActive(true);
             Debug.Log($"[UIManager] Canvas {canvas.name} activated. Starting fade-in.");
@@ -629,11 +642,12 @@ namespace ProjectName.UI
 
             float duration = styleGuide != null ? styleGuide.transitionDuration : 0.3f;
 
-            currentTransition = StartCoroutine(FadeCanvasGroup(group, 0f, 1f, duration, () =>
+            activeTransitions[canvas] = StartCoroutine(FadeCanvasGroup(group, 0f, 1f, duration, () =>
             {
                 group.interactable = true;
                 group.blocksRaycasts = true;
                 Debug.Log($"[UIManager] Canvas {canvas.name} fade-in complete. Alpha: {group.alpha}");
+                activeTransitions.Remove(canvas);
                 onComplete?.Invoke();
             }));
         }
@@ -646,17 +660,19 @@ namespace ProjectName.UI
             if (canvas == null || group == null)
                 return;
 
-            if (currentTransition != null)
-                StopCoroutine(currentTransition);
+            // Stop any existing transition for THIS canvas only
+            if (activeTransitions.TryGetValue(canvas, out var existing) && existing != null)
+                StopCoroutine(existing);
 
             group.interactable = false;
             group.blocksRaycasts = false;
 
             float duration = styleGuide != null ? styleGuide.transitionDuration : 0.3f;
 
-            currentTransition = StartCoroutine(FadeCanvasGroup(group, group.alpha, 0f, duration, () =>
+            activeTransitions[canvas] = StartCoroutine(FadeCanvasGroup(group, group.alpha, 0f, duration, () =>
             {
                 canvas.gameObject.SetActive(false);
+                activeTransitions.Remove(canvas);
                 onComplete?.Invoke();
             }));
         }

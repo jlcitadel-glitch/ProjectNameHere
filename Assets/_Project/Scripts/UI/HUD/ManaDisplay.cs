@@ -38,17 +38,19 @@ namespace ProjectName.UI
 
         private void Start()
         {
-            FindPlayerManaSystem();
             InitializeStyle();
             InitializeAudio();
         }
 
-        private void OnDestroy()
+        private void OnEnable()
         {
-            if (manaSystem != null)
-            {
-                manaSystem.OnManaChanged -= HandleManaChanged;
-            }
+            EnsureManaSystem();
+            SubscribeEvents();
+        }
+
+        private void OnDisable()
+        {
+            UnsubscribeEvents();
         }
 
         private void Update()
@@ -57,15 +59,17 @@ namespace ProjectName.UI
             UpdatePulse();
         }
 
-        private void FindPlayerManaSystem()
+        private void EnsureManaSystem()
         {
+            if (manaSystem != null)
+                return;
+
             GameObject player = GameObject.FindGameObjectWithTag("Player");
             if (player != null)
             {
                 manaSystem = player.GetComponent<ManaSystem>();
                 if (manaSystem != null)
                 {
-                    manaSystem.OnManaChanged += HandleManaChanged;
                     displayedMana = manaSystem.ManaPercent;
                     targetMana = displayedMana;
                     UpdateBar(displayedMana);
@@ -79,6 +83,22 @@ namespace ProjectName.UI
             else
             {
                 Debug.LogWarning("[ManaDisplay] Player not found. ManaDisplay will not update.");
+            }
+        }
+
+        private void SubscribeEvents()
+        {
+            if (manaSystem != null)
+            {
+                manaSystem.OnManaChanged += HandleManaChanged;
+            }
+        }
+
+        private void UnsubscribeEvents()
+        {
+            if (manaSystem != null)
+            {
+                manaSystem.OnManaChanged -= HandleManaChanged;
             }
         }
 
@@ -216,16 +236,13 @@ namespace ProjectName.UI
         /// </summary>
         public void SetManaSystem(ManaSystem system)
         {
-            if (manaSystem != null)
-            {
-                manaSystem.OnManaChanged -= HandleManaChanged;
-            }
+            UnsubscribeEvents();
 
             manaSystem = system;
 
             if (manaSystem != null)
             {
-                manaSystem.OnManaChanged += HandleManaChanged;
+                SubscribeEvents();
                 displayedMana = manaSystem.ManaPercent;
                 targetMana = displayedMana;
                 UpdateBar(displayedMana);

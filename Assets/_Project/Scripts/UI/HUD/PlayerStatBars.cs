@@ -69,23 +69,25 @@ namespace ProjectName.UI
 
         private float pulseTimer;
 
-        private void Awake()
-        {
-            healthSystem = GetComponent<HealthSystem>();
-            manaSystem = GetComponent<ManaSystem>();
-        }
-
         private void Start()
         {
             CreateBars();
-            SubscribeToEvents();
             InitializeValues();
+        }
+
+        private void OnEnable()
+        {
+            FindReferences();
+            SubscribeToEvents();
+        }
+
+        private void OnDisable()
+        {
+            UnsubscribeFromEvents();
         }
 
         private void OnDestroy()
         {
-            UnsubscribeFromEvents();
-
             if (healthBarContainer != null)
             {
                 Destroy(healthBarContainer);
@@ -94,6 +96,19 @@ namespace ProjectName.UI
             if (manaBarContainer != null)
             {
                 Destroy(manaBarContainer);
+            }
+        }
+
+        private void FindReferences()
+        {
+            if (healthSystem == null)
+            {
+                healthSystem = GetComponent<HealthSystem>();
+            }
+
+            if (manaSystem == null)
+            {
+                manaSystem = GetComponent<ManaSystem>();
             }
         }
 

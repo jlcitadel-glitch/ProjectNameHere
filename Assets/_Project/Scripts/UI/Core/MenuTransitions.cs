@@ -25,11 +25,14 @@ namespace ProjectName.UI
         [SerializeField] private float spectralPulseSpeed = 0.5f;
 
         private Coroutine currentSequence;
+        private Coroutine spectralPulseCoroutine;
 
         private void OnDestroy()
         {
             if (currentSequence != null)
                 StopCoroutine(currentSequence);
+            if (spectralPulseCoroutine != null)
+                StopCoroutine(spectralPulseCoroutine);
         }
 
         /// <summary>
@@ -75,7 +78,6 @@ namespace ProjectName.UI
             {
                 elapsed += Time.unscaledDeltaTime;
                 float t = Mathf.Clamp01(elapsed / duration);
-                float eased = EaseOutQuart(t);
 
                 // Fade
                 float fadeT = Mathf.Clamp01(elapsed / fadeDuration);
@@ -240,7 +242,11 @@ namespace ProjectName.UI
             if (element == null)
                 return null;
 
-            return StartCoroutine(SpectralPulseCoroutine(element, loop));
+            if (spectralPulseCoroutine != null)
+                StopCoroutine(spectralPulseCoroutine);
+
+            spectralPulseCoroutine = StartCoroutine(SpectralPulseCoroutine(element, loop));
+            return spectralPulseCoroutine;
         }
 
         private IEnumerator SpectralPulseCoroutine(Image element, bool loop)
@@ -249,10 +255,13 @@ namespace ProjectName.UI
 
             do
             {
+                if (element == null) yield break;
+
                 // Pulse to spectral color
                 float elapsed = 0f;
                 while (elapsed < spectralPulseSpeed)
                 {
+                    if (element == null) yield break;
                     elapsed += Time.unscaledDeltaTime;
                     float t = Mathf.Clamp01(elapsed / spectralPulseSpeed);
                     t = EaseInOutSine(t);
@@ -264,6 +273,7 @@ namespace ProjectName.UI
                 elapsed = 0f;
                 while (elapsed < spectralPulseSpeed)
                 {
+                    if (element == null) yield break;
                     elapsed += Time.unscaledDeltaTime;
                     float t = Mathf.Clamp01(elapsed / spectralPulseSpeed);
                     t = EaseInOutSine(t);
@@ -281,7 +291,11 @@ namespace ProjectName.UI
             if (element == null)
                 return;
 
-            StopAllCoroutines();
+            if (spectralPulseCoroutine != null)
+            {
+                StopCoroutine(spectralPulseCoroutine);
+                spectralPulseCoroutine = null;
+            }
             element.color = originalColor;
         }
 
@@ -303,6 +317,7 @@ namespace ProjectName.UI
 
             while (elapsed < duration)
             {
+                if (target == null) yield break;
                 elapsed += Time.unscaledDeltaTime;
                 float t = elapsed / duration;
 
@@ -314,7 +329,8 @@ namespace ProjectName.UI
                 yield return null;
             }
 
-            target.localScale = originalScale;
+            if (target != null)
+                target.localScale = originalScale;
         }
 
         /// <summary>
@@ -335,6 +351,7 @@ namespace ProjectName.UI
 
             while (elapsed < duration)
             {
+                if (target == null) yield break;
                 elapsed += Time.unscaledDeltaTime;
                 float t = elapsed / duration;
                 float damping = 1f - t;
@@ -346,7 +363,8 @@ namespace ProjectName.UI
                 yield return null;
             }
 
-            target.anchoredPosition = originalPos;
+            if (target != null)
+                target.anchoredPosition = originalPos;
         }
 
         /// <summary>

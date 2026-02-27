@@ -22,22 +22,14 @@ namespace ProjectName.UI
         [Tooltip("Show gamepad button prompts")]
         [SerializeField] private GameObject gamepadPrompts;
 
-        private EventSystem eventSystem;
         private Selectable lastSelected;
         private bool isUsingGamepad;
+
+        private EventSystem ActiveEventSystem => EventSystem.current;
 
         public bool IsUsingGamepad => isUsingGamepad;
 
         public event System.Action<bool> OnInputDeviceChanged;
-
-        private void Awake()
-        {
-            eventSystem = EventSystem.current;
-            if (eventSystem == null)
-            {
-                eventSystem = FindAnyObjectByType<EventSystem>();
-            }
-        }
 
         private void OnEnable()
         {
@@ -63,26 +55,26 @@ namespace ProjectName.UI
         /// </summary>
         private void EnsureValidSelection()
         {
-            if (eventSystem == null)
+            if (ActiveEventSystem == null)
                 return;
 
             // Only enforce selection for non-mouse input
             if (!isUsingGamepad && Mouse.current != null && Mouse.current.wasUpdatedThisFrame)
                 return;
 
-            GameObject currentSelected = eventSystem.currentSelectedGameObject;
+            GameObject currentSelected = ActiveEventSystem.currentSelectedGameObject;
 
             if (currentSelected == null || !currentSelected.activeInHierarchy)
             {
                 // Try to restore last selection
                 if (lastSelected != null && lastSelected.gameObject.activeInHierarchy && lastSelected.interactable)
                 {
-                    eventSystem.SetSelectedGameObject(lastSelected.gameObject);
+                    ActiveEventSystem.SetSelectedGameObject(lastSelected.gameObject);
                 }
                 // Fall back to default
                 else if (defaultSelection != null && defaultSelection.gameObject.activeInHierarchy && defaultSelection.interactable)
                 {
-                    eventSystem.SetSelectedGameObject(defaultSelection.gameObject);
+                    ActiveEventSystem.SetSelectedGameObject(defaultSelection.gameObject);
                 }
             }
             else
@@ -104,10 +96,10 @@ namespace ProjectName.UI
         /// </summary>
         public void SetFocus(Selectable target)
         {
-            if (target == null || eventSystem == null)
+            if (target == null || ActiveEventSystem == null)
                 return;
 
-            eventSystem.SetSelectedGameObject(target.gameObject);
+            ActiveEventSystem.SetSelectedGameObject(target.gameObject);
             lastSelected = target;
         }
 
@@ -124,9 +116,9 @@ namespace ProjectName.UI
             {
                 SetFocus(selectable);
             }
-            else if (eventSystem != null)
+            else if (ActiveEventSystem != null)
             {
-                eventSystem.SetSelectedGameObject(target);
+                ActiveEventSystem.SetSelectedGameObject(target);
             }
         }
 
@@ -135,9 +127,9 @@ namespace ProjectName.UI
         /// </summary>
         public void ClearFocus()
         {
-            if (eventSystem != null)
+            if (ActiveEventSystem != null)
             {
-                eventSystem.SetSelectedGameObject(null);
+                ActiveEventSystem.SetSelectedGameObject(null);
             }
         }
 
@@ -154,13 +146,13 @@ namespace ProjectName.UI
         /// </summary>
         public Selectable GetCurrentFocus()
         {
-            if (eventSystem == null || eventSystem.currentSelectedGameObject == null)
+            if (ActiveEventSystem == null || ActiveEventSystem.currentSelectedGameObject == null)
                 return null;
 
-            if (lastSelected != null && lastSelected.gameObject == eventSystem.currentSelectedGameObject)
+            if (lastSelected != null && lastSelected.gameObject == ActiveEventSystem.currentSelectedGameObject)
                 return lastSelected;
 
-            return eventSystem.currentSelectedGameObject.GetComponent<Selectable>();
+            return ActiveEventSystem.currentSelectedGameObject.GetComponent<Selectable>();
         }
 
         /// <summary>

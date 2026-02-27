@@ -38,14 +38,11 @@ namespace ProjectName.UI
         private LevelSystem levelSystem;
         private WaveManager waveManager;
 
+        private bool styleInitialized;
+
         private void Start()
         {
-            InitializeStyle();
-
-            if (autoFindPlayer)
-            {
-                FindPlayerSystems();
-            }
+            EnsureStyleInitialized();
 
             if (autoWireComponents)
             {
@@ -53,9 +50,26 @@ namespace ProjectName.UI
             }
         }
 
-        private void OnDestroy()
+        private void OnEnable()
+        {
+            EnsureStyleInitialized();
+
+            if (autoFindPlayer)
+            {
+                FindPlayerSystems();
+            }
+        }
+
+        private void OnDisable()
         {
             UnsubscribeFromEvents();
+        }
+
+        private void EnsureStyleInitialized()
+        {
+            if (styleInitialized) return;
+            styleInitialized = true;
+            InitializeStyle();
         }
 
         private void InitializeStyle()
@@ -92,9 +106,13 @@ namespace ProjectName.UI
 
             var newHealthSystem = player.GetComponent<HealthSystem>();
 
-            // Already subscribed to this exact instance — skip
+            // Same player instance already bound — just re-subscribe and refresh
             if (newHealthSystem != null && newHealthSystem == healthSystem)
+            {
+                SubscribeToEvents();
+                InitializeValues();
                 return;
+            }
 
             // Unsubscribe from old references before re-binding
             UnsubscribeFromEvents();

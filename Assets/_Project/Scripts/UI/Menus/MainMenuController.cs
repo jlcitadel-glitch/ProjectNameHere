@@ -83,6 +83,10 @@ namespace ProjectName.UI
         private int pendingSlotIndex = -1;
         private bool isSelectingSlotForNewGame;
 
+        // Stored delegates for unsubscription
+        private System.Action creditsBackHandler;
+        private System.Action highscoresBackHandler;
+
         public MainMenuState CurrentState => currentState;
         public event Action<MainMenuState> OnStateChanged;
 
@@ -112,13 +116,15 @@ namespace ProjectName.UI
             // Wire credits back button
             if (creditsController != null)
             {
-                creditsController.OnBackPressed += () => ShowMainMenu();
+                creditsBackHandler = ShowMainMenu;
+                creditsController.OnBackPressed += creditsBackHandler;
             }
 
             // Wire highscores back button
             if (highscoresController != null)
             {
-                highscoresController.OnBackPressed += () => ShowMainMenu();
+                highscoresBackHandler = ShowMainMenu;
+                highscoresController.OnBackPressed += highscoresBackHandler;
             }
 
             ShowMainMenu();
@@ -225,7 +231,8 @@ namespace ProjectName.UI
             highscoresController = HighscoresController.CreateRuntimeUI(uiParent);
             highscoresPanel = highscoresController.gameObject;
 
-            highscoresController.OnBackPressed += () => ShowMainMenu();
+            highscoresBackHandler = ShowMainMenu;
+            highscoresController.OnBackPressed += highscoresBackHandler;
         }
 
         private void EnsureCharacterCreation()
@@ -1041,6 +1048,11 @@ namespace ProjectName.UI
                 characterCreation.OnCreationComplete -= OnCharacterCreationComplete;
                 characterCreation.OnCreationCancelled -= OnCharacterCreationCancelled;
             }
+
+            if (creditsController != null && creditsBackHandler != null)
+                creditsController.OnBackPressed -= creditsBackHandler;
+            if (highscoresController != null && highscoresBackHandler != null)
+                highscoresController.OnBackPressed -= highscoresBackHandler;
 
             // Cleanup save slot listeners
             if (saveSlots != null)

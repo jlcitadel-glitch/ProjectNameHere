@@ -36,14 +36,50 @@ namespace ProjectName.UI
         private bool isPulsing;
         private float pulseTimer;
 
+        private bool visualsInitialized;
+
         private void Start()
         {
-            FindPlayerHealthSystem();
+            InitializeVisuals();
+        }
+
+        private void OnEnable()
+        {
+            EnsureReferences();
+            SubscribeEvents();
+        }
+
+        private void OnDisable()
+        {
+            UnsubscribeEvents();
+        }
+
+        private void InitializeVisuals()
+        {
+            if (visualsInitialized) return;
+            visualsInitialized = true;
             InitializeStyle();
             InitializeAudio();
         }
 
-        private void OnDestroy()
+        private void EnsureReferences()
+        {
+            InitializeVisuals();
+            if (healthSystem == null)
+            {
+                FindPlayerHealthSystem();
+            }
+        }
+
+        private void SubscribeEvents()
+        {
+            if (healthSystem != null)
+            {
+                healthSystem.OnHealthChanged += HandleHealthChanged;
+            }
+        }
+
+        private void UnsubscribeEvents()
         {
             if (healthSystem != null)
             {
@@ -65,7 +101,6 @@ namespace ProjectName.UI
                 healthSystem = player.GetComponent<HealthSystem>();
                 if (healthSystem != null)
                 {
-                    healthSystem.OnHealthChanged += HandleHealthChanged;
                     displayedHealth = healthSystem.HealthPercent;
                     targetHealth = displayedHealth;
                     UpdateBar(displayedHealth);
@@ -220,16 +255,13 @@ namespace ProjectName.UI
         /// </summary>
         public void SetHealthSystem(HealthSystem system)
         {
-            if (healthSystem != null)
-            {
-                healthSystem.OnHealthChanged -= HandleHealthChanged;
-            }
+            UnsubscribeEvents();
 
             healthSystem = system;
 
             if (healthSystem != null)
             {
-                healthSystem.OnHealthChanged += HandleHealthChanged;
+                SubscribeEvents();
                 displayedHealth = healthSystem.HealthPercent;
                 targetHealth = displayedHealth;
                 UpdateBar(displayedHealth);

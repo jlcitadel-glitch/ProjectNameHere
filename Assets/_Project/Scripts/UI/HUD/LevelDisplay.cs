@@ -22,6 +22,7 @@ namespace ProjectName.UI
         [SerializeField] private float animationDuration = 0.3f;
 
         private LevelSystem levelSystem;
+        private SkillManager cachedSkillManager;
         private Vector3 originalScale;
         private Coroutine animationCoroutine;
 
@@ -32,33 +33,47 @@ namespace ProjectName.UI
                 originalScale = levelText.transform.localScale;
             }
 
-            FindPlayerLevelSystem();
             InitializeStyle();
         }
 
-        private void OnDestroy()
+        private void OnEnable()
+        {
+            FindReferences();
+            SubscribeToEvents();
+            RefreshDisplay();
+        }
+
+        private void OnDisable()
         {
             UnsubscribeFromEvents();
         }
 
-        private void FindPlayerLevelSystem()
+        private void FindReferences()
         {
-            GameObject player = GameObject.FindGameObjectWithTag("Player");
-            if (player != null)
+            if (levelSystem == null)
             {
-                levelSystem = player.GetComponent<LevelSystem>();
-                if (levelSystem != null)
+                GameObject player = GameObject.FindGameObjectWithTag("Player");
+                if (player != null)
                 {
-                    SubscribeToEvents();
-                    UpdateDisplay(levelSystem.CurrentLevel);
+                    levelSystem = player.GetComponent<LevelSystem>();
                 }
             }
 
-            // Also try SkillManager for player level
-            if (levelSystem == null && SkillManager.Instance != null)
+            if (cachedSkillManager == null)
             {
-                SkillManager.Instance.OnPlayerLevelChanged += HandlePlayerLevelChanged;
-                UpdateDisplay(SkillManager.Instance.PlayerLevel);
+                cachedSkillManager = SkillManager.Instance;
+            }
+        }
+
+        private void RefreshDisplay()
+        {
+            if (levelSystem != null)
+            {
+                UpdateDisplay(levelSystem.CurrentLevel);
+            }
+            else if (cachedSkillManager != null)
+            {
+                UpdateDisplay(cachedSkillManager.PlayerLevel);
             }
         }
 
@@ -67,6 +82,11 @@ namespace ProjectName.UI
             if (levelSystem != null)
             {
                 levelSystem.OnLevelUp += HandleLevelUp;
+            }
+
+            if (cachedSkillManager != null)
+            {
+                cachedSkillManager.OnPlayerLevelChanged += HandlePlayerLevelChanged;
             }
         }
 
@@ -77,9 +97,9 @@ namespace ProjectName.UI
                 levelSystem.OnLevelUp -= HandleLevelUp;
             }
 
-            if (SkillManager.Instance != null)
+            if (cachedSkillManager != null)
             {
-                SkillManager.Instance.OnPlayerLevelChanged -= HandlePlayerLevelChanged;
+                cachedSkillManager.OnPlayerLevelChanged -= HandlePlayerLevelChanged;
             }
         }
 

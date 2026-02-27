@@ -2,11 +2,13 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-/// <summary>
-/// Canvas-based layered character preview. Stacks Image components
-/// to show the character's appearance in menus and character creation.
-/// </summary>
-public class UILayeredSpritePreview : MonoBehaviour
+namespace ProjectName.UI
+{
+    /// <summary>
+    /// Canvas-based layered character preview. Stacks Image components
+    /// to show the character's appearance in menus and character creation.
+    /// </summary>
+    public class UILayeredSpritePreview : MonoBehaviour
 {
     private Dictionary<BodyPartSlot, Image> layerImages;
     private Dictionary<BodyPartSlot, BodyPartData> currentParts;
@@ -152,4 +154,5 @@ public class UILayeredSpritePreview : MonoBehaviour
         foreach (var slot in layerImages.Keys)
             SetPart(slot, null);
     }
+}
 }
