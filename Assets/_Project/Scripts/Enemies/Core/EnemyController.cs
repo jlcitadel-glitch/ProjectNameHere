@@ -604,6 +604,18 @@ public class EnemyController : MonoBehaviour, IDamageable
 
         PlaySound(enemyData.deathSound);
 
+        // Spawn death hazard (e.g., noxious cloud)
+        if (enemyData.deathHazardPrefab != null)
+        {
+            Instantiate(enemyData.deathHazardPrefab, transform.position, Quaternion.identity);
+        }
+
+        // Split into smaller enemies
+        if (enemyData.deathSpawnPrefab != null && enemyData.deathSpawnCount > 0)
+        {
+            SpawnSplitEnemies();
+        }
+
         // Award XP to player
         AwardXP();
 
@@ -712,6 +724,41 @@ public class EnemyController : MonoBehaviour, IDamageable
                     Debug.Log($"[EnemyController] Awarded {enemyData.experienceValue} XP to player");
                 }
             }
+        }
+    }
+
+    private void SpawnSplitEnemies()
+    {
+        // Cache scene references once for all spawns
+        WaveManager waveManager = FindAnyObjectByType<WaveManager>();
+        EnemySpawnManager spawnManager = FindAnyObjectByType<EnemySpawnManager>();
+
+        for (int i = 0; i < enemyData.deathSpawnCount; i++)
+        {
+            // Alternate left/right spread
+            float offset = (i % 2 == 0 ? -1f : 1f) * enemyData.deathSpawnSpread * ((i / 2) + 1);
+            Vector3 spawnPos = transform.position + new Vector3(offset, 0.5f, 0f);
+
+            GameObject spawnedObj = Instantiate(enemyData.deathSpawnPrefab, spawnPos, Quaternion.identity);
+
+            // Apply wave scaling if a WaveManager exists
+            if (waveManager != null && waveManager.CurrentWave > 1 && waveManager.Config != null)
+            {
+                EnemyStatModifier modifier = spawnedObj.AddComponent<EnemyStatModifier>();
+                modifier.Initialize(waveManager.CurrentWave, waveManager.Config);
+            }
+
+            // Register with spawn manager for wave tracking
+            EnemyController spawnedController = spawnedObj.GetComponent<EnemyController>();
+            if (spawnedController != null && spawnManager != null)
+            {
+                spawnManager.RegisterExternalEnemy(spawnedController);
+            }
+        }
+
+        if (debugLogging)
+        {
+            Debug.Log($"[EnemyController] {gameObject.name}: Split into {enemyData.deathSpawnCount} {enemyData.deathSpawnPrefab.name}(s)");
         }
     }
 

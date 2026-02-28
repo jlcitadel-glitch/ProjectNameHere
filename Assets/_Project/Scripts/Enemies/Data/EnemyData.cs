@@ -64,6 +64,16 @@ public class EnemyData : ScriptableObject
     [Tooltip("Gravity multiplier while falling for snappy descent")]
     public float hopFallGravityMultiplier = 3f;
 
+    [Header("Death Effects")]
+    [Tooltip("Prefab to spawn on death (e.g., smaller enemy variant for splitting)")]
+    public GameObject deathSpawnPrefab;
+    [Tooltip("How many copies to spawn on death")]
+    public int deathSpawnCount = 0;
+    [Tooltip("Horizontal spread between spawned enemies")]
+    public float deathSpawnSpread = 0.5f;
+    [Tooltip("Hazard prefab spawned at death position (e.g., poison cloud)")]
+    public GameObject deathHazardPrefab;
+
     [Header("Audio")]
     public AudioClip spawnSound;
     public AudioClip idleSound;

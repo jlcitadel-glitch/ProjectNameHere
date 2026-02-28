@@ -120,6 +120,20 @@ public class EnemySpawnManager : MonoBehaviour
     }
 
     /// <summary>
+    /// Registers an externally-created enemy (e.g., from split-on-death) for wave tracking.
+    /// The wave won't end until all registered enemies are dead.
+    /// </summary>
+    public void RegisterExternalEnemy(EnemyController controller)
+    {
+        if (controller == null || aliveEnemies.Contains(controller))
+            return;
+
+        aliveEnemies.Add(controller);
+        controller.OnEnemyDeath += () => HandleEnemyDeath(controller);
+        OnEnemyCountChanged?.Invoke(aliveEnemies.Count);
+    }
+
+    /// <summary>
     /// Destroys all currently alive enemies immediately.
     /// </summary>
     public void DestroyAllEnemies()

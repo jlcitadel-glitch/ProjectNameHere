@@ -32,6 +32,7 @@ public class WaveManager : MonoBehaviour
 
     public WaveState CurrentState => currentState;
     public int CurrentWave => currentWave;
+    public WaveConfig Config => waveConfig;
     public float RestTimer { get; private set; }
 
     private bool wavePaused;

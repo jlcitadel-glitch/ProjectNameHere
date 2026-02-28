@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f, type: 3}
+  m_Name: MicroSlimeData
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyData
+  enemyName: Micro Slime
+  enemyType: 3
+  maxHealth: 10
+  invulnerabilityDuration: 0.1
+  moveSpeed: 4
+  chaseSpeed: 6
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  contactDamage: 4
+  contactKnockbackForce: 3
+  detectionType: 0
+  detectionRange: 4
+  detectionAngle: 60
+  loseAggroRange: 8
+  attacks:
+  - {fileID: 11400000, guid: 5b25180157636714c8ddfc8a2db3445c, type: 2}
+  attackRange: 1
+  attackCooldown: 1
+  knockbackResistance: 0
+  stunDuration: 0.5
+  experienceValue: 2
+  dropPrefabs: []
+  dropChance: 0
+  hopForce: 4
+  hopHorizontalSpeed: 4
+  hopCooldown: 0.5
+  hopChaseCooldown: 0.25
+  hopFallGravityMultiplier: 3
+  deathSpawnPrefab: {fileID: 0}
+  deathSpawnCount: 0
+  deathSpawnSpread: 0.5
+  deathHazardPrefab: {fileID: 0}
+  spawnSound: {fileID: 0}
+  idleSound: {fileID: 0}
+  alertSound: {fileID: 0}
+  attackSound: {fileID: 0}
+  hurtSound: {fileID: 0}
+  deathSound: {fileID: 0}
+  spawnVFX: {fileID: 0}
+  deathVFX: {fileID: 0}
+  hurtVFX: {fileID: 0}

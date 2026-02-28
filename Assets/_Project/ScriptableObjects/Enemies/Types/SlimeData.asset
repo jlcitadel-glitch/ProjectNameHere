@@ -11,13 +11,16 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f, type: 3}
   m_Name: SlimeData
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   enemyName: Slime
   enemyType: 3
   maxHealth: 30
   invulnerabilityDuration: 0.1
   moveSpeed: 3
   chaseSpeed: 5
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 0
   contactDamage: 10
   contactKnockbackForce: 5
   detectionType: 0
@@ -38,6 +41,11 @@ MonoBehaviour:
   hopCooldown: 1
   hopChaseCooldown: 0.5
   hopFallGravityMultiplier: 2.5
+  deathSpawnPrefab: {fileID: 2229470971824314302, guid: 6f9c414f7a31a7a419388c4641b28d8c, type: 3}
+  deathSpawnCount: 2
+  deathSpawnSpread: 0.5
+  deathHazardPrefab: {fileID: 0}
+  spawnSound: {fileID: 0}
   idleSound: {fileID: 0}
   alertSound: {fileID: 0}
   attackSound: {fileID: 0}
