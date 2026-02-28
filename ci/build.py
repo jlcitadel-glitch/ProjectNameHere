@@ -7,7 +7,7 @@ Usage:
     python ci/build.py --release          # Release build
     python ci/build.py --output Builds/X  # Custom output path
 
-Requires Unity 6000.3.4f1 installed via Unity Hub.
+Requires Unity 6000.3.x installed via Unity Hub.
 """
 
 import argparse
@@ -19,8 +19,10 @@ import time
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 
-# Unity Hub standard install paths (Windows)
+# Unity Hub standard install paths (Windows) — newest first
 UNITY_PATHS = [
+    os.path.join("C:", os.sep, "Program Files", "Unity", "Hub", "Editor",
+                 "6000.3.9f1", "Editor", "Unity.exe"),
     os.path.join("C:", os.sep, "Program Files", "Unity", "Hub", "Editor",
                  "6000.3.4f1", "Editor", "Unity.exe"),
 ]
@@ -53,7 +55,7 @@ def main():
     unity_path = args.unity or find_unity()
     if not unity_path:
         print("ERROR: Unity Editor not found.")
-        print("Install Unity 6000.3.4f1 via Unity Hub or set UNITY_EDITOR_PATH.")
+        print("Install Unity 6000.3.x via Unity Hub or set UNITY_EDITOR_PATH.")
         return 1
 
     print(f"Unity: {unity_path}")

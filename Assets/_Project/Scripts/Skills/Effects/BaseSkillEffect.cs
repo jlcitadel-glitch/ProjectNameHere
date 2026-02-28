@@ -88,13 +88,14 @@ public abstract class BaseSkillEffect : MonoBehaviour, ISkillEffectHandler
     {
         if (clip == null) return;
 
+        float scaledVolume = volume * SFXManager.GetVolume();
         if (audioSource != null)
         {
-            audioSource.PlayOneShot(clip, volume);
+            audioSource.PlayOneShot(clip, scaledVolume);
         }
         else
         {
-            AudioSource.PlayClipAtPoint(clip, transform.position, volume);
+            AudioSource.PlayClipAtPoint(clip, transform.position, scaledVolume);
         }
     }
 

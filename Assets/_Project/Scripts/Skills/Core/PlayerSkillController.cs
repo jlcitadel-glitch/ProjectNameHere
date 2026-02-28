@@ -338,9 +338,9 @@ public class PlayerSkillController : MonoBehaviour
         }
 
         // Play sound
-        if (audioSource != null && skillInstance.skillData?.castSound != null)
+        if (skillInstance.skillData?.castSound != null)
         {
-            audioSource.PlayOneShot(skillInstance.skillData.castSound);
+            SFXManager.PlayOneShot(audioSource, skillInstance.skillData.castSound);
         }
 
         // Execute skill via SkillExecutor (handles all 19 skills inline)

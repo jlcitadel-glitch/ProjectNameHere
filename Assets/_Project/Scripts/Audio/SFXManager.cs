@@ -28,6 +28,17 @@ public static class SFXManager
     }
 
     /// <summary>
+    /// Plays a one-shot clip with a local volume multiplier on top of the SFX volume.
+    /// </summary>
+    public static void PlayOneShot(AudioSource source, AudioClip clip, float volumeMultiplier)
+    {
+        if (source == null || clip == null)
+            return;
+
+        source.PlayOneShot(clip, GetVolume() * volumeMultiplier);
+    }
+
+    /// <summary>
     /// Plays a clip at a world position using PlayClipAtPoint, scaled to SFX volume.
     /// </summary>
     public static void PlayAtPoint(AudioClip clip, Vector3 position)

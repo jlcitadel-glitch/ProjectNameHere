@@ -165,8 +165,7 @@ public class PlayerControllerScript : MonoBehaviour
             }
 
             // Play landing sound
-            if (landSound != null)
-                audioSource.PlayOneShot(landSound, SFXManager.GetVolume() * landVolume);
+            SFXManager.PlayOneShot(audioSource, landSound, landVolume);
         }
 
         // Only decrement coyote time when in the air
@@ -183,8 +182,7 @@ public class PlayerControllerScript : MonoBehaviour
             footstepTimer -= Time.deltaTime;
             if (footstepTimer <= 0f)
             {
-                if (footstepSound != null)
-                    audioSource.PlayOneShot(footstepSound, SFXManager.GetVolume() * footstepVolume);
+                SFXManager.PlayOneShot(audioSource, footstepSound, footstepVolume);
                 footstepTimer = footstepInterval;
             }
         }
@@ -384,8 +382,7 @@ public class PlayerControllerScript : MonoBehaviour
     private void PerformJump()
     {
         rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpingPower);
-        if (jumpSound != null)
-            audioSource.PlayOneShot(jumpSound, SFXManager.GetVolume() * jumpVolume);
+        SFXManager.PlayOneShot(audioSource, jumpSound, jumpVolume);
     }
 
     private bool IsGrounded()
