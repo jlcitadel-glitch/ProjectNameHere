@@ -1,0 +1,542 @@
+{
+  "_meta": {
+    "generated": "2026-02-28T05:38:45.2465390Z",
+    "git_commit": "c4f0c3d",
+    "unity_version": "6000.3.9f1",
+    "generator": "Tools/Agent Tools/Rebuild Asset Index"
+  },
+  "scenes": [
+    {
+      "name": "MainMenu",
+      "path": "Assets/Scenes/MainMenu.unity"
+    },
+    {
+      "name": "SampleScene",
+      "path": "Assets/Scenes/SampleScene.unity"
+    }
+  ],
+  "resources": {
+    "(root)": [
+      {
+        "name": "BodyPartRegistry",
+        "path": "Assets/_Project/Resources/BodyPartRegistry.asset",
+        "guid": "0f7fa1fe9d7f77744a28de7c73f71311"
+      },
+      {
+        "name": "GameplayMusic",
+        "path": "Assets/_Project/Resources/GameplayMusic.mp3",
+        "guid": "69fc38cf6e76ebe4f83ed81c605836f0"
+      },
+      {
+        "name": "SkillIconDatabase",
+        "path": "Assets/_Project/Resources/SkillIconDatabase.asset",
+        "guid": "8c00b25e74753e84ca03ea83e7b6809e"
+      },
+      {
+        "name": "UISoundBank",
+        "path": "Assets/_Project/Resources/UISoundBank.asset",
+        "guid": "20c6c0a161c649144bb6a38ac8df1796"
+      }
+    ],
+    "Equipment": [
+      "mage_robe",
+      "mage_shoes",
+      "mage_staff",
+      "rogue_boots",
+      "rogue_dagger",
+      "rogue_vest",
+      "warrior_chainmail",
+      "warrior_greaves",
+      "warrior_sword"
+    ],
+    "Jobs": [
+      {
+        "name": "Beginner",
+        "path": "Assets/_Project/Resources/Jobs/Beginner.asset",
+        "guid": "bc2173f2e0402ae4584cc0b3f74625e8"
+      },
+      {
+        "name": "Mage",
+        "path": "Assets/_Project/Resources/Jobs/Mage.asset",
+        "guid": "f17872cbe63d8c0429d49208541b1e9e"
+      },
+      {
+        "name": "Rogue",
+        "path": "Assets/_Project/Resources/Jobs/Rogue.asset",
+        "guid": "7181e6ca14f01a24c8a9a40e4689b5c4"
+      },
+      {
+        "name": "Warrior",
+        "path": "Assets/_Project/Resources/Jobs/Warrior.asset",
+        "guid": "33c7d15f4c49bfd48b7a80bba1bc1a39"
+      }
+    ],
+    "Skills": [
+      "Berserk",
+      "CriticalEye",
+      "CriticalMastery",
+      "Evasion",
+      "Fireball",
+      "GroundSlam",
+      "Guard",
+      "IceBolt",
+      "IronSkin",
+      "MagicShield",
+      "ManaMastery",
+      "Meteor",
+      "PoisonBlade",
+      "PowerStrike",
+      "QuickStrike",
+      "Recovery",
+      "ShadowStrike",
+      "TripleSlash",
+      "WarCry"
+    ],
+    "SkillTrees": [
+      {
+        "name": "BeginnerTree",
+        "path": "Assets/_Project/Resources/SkillTrees/BeginnerTree.asset",
+        "guid": "f54f4585e14aa5344a452bc9c503512e"
+      },
+      {
+        "name": "MageTree",
+        "path": "Assets/_Project/Resources/SkillTrees/MageTree.asset",
+        "guid": "a5d3414690357474a9dfd181bfc3f1dd"
+      },
+      {
+        "name": "RogueTree",
+        "path": "Assets/_Project/Resources/SkillTrees/RogueTree.asset",
+        "guid": "0ce917d3aa0134340ace65f18cdaf117"
+      },
+      {
+        "name": "WarriorTree",
+        "path": "Assets/_Project/Resources/SkillTrees/WarriorTree.asset",
+        "guid": "dab052c3e159fde44af9243e3087d6e1"
+      }
+    ]
+  },
+  "scriptable_objects": {
+    "Character": [
+      {
+        "name": "LPCSideViewFrameMap",
+        "path": "Assets/_Project/ScriptableObjects/Character/LPCSideViewFrameMap.asset"
+      }
+    ],
+    "Character/Appearances": [
+      {
+        "name": "Default",
+        "path": "Assets/_Project/ScriptableObjects/Character/Appearances/Default.asset"
+      }
+    ],
+    "Character/BodyParts": [
+      "body_light",
+      "hair",
+      "hair_afro",
+      "hair_bangs",
+      "hair_bob",
+      "hair_braid",
+      "hair_buzzcut",
+      "hair_cornrows",
+      "hair_curly_long",
+      "hair_curly_short",
+      "hair_dreadlocks_long",
+      "hair_dreadlocks_short",
+      "hair_jewfro",
+      "hair_long",
+      "hair_loose",
+      "hair_messy1",
+      "hair_natural",
+      "hair_pixie",
+      "hair_plain",
+      "hair_ponytail",
+      "hair_shorthawk",
+      "hair_wavy",
+      "hair_xlong",
+      "head_light",
+      "legs_armour",
+      "legs_boots",
+      "legs_pants",
+      "legs_pants_teal",
+      "torso_chainmail",
+      "torso_leather",
+      "torso_longsleeve",
+      "weapon_dagger",
+      "weapon_longsword",
+      "weapon_staff"
+    ],
+    "Combat/Parry": [
+      {
+        "name": "MageParry",
+        "path": "Assets/_Project/ScriptableObjects/Combat/Parry/MageParry.asset"
+      },
+      {
+        "name": "RogueParry",
+        "path": "Assets/_Project/ScriptableObjects/Combat/Parry/RogueParry.asset"
+      },
+      {
+        "name": "WarriorParry",
+        "path": "Assets/_Project/ScriptableObjects/Combat/Parry/WarriorParry.asset"
+      }
+    ],
+    "Enemies": [
+      {
+        "name": "SurvivalWaveConfig",
+        "path": "Assets/_Project/ScriptableObjects/Enemies/SurvivalWaveConfig.asset"
+      }
+    ],
+    "Enemies/Attacks": [
+      "BatAttack",
+      "FlyingEyeAttack1",
+      "FlyingEyeAttack2",
+      "GoblinAttack1",
+      "GoblinAttack2",
+      "GuardianBossMelee",
+      "GuardianBossProjectile",
+      "MushroomAttack1",
+      "MushroomAttack2",
+      "SkeletonAttack1",
+      "SkeletonAttack2",
+      "SlimeAttack",
+      "TurretAttack"
+    ],
+    "Enemies/Types": [
+      "BatData",
+      "FlyingEyeData",
+      "GoblinData",
+      "GuardianBossData",
+      "MushroomData",
+      "SkeletonData",
+      "SlimeData",
+      "TurretData"
+    ],
+    "Precipitation": [
+      {
+        "name": "Rain_Heavy",
+        "path": "Assets/_Project/ScriptableObjects/Precipitation/Rain_Heavy.asset"
+      },
+      {
+        "name": "Rain_Light",
+        "path": "Assets/_Project/ScriptableObjects/Precipitation/Rain_Light.asset"
+      },
+      {
+        "name": "Rain_Storm",
+        "path": "Assets/_Project/ScriptableObjects/Precipitation/Rain_Storm.asset"
+      }
+    ]
+  },
+  "prefabs": {
+    "Abilities": [
+      {
+        "name": "DashPowerUp",
+        "path": "Assets/_Project/Prefabs/Abilities/DashPowerUp.prefab"
+      },
+      {
+        "name": "DoubleJumpPowerUp",
+        "path": "Assets/_Project/Prefabs/Abilities/DoubleJumpPowerUp.prefab"
+      }
+    ],
+    "Arena": [
+      {
+        "name": "SurvivalArena",
+        "path": "Assets/_Project/Prefabs/Arena/SurvivalArena.prefab"
+      }
+    ],
+    "Camera": [
+      {
+        "name": "MainCamera",
+        "path": "Assets/_Project/Prefabs/Camera/MainCamera.prefab"
+      }
+    ],
+    "Effects": [
+      {
+        "name": "EnemyDeathVFX",
+        "path": "Assets/_Project/Prefabs/Effects/EnemyDeathVFX.prefab"
+      },
+      {
+        "name": "EnemySpawnVFX",
+        "path": "Assets/_Project/Prefabs/Effects/EnemySpawnVFX.prefab"
+      },
+      {
+        "name": "ExperienceOrb",
+        "path": "Assets/_Project/Prefabs/Effects/ExperienceOrb.prefab"
+      },
+      {
+        "name": "SkillHitVFX",
+        "path": "Assets/_Project/Prefabs/Effects/SkillHitVFX.prefab"
+      }
+    ],
+    "Effects/Parallax": [
+      "ParallaxLayer_BackgroundClose",
+      "ParallaxLayer_BackgroundFar",
+      "ParallaxLayer_Foreground",
+      "ParallaxLayer_ForegroundClose",
+      "ParallaxLayer_Midground",
+      "ParallaxLayer_MidgroundClose"
+    ],
+    "Enemies": [
+      "Bat",
+      "FlyingEye",
+      "Goblin",
+      "GuardianBoss",
+      "Mushroom",
+      "Skeleton",
+      "Slime",
+      "Turret"
+    ],
+    "Player": [
+      {
+        "name": "Player",
+        "path": "Assets/_Project/Prefabs/Player/Player.prefab"
+      }
+    ],
+    "UI/Canvases": [
+      {
+        "name": "HUD_Canvas",
+        "path": "Assets/_Project/Prefabs/UI/Canvases/HUD_Canvas.prefab"
+      },
+      {
+        "name": "MainMenu_Canvas",
+        "path": "Assets/_Project/Prefabs/UI/Canvases/MainMenu_Canvas.prefab"
+      },
+      {
+        "name": "SkillTree_Canvas",
+        "path": "Assets/_Project/Prefabs/UI/Canvases/SkillTree_Canvas.prefab"
+      }
+    ],
+    "UI/Components": [
+      {
+        "name": "SkillNode",
+        "path": "Assets/_Project/Prefabs/UI/Components/SkillNode.prefab"
+      }
+    ],
+    "UI/Systems": [
+      {
+        "name": "DisplaySettings",
+        "path": "Assets/_Project/Prefabs/UI/Systems/DisplaySettings.prefab"
+      },
+      {
+        "name": "UIManager",
+        "path": "Assets/_Project/Prefabs/UI/Systems/UIManager.prefab"
+      }
+    ]
+  },
+  "scripts": {
+    "root": "Assets/_Project/Scripts",
+    "directories": [
+      {
+        "dir": "Abilities",
+        "count": 4
+      },
+      {
+        "dir": "Audio",
+        "count": 2
+      },
+      {
+        "dir": "Camera",
+        "count": 5
+      },
+      {
+        "dir": "Combat",
+        "count": 11,
+        "subdirs": [
+          "Data",
+          "Editor"
+        ]
+      },
+      {
+        "dir": "Editor",
+        "count": 11,
+        "subdirs": [
+          "MCP"
+        ]
+      },
+      {
+        "dir": "Enemies",
+        "count": 27,
+        "subdirs": [
+          "Combat",
+          "Core",
+          "Data",
+          "Editor",
+          "Movement",
+          "Sensors",
+          "Spawning"
+        ]
+      },
+      {
+        "dir": "Equipment",
+        "count": 3
+      },
+      {
+        "dir": "Player",
+        "count": 10,
+        "subdirs": [
+          "Appearance"
+        ]
+      },
+      {
+        "dir": "Skills",
+        "count": 23,
+        "subdirs": [
+          "Core",
+          "Data",
+          "Editor",
+          "Effects",
+          "Enums",
+          "Execution"
+        ]
+      },
+      {
+        "dir": "Systems",
+        "count": 18,
+        "subdirs": [
+          "Core",
+          "Cutscene",
+          "Editor",
+          "Input"
+        ]
+      },
+      {
+        "dir": "UI",
+        "count": 47,
+        "subdirs": [
+          "Components",
+          "Core",
+          "Editor",
+          "Equipment",
+          "HUD",
+          "Menus",
+          "Skills",
+          "Stats",
+          "Systems"
+        ]
+      },
+      {
+        "dir": "VFX",
+        "count": 21,
+        "subdirs": [
+          "Precipitation"
+        ]
+      }
+    ],
+    "total": 182
+  },
+  "icons": {
+    "root": "Assets/_Project/Art/UI/Icons/Skills",
+    "total": 4170,
+    "authors": {
+      "delapouite": 2023,
+      "lorc": 1429,
+      "skoll": 172,
+      "viscious-speed": 121,
+      "caro-asercion": 116,
+      "sbed": 95,
+      "aussiesim": 52,
+      "darkzaitzev": 32,
+      "cathelineau": 29,
+      "quoting": 12,
+      "faithtoken": 10,
+      "lord-berandas": 10,
+      "priorblue": 7,
+      "willdabeast": 7,
+      "carl-olsen": 6,
+      "felbrigg": 5,
+      "lucasms": 5,
+      "seregacthtuf": 5,
+      "guard13007": 3,
+      "john-redman": 3,
+      "kier-heyl": 3,
+      "pierre-leducq": 3,
+      "rihlsul": 3,
+      "andymeneely": 2,
+      "generalace135": 2,
+      "heavenly-dog": 2,
+      "various-artists": 2,
+      "zajkonur": 2,
+      "zeromancer": 2,
+      "catsu": 1,
+      "irongamer": 1,
+      "john-colburn": 1,
+      "pepijn-poolman": 1,
+      "sparker": 1,
+      "spencerdub": 1,
+      "starseeker": 1
+    },
+    "note": "Individual icons not listed. Path pattern: {root}/{author}/{icon}.png"
+  },
+  "tiles": {
+    "root": "Assets/_Project/Art/Tiles/SunnyLandForest",
+    "count": 109,
+    "note": "Tile assets named tileset_0.asset through tileset_N.asset"
+  },
+  "editor_tools": [
+    "Tools/Agent Tools/Rebuild Asset Index",
+    "Tools/Arena Setup Wizard",
+    "Tools/Combat/Setup Combat Assets",
+    "Tools/Combat/Setup Layers",
+    "Tools/Create All Enemy Prefabs",
+    "Tools/Create Guardian Boss",
+    "Tools/Debug/Skip To Boss Wave _F5",
+    "Tools/Debug/Skip To Wave 10 _F6",
+    "Tools/Demigiant/DOTween Utility Panel",
+    "Tools/Enemy Setup Wizard",
+    "Tools/Experience Orbs/Create Prefab && Assign to Enemies",
+    "Tools/Experience Orbs/Create Prefab Only",
+    "Tools/Generate Starter Equipment",
+    "Tools/LPC Character Setup Wizard",
+    "Tools/MCP Unity/Server Window",
+    "Tools/MCP/Assign Assets",
+    "Tools/MCP/Capture Game View",
+    "Tools/MCP/Capture Scene View",
+    "Tools/MCP/Force Release Scene Lock",
+    "Tools/MCP/Show Scene Lock Status",
+    "Tools/ProjectName/Systems Setup Wizard",
+    "Tools/Repair All Enemy Prefabs",
+    "Tools/Skill Icons/Configure Import Settings",
+    "Tools/Skill Icons/Icon Browser",
+    "Tools/Skill Icons/Rebuild Database",
+    "Tools/Sunny Land Forest/1 - Create Tile Assets",
+    "Tools/Sunny Land Forest/2 - Create Tile Palette",
+    "Tools/Sunny Land Forest/3 - Create Scene Tilemap",
+    "Tools/Sunny Land Forest/Setup Tilemap (Full)",
+    "Tools/Wire Skill Animation Triggers"
+  ],
+  "critical_assets": [
+    {
+      "name": "BodyPartRegistry",
+      "path": "Assets/_Project/Resources/BodyPartRegistry.asset",
+      "guid": "0f7fa1fe9d7f77744a28de7c73f71311",
+      "note": "Resources.Load singleton"
+    },
+    {
+      "name": "SkillIconDatabase",
+      "path": "Assets/_Project/Resources/SkillIconDatabase.asset",
+      "guid": "8c00b25e74753e84ca03ea83e7b6809e",
+      "note": "Resources.Load, rebuilt by builder"
+    },
+    {
+      "name": "UISoundBank",
+      "path": "Assets/_Project/Resources/UISoundBank.asset",
+      "guid": "20c6c0a161c649144bb6a38ac8df1796",
+      "note": "Fallback-loaded by UIManager"
+    },
+    {
+      "name": "Player",
+      "path": "Assets/_Project/Prefabs/Player/Player.prefab",
+      "guid": "22339e5020061054d9a6fed08e6549fe",
+      "note": "Main player prefab"
+    },
+    {
+      "name": "MainMenu_Canvas",
+      "path": "Assets/_Project/Prefabs/UI/Canvases/MainMenu_Canvas.prefab",
+      "guid": "821bd020bb5a72444a363738b985ed6a",
+      "note": "Main menu UI"
+    },
+    {
+      "name": "HUD_Canvas",
+      "path": "Assets/_Project/Prefabs/UI/Canvases/HUD_Canvas.prefab",
+      "guid": "c194074e4bf698b448ddf0b8eefd4f10",
+      "note": "In-game HUD"
+    }
+  ]
+}
