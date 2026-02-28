@@ -160,13 +160,14 @@ namespace ProjectName.UI
                 skillData = skillInstance?.skillData ?? SkillManager.Instance?.GetSkillData(skillId);
             }
 
-            // Update icon
+            // Update icon via database-aware resolution
             if (slot.iconImage != null)
             {
-                if (skillData?.icon != null)
+                var resolvedIcon = skillData != null ? SkillIconHelper.ResolveIcon(skillData) : null;
+                if (resolvedIcon != null)
                 {
-                    slot.iconImage.sprite = skillData.icon;
-                    slot.iconImage.color = Color.white;
+                    slot.iconImage.sprite = resolvedIcon;
+                    slot.iconImage.color = skillData != null ? SkillIconHelper.ResolveTint(skillData) : Color.white;
                     slot.iconImage.enabled = true;
                 }
                 else if (emptySlotSprite != null)
@@ -246,7 +247,11 @@ namespace ProjectName.UI
                 }
 
                 if (slot.iconImage != null)
-                    slot.iconImage.color = cooldownColor;
+                {
+                    var sd = SkillManager.Instance?.GetSkillData(skillId);
+                    Color baseTint = sd != null ? SkillIconHelper.ResolveTint(sd) : Color.white;
+                    slot.iconImage.color = SkillIconHelper.ComposeTint(baseTint, cooldownColor);
+                }
             }
             else
             {
@@ -262,7 +267,12 @@ namespace ProjectName.UI
                 bool canAfford = manaSystem?.CanAfford(manaCost) ?? true;
 
                 if (slot.iconImage != null)
-                    slot.iconImage.color = canAfford ? readyColor : noManaColor;
+                {
+                    var sd = skillInstance.skillData;
+                    Color baseTint = sd != null ? SkillIconHelper.ResolveTint(sd) : Color.white;
+                    Color stateColor = canAfford ? readyColor : noManaColor;
+                    slot.iconImage.color = SkillIconHelper.ComposeTint(baseTint, stateColor);
+                }
 
                 if (slot.frameImage != null)
                     slot.frameImage.color = canAfford ? readyColor : noManaColor;

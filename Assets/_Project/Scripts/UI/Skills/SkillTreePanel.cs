@@ -357,9 +357,19 @@ namespace ProjectName.UI
                 skillNameText.text = skill.skillName;
             }
 
-            if (skillIconImage != null && skill.icon != null)
+            if (skillIconImage != null)
             {
-                skillIconImage.sprite = skill.icon;
+                var resolvedIcon = SkillIconHelper.ResolveIcon(skill);
+                if (resolvedIcon != null)
+                {
+                    skillIconImage.sprite = resolvedIcon;
+                    skillIconImage.color = SkillIconHelper.ResolveTint(skill);
+                    skillIconImage.enabled = true;
+                }
+                else
+                {
+                    skillIconImage.enabled = false;
+                }
             }
 
             if (skillDescriptionText != null)

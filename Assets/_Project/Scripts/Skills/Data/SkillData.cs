@@ -18,8 +18,17 @@ public class SkillData : ScriptableObject
     [TextArea(3, 6)]
     public string description;
 
-    [Tooltip("Skill icon for UI")]
+    [Tooltip("Skill icon for UI (direct sprite — takes priority over iconId)")]
     public Sprite icon;
+
+    [Tooltip("Icon ID for database lookup (used when icon is null, e.g. lorc/fire-bolt)")]
+    public string iconId;
+
+    [Tooltip("Manual tint override (Color.clear = use auto-tint from DamageType)")]
+    public Color iconTintOverride = Color.clear;
+
+    [Tooltip("When true and no manual tint, auto-tint from DamageType palette")]
+    public bool useAutoTint = true;
 
     [Header("Classification")]
     [Tooltip("Behavior type of this skill")]

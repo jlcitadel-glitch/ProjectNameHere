@@ -103,10 +103,14 @@ namespace ProjectName.UI
                 return;
             }
 
-            // Set icon
-            if (iconImage != null && skill.icon != null)
+            // Set icon via database-aware resolution
+            if (iconImage != null)
             {
-                iconImage.sprite = skill.icon;
+                var resolvedIcon = SkillIconHelper.ResolveIcon(skill);
+                if (resolvedIcon != null)
+                {
+                    iconImage.sprite = resolvedIcon;
+                }
             }
 
             // Update state
@@ -159,12 +163,14 @@ namespace ProjectName.UI
                 lockOverlay.gameObject.SetActive(currentState == NodeState.Locked);
             }
 
-            // Icon saturation
+            // Icon tint: compose element tint with state color
             if (iconImage != null)
             {
-                iconImage.color = currentState == NodeState.Locked
+                Color baseTint = skillData != null ? SkillIconHelper.ResolveTint(skillData) : Color.white;
+                Color stateColor = currentState == NodeState.Locked
                     ? new Color(0.5f, 0.5f, 0.5f, 1f)
                     : Color.white;
+                iconImage.color = SkillIconHelper.ComposeTint(baseTint, stateColor);
             }
 
             // Level text

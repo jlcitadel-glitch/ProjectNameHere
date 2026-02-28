@@ -168,10 +168,20 @@ namespace ProjectName.UI
                 }
             }
 
-            // Icon
-            if (skillIcon != null && currentSkill.icon != null)
+            // Icon via database-aware resolution
+            if (skillIcon != null)
             {
-                skillIcon.sprite = currentSkill.icon;
+                var resolvedIcon = SkillIconHelper.ResolveIcon(currentSkill);
+                if (resolvedIcon != null)
+                {
+                    skillIcon.sprite = resolvedIcon;
+                    skillIcon.color = SkillIconHelper.ResolveTint(currentSkill);
+                    skillIcon.enabled = true;
+                }
+                else
+                {
+                    skillIcon.enabled = false;
+                }
             }
 
             // Description
