@@ -16,6 +16,9 @@ MonoBehaviour:
   skillName: Fireball
   description: Launch a fireball dealing {damage} fire damage.
   icon: {fileID: 0}
+  iconId: lorc/fireball
+  iconTintOverride: {r: 0, g: 0, b: 0, a: 0}
+  useAutoTint: 1
   skillType: 0
   damageType: 2
   requiredJobId: mage

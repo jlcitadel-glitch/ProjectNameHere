@@ -16,6 +16,9 @@ MonoBehaviour:
   skillName: Meteor
   description: Call down a meteor dealing {damage} fire damage in a large area.
   icon: {fileID: 0}
+  iconId: lorc/meteor-impact
+  iconTintOverride: {r: 0, g: 0, b: 0, a: 0}
+  useAutoTint: 1
   skillType: 0
   damageType: 2
   requiredJobId: mage

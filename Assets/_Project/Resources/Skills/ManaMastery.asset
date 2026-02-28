@@ -16,6 +16,9 @@ MonoBehaviour:
   skillName: Mana Mastery
   description: Passively increases max MP by {damage}% and MP regen by {damage}%.
   icon: {fileID: 0}
+  iconId: lorc/magic-swirl
+  iconTintOverride: {r: 0, g: 0, b: 0, a: 0}
+  useAutoTint: 1
   skillType: 1
   damageType: 1
   requiredJobId: mage

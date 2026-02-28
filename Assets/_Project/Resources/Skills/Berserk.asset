@@ -17,6 +17,9 @@ MonoBehaviour:
   description: Enter a berserk state, increasing damage by 50% but taking 20% more
     damage for {duration}s.
   icon: {fileID: 0}
+  iconId: delapouite/enrage
+  iconTintOverride: {r: 0, g: 0, b: 0, a: 0}
+  useAutoTint: 1
   skillType: 3
   damageType: 0
   requiredJobId: warrior

@@ -16,6 +16,9 @@ MonoBehaviour:
   skillName: Guard
   description: Reduce incoming damage by 30% for {duration}s.
   icon: {fileID: 0}
+  iconId: lorc/bordered-shield
+  iconTintOverride: {r: 0, g: 0, b: 0, a: 0}
+  useAutoTint: 1
   skillType: 3
   damageType: 0
   requiredJobId: beginner
