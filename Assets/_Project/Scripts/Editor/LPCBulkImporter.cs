@@ -108,10 +108,45 @@ public class LPCBulkImporter : EditorWindow
     private bool showImportQueue;
     private string skinVariant = "light";
 
-    [MenuItem("Tools/LPC Bulk Importer")]
+    [MenuItem("Tools/LPC Bulk Importer Window")]
     public static void ShowWindow()
     {
         GetWindow<LPCBulkImporter>("LPC Bulk Importer");
+    }
+
+    /// <summary>
+    /// Public entry point for discovery step. Called by LPCBulkImporterRunner.
+    /// </summary>
+    public void RunDiscoverStep()
+    {
+        DiscoverAndFilter();
+
+        Debug.Log($"[LPC Bulk] Discovery complete: {allDefinitions.Count} total, " +
+            $"{safeDefinitions.Count} safe, {skippedDefinitions.Count} skipped, " +
+            $"{importQueue.Count} import items");
+
+        foreach (var def in skippedDefinitions)
+            Debug.Log($"[LPC Bulk] SKIPPED: {def.name} ({def.sourceJsonPath})");
+
+        var slotCounts = new Dictionary<BodyPartSlot, int>();
+        foreach (var item in importQueue)
+        {
+            if (!slotCounts.ContainsKey(item.slot))
+                slotCounts[item.slot] = 0;
+            slotCounts[item.slot]++;
+        }
+        foreach (var kvp in slotCounts.OrderBy(k => (int)k.Key))
+            Debug.Log($"[LPC Bulk] Queue: {kvp.Key} = {kvp.Value} items");
+    }
+
+    /// <summary>
+    /// Public entry point for full import. Called by LPCBulkImporterRunner.
+    /// </summary>
+    public void RunAllSteps()
+    {
+        RunAll();
+        Debug.Log($"[LPC Bulk] Import complete: {importQueue.Count} items processed, " +
+            $"{creditLines.Count} credit entries");
     }
 
     // ===== Editor GUI =====
