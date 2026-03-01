@@ -62,6 +62,20 @@ namespace ProjectName.UI
         [SerializeField] private TMP_Text hairColorNameText;
         [SerializeField] private Button hairColorPrevButton;
         [SerializeField] private Button hairColorNextButton;
+
+        [Header("Body Type Selection")]
+        [SerializeField] private Button bodyTypeMaleButton;
+        [SerializeField] private Button bodyTypeFemaleButton;
+        [SerializeField] private TMP_Text bodyTypeLabel;
+
+        [Header("Slot Cycling (Generic)")]
+        [Tooltip("Container for slot tab buttons — if null, only legacy hair/skin cycling is used")]
+        [SerializeField] private Transform slotTabContainer;
+        [SerializeField] private Button slotPrevButton;
+        [SerializeField] private Button slotNextButton;
+        [SerializeField] private TMP_Text slotPartNameText;
+        [SerializeField] private TMP_Text slotCategoryLabel;
+
         private UILayeredSpritePreview appearancePreview;
 
         // Animated preview components (added at runtime)
@@ -85,6 +99,12 @@ namespace ProjectName.UI
         private BodyPartData[] availableHairStyles;
         private int selectedHairIndex;
         private CharacterAppearanceConfig builtAppearance;
+        private string selectedBodyType = "male";
+
+        // Generic slot cycling state
+        private BodyPartSlot activeSlot = BodyPartSlot.Hair;
+        private BodyPartData[] activeSlotParts;
+        private int activeSlotIndex;
 
         private static readonly Color[] SkinTonePresets = new Color[]
         {
@@ -218,6 +238,30 @@ namespace ProjectName.UI
                 hairColorNextButton.onClick.RemoveAllListeners();
                 hairColorNextButton.onClick.AddListener(() => CycleHairColor(1));
             }
+
+            // Body type toggle
+            if (bodyTypeMaleButton != null)
+            {
+                bodyTypeMaleButton.onClick.RemoveAllListeners();
+                bodyTypeMaleButton.onClick.AddListener(() => SetBodyType("male"));
+            }
+            if (bodyTypeFemaleButton != null)
+            {
+                bodyTypeFemaleButton.onClick.RemoveAllListeners();
+                bodyTypeFemaleButton.onClick.AddListener(() => SetBodyType("female"));
+            }
+
+            // Generic slot cycling
+            if (slotPrevButton != null)
+            {
+                slotPrevButton.onClick.RemoveAllListeners();
+                slotPrevButton.onClick.AddListener(() => CycleActiveSlot(-1));
+            }
+            if (slotNextButton != null)
+            {
+                slotNextButton.onClick.RemoveAllListeners();
+                slotNextButton.onClick.AddListener(() => CycleActiveSlot(1));
+            }
         }
 
         /// <summary>
@@ -235,6 +279,10 @@ namespace ProjectName.UI
             selectedSkinToneIndex = 0;
             selectedHairColorIndex = 0;
             builtAppearance = null;
+            selectedBodyType = "male";
+            activeSlot = BodyPartSlot.Hair;
+            activeSlotParts = null;
+            activeSlotIndex = 0;
 
             if (appearancePreview != null)
                 appearancePreview.Clear();
@@ -667,8 +715,8 @@ namespace ProjectName.UI
             SetPanelActive(classSelectionPanel, false);
             SetPanelActive(appearancePanel, true);
 
-            // Gather available hair styles
-            availableHairStyles = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Hair);
+            // Gather available hair styles (filtered by body type)
+            availableHairStyles = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Hair, selectedBodyType);
 
             // Only initialize appearance if not already built (preserve choices when navigating back)
             if (builtAppearance == null)
@@ -678,9 +726,10 @@ namespace ProjectName.UI
                 selectedHairColorIndex = 0;
 
                 builtAppearance = ScriptableObject.CreateInstance<CharacterAppearanceConfig>();
+                builtAppearance.bodyType = selectedBodyType;
 
-                var bodyParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Body);
-                var headParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Head);
+                var bodyParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Body, selectedBodyType);
+                var headParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Head, selectedBodyType);
                 if (bodyParts.Length > 0) builtAppearance.body = bodyParts[0];
                 if (headParts.Length > 0) builtAppearance.head = headParts[0];
                 if (availableHairStyles.Length > 0) builtAppearance.hair = availableHairStyles[0];
@@ -688,6 +737,10 @@ namespace ProjectName.UI
                 builtAppearance.hairTint = HairColorPresets[0];
             }
 
+            // Initialize generic slot cycling to Hair
+            SwitchActiveSlot(BodyPartSlot.Hair);
+
+            UpdateBodyTypeUI();
             RefreshAppearancePreview();
             UpdateAppearanceUI();
         }
@@ -742,6 +795,128 @@ namespace ProjectName.UI
 
             if (hairColorNameText != null && selectedHairColorIndex >= 0 && selectedHairColorIndex < HairColorNames.Length)
                 hairColorNameText.text = HairColorNames[selectedHairColorIndex];
+        }
+
+        // ----- Body Type -----
+
+        private void SetBodyType(string bodyType)
+        {
+            if (selectedBodyType == bodyType) return;
+            selectedBodyType = bodyType;
+            UIManager.Instance?.PlayNavigateSound();
+
+            // Rebuild appearance for new body type
+            builtAppearance = null;
+            ShowAppearanceCustomization();
+        }
+
+        private void UpdateBodyTypeUI()
+        {
+            if (bodyTypeLabel != null)
+                bodyTypeLabel.text = selectedBodyType == "male" ? "Male" : "Female";
+
+            if (bodyTypeMaleButton != null)
+                bodyTypeMaleButton.interactable = selectedBodyType != "male";
+            if (bodyTypeFemaleButton != null)
+                bodyTypeFemaleButton.interactable = selectedBodyType != "female";
+        }
+
+        // ----- Generic Slot Cycling -----
+
+        /// <summary>
+        /// Switches the active slot for the generic prev/next cycling controls.
+        /// </summary>
+        private void SwitchActiveSlot(BodyPartSlot slot)
+        {
+            activeSlot = slot;
+            activeSlotParts = bodyPartRegistry.GetPartsForSlot(slot, selectedBodyType);
+            activeSlotIndex = 0;
+
+            // Find current selection in the list
+            var currentPart = builtAppearance?.GetPart(slot);
+            if (currentPart != null && activeSlotParts != null)
+            {
+                for (int i = 0; i < activeSlotParts.Length; i++)
+                {
+                    if (activeSlotParts[i] == currentPart)
+                    {
+                        activeSlotIndex = i;
+                        break;
+                    }
+                }
+            }
+
+            UpdateSlotCyclingUI();
+        }
+
+        private void CycleActiveSlot(int direction)
+        {
+            if (activeSlotParts == null || activeSlotParts.Length == 0)
+            {
+                // For optional slots, allow cycling to "None"
+                if (IsOptionalSlot(activeSlot))
+                {
+                    builtAppearance?.SetPart(activeSlot, null);
+                    RefreshAppearancePreview();
+                    UpdateSlotCyclingUI();
+                }
+                return;
+            }
+
+            // For optional slots, include a "None" option at index -1
+            if (IsOptionalSlot(activeSlot))
+            {
+                int totalOptions = activeSlotParts.Length + 1; // +1 for "None"
+                // activeSlotIndex: -1 = None, 0..Length-1 = parts
+                int adjustedIndex = activeSlotIndex + 1; // shift so None=0
+                adjustedIndex = (adjustedIndex + direction + totalOptions) % totalOptions;
+                activeSlotIndex = adjustedIndex - 1;
+            }
+            else
+            {
+                activeSlotIndex = (activeSlotIndex + direction + activeSlotParts.Length) % activeSlotParts.Length;
+            }
+
+            var selectedPart = activeSlotIndex >= 0 ? activeSlotParts[activeSlotIndex] : null;
+
+            if (builtAppearance != null)
+                builtAppearance.SetPart(activeSlot, selectedPart);
+
+            // Also keep legacy hair index in sync
+            if (activeSlot == BodyPartSlot.Hair)
+                selectedHairIndex = activeSlotIndex;
+
+            UIManager.Instance?.PlayNavigateSound();
+            RefreshAppearancePreview();
+            UpdateSlotCyclingUI();
+            UpdateAppearanceUI();
+        }
+
+        private void UpdateSlotCyclingUI()
+        {
+            if (slotCategoryLabel != null)
+                slotCategoryLabel.text = activeSlot.ToString();
+
+            if (slotPartNameText != null)
+            {
+                if (activeSlotIndex < 0 || activeSlotParts == null || activeSlotParts.Length == 0)
+                    slotPartNameText.text = "None";
+                else if (activeSlotIndex < activeSlotParts.Length)
+                {
+                    var part = activeSlotParts[activeSlotIndex];
+                    slotPartNameText.text = !string.IsNullOrEmpty(part.displayName) ? part.displayName : part.partId;
+                }
+            }
+        }
+
+        private bool IsOptionalSlot(BodyPartSlot slot)
+        {
+            return slot == BodyPartSlot.Hat || slot == BodyPartSlot.Beard ||
+                   slot == BodyPartSlot.Cape || slot == BodyPartSlot.Accessories ||
+                   slot == BodyPartSlot.Shield || slot == BodyPartSlot.Shoulders ||
+                   slot == BodyPartSlot.Gloves || slot == BodyPartSlot.Feet ||
+                   slot == BodyPartSlot.Eyes || slot == BodyPartSlot.WeaponFront ||
+                   slot == BodyPartSlot.WeaponBehind;
         }
 
         private void OnAppearanceBack()

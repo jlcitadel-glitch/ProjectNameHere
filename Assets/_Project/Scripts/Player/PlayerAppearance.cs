@@ -113,6 +113,7 @@ public class PlayerAppearance : MonoBehaviour
 
     /// <summary>
     /// Applies a CharacterAppearanceConfig to the layered sprite system.
+    /// Uses data-driven tint categories instead of per-slot switch logic.
     /// </summary>
     public void ApplyConfig(CharacterAppearanceConfig config)
     {
@@ -126,28 +127,25 @@ public class PlayerAppearance : MonoBehaviour
         if (fallbackRenderer != null)
             fallbackRenderer.enabled = false;
 
-        layeredSprite.SetPart(BodyPartSlot.Body, config.body);
-        layeredSprite.SetPart(BodyPartSlot.Head, config.head);
-        layeredSprite.SetPart(BodyPartSlot.Hair, config.hair);
-        layeredSprite.SetPart(BodyPartSlot.Torso, config.torso);
-        layeredSprite.SetPart(BodyPartSlot.Legs, config.legs);
-        layeredSprite.SetPart(BodyPartSlot.WeaponBehind, config.weaponBehind);
-        layeredSprite.SetPart(BodyPartSlot.WeaponFront, config.weaponFront);
+        // Apply all parts via loop
+        var allSlots = (BodyPartSlot[])System.Enum.GetValues(typeof(BodyPartSlot));
+        foreach (var slot in allSlots)
+        {
+            var part = config.GetPart(slot);
+            layeredSprite.SetPart(slot, part);
 
-        if (config.body != null && config.body.supportsTinting)
-            layeredSprite.SetTint(BodyPartSlot.Body, config.skinTint);
-        if (config.head != null && config.head.supportsTinting)
-            layeredSprite.SetTint(BodyPartSlot.Head, config.skinTint);
-        if (config.hair != null && config.hair.supportsTinting)
-            layeredSprite.SetTint(BodyPartSlot.Hair, config.hairTint);
-        if (config.torso != null && config.torso.supportsTinting)
-            layeredSprite.SetTint(BodyPartSlot.Torso, config.armorPrimaryTint);
-        if (config.legs != null && config.legs.supportsTinting)
-            layeredSprite.SetTint(BodyPartSlot.Legs, config.armorSecondaryTint);
+            // Apply tint based on the part's tint category
+            if (part != null && part.supportsTinting && part.tintCategory != TintCategory.None)
+            {
+                var tint = config.GetTintForCategory(part.tintCategory);
+                layeredSprite.SetTint(slot, tint);
+            }
+        }
     }
 
     /// <summary>
     /// Sets a single body part on the layered system and keeps CurrentConfig in sync.
+    /// If the new part has an exclusiveGroup, hides other parts in the same group.
     /// </summary>
     public void SetPart(BodyPartSlot slot, BodyPartData part)
     {
@@ -157,17 +155,35 @@ public class PlayerAppearance : MonoBehaviour
         if (currentConfig != null)
         {
             EnsureConfigCloned();
-            switch (slot)
+            currentConfig.SetPart(slot, part);
+
+            // Handle exclusivity: if this part has an exclusiveGroup,
+            // clear other slots in the same group
+            if (part != null && !string.IsNullOrEmpty(part.exclusiveGroup))
             {
-                case BodyPartSlot.Body: currentConfig.body = part; break;
-                case BodyPartSlot.Head: currentConfig.head = part; break;
-                case BodyPartSlot.Hair: currentConfig.hair = part; break;
-                case BodyPartSlot.Torso: currentConfig.torso = part; break;
-                case BodyPartSlot.Legs: currentConfig.legs = part; break;
-                case BodyPartSlot.WeaponBehind: currentConfig.weaponBehind = part; break;
-                case BodyPartSlot.WeaponFront: currentConfig.weaponFront = part; break;
+                var allSlots = (BodyPartSlot[])System.Enum.GetValues(typeof(BodyPartSlot));
+                foreach (var otherSlot in allSlots)
+                {
+                    if (otherSlot == slot) continue;
+                    var otherPart = currentConfig.GetPart(otherSlot);
+                    if (otherPart != null && otherPart.exclusiveGroup == part.exclusiveGroup)
+                    {
+                        currentConfig.SetPart(otherSlot, null);
+                        if (layeredSprite != null)
+                            layeredSprite.SetPart(otherSlot, null);
+                    }
+                }
             }
         }
+    }
+
+    /// <summary>
+    /// Sets the tint for a slot and keeps CurrentConfig in sync.
+    /// </summary>
+    public void SetTint(BodyPartSlot slot, Color tint)
+    {
+        if (layeredSprite != null)
+            layeredSprite.SetTint(slot, tint);
     }
 
     /// <summary>
@@ -176,20 +192,7 @@ public class PlayerAppearance : MonoBehaviour
     private void EnsureConfigCloned()
     {
         if (configIsClone || currentConfig == null) return;
-
-        var clone = ScriptableObject.CreateInstance<CharacterAppearanceConfig>();
-        clone.body = currentConfig.body;
-        clone.head = currentConfig.head;
-        clone.hair = currentConfig.hair;
-        clone.torso = currentConfig.torso;
-        clone.legs = currentConfig.legs;
-        clone.weaponBehind = currentConfig.weaponBehind;
-        clone.weaponFront = currentConfig.weaponFront;
-        clone.skinTint = currentConfig.skinTint;
-        clone.hairTint = currentConfig.hairTint;
-        clone.armorPrimaryTint = currentConfig.armorPrimaryTint;
-        clone.armorSecondaryTint = currentConfig.armorSecondaryTint;
-        currentConfig = clone;
+        currentConfig = currentConfig.Clone();
         configIsClone = true;
     }
 }

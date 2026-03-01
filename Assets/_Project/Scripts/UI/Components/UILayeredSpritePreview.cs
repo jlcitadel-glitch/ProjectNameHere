@@ -77,10 +77,10 @@ namespace ProjectName.UI
         img.enabled = true;
         img.color = part.supportsTinting ? part.defaultTint : Color.white;
 
-        // Weapon layers use frames[0] (neutral stance) to align with the idle body.
+        // Weapon/shield layers use frames[0] (neutral stance) to align with the idle body.
         // previewSprite on weapons is a combat frame meant for standalone icons,
         // which misaligns with the idle body pose in layered previews.
-        bool isWeapon = slot == BodyPartSlot.WeaponFront || slot == BodyPartSlot.WeaponBehind;
+        bool isWeapon = slot == BodyPartSlot.WeaponFront || slot == BodyPartSlot.WeaponBehind || slot == BodyPartSlot.Shield;
         if (isWeapon && part.frames.Length > 0 && part.frames[0] != null)
             img.sprite = part.frames[0];
         else if (part.previewSprite != null)
@@ -120,29 +120,24 @@ namespace ProjectName.UI
 
     /// <summary>
     /// Applies a full CharacterAppearanceConfig to the preview.
+    /// Uses data-driven tint categories instead of per-slot switch logic.
     /// </summary>
     public void ApplyConfig(CharacterAppearanceConfig config)
     {
         if (config == null) return;
 
-        SetPart(BodyPartSlot.Body, config.body);
-        SetPart(BodyPartSlot.Head, config.head);
-        SetPart(BodyPartSlot.Hair, config.hair);
-        SetPart(BodyPartSlot.Torso, config.torso);
-        SetPart(BodyPartSlot.Legs, config.legs);
-        SetPart(BodyPartSlot.WeaponBehind, config.weaponBehind);
-        SetPart(BodyPartSlot.WeaponFront, config.weaponFront);
+        var allSlots = (BodyPartSlot[])System.Enum.GetValues(typeof(BodyPartSlot));
+        foreach (var slot in allSlots)
+        {
+            var part = config.GetPart(slot);
+            SetPart(slot, part);
 
-        if (config.body != null && config.body.supportsTinting)
-            SetTint(BodyPartSlot.Body, config.skinTint);
-        if (config.head != null && config.head.supportsTinting)
-            SetTint(BodyPartSlot.Head, config.skinTint);
-        if (config.hair != null && config.hair.supportsTinting)
-            SetTint(BodyPartSlot.Hair, config.hairTint);
-        if (config.torso != null && config.torso.supportsTinting)
-            SetTint(BodyPartSlot.Torso, config.armorPrimaryTint);
-        if (config.legs != null && config.legs.supportsTinting)
-            SetTint(BodyPartSlot.Legs, config.armorSecondaryTint);
+            if (part != null && part.supportsTinting && part.tintCategory != TintCategory.None)
+            {
+                var tint = config.GetTintForCategory(part.tintCategory);
+                SetTint(slot, tint);
+            }
+        }
     }
 
     /// <summary>

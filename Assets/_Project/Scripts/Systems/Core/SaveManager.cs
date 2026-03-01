@@ -11,7 +11,7 @@ public class SaveManager : MonoBehaviour
 
     private const string SAVE_KEY_PREFIX = "GameSave_Slot_";
     private const string LEGACY_SAVE_KEY = "GameSave";
-    private const int CURRENT_SAVE_VERSION = 6;
+    private const int CURRENT_SAVE_VERSION = 7;
     private const int MAX_SAVE_SLOTS = 5;
 
     [Header("Settings")]
@@ -727,6 +727,13 @@ public class SaveManager : MonoBehaviour
         if (data.saveVersion < 6)
         {
             data.appearanceData = null; // null = use job default appearance
+        }
+
+        // Migration from version 6 to 7: Expand appearance to dictionary-based slots
+        if (data.saveVersion < 7)
+        {
+            if (data.appearanceData != null)
+                data.appearanceData.MigrateFromV6();
         }
 
         data.saveVersion = CURRENT_SAVE_VERSION;

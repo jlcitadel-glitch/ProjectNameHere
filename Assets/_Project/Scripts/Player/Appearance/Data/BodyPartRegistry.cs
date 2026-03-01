@@ -41,6 +41,30 @@ public class BodyPartRegistry : ScriptableObject
         return result.ToArray();
     }
 
+    /// <summary>
+    /// Returns parts for a slot filtered by body type.
+    /// Includes parts tagged "universal" plus those matching the given body type.
+    /// </summary>
+    public BodyPartData[] GetPartsForSlot(BodyPartSlot slot, string bodyType)
+    {
+        var result = new List<BodyPartData>();
+        if (allParts == null) return result.ToArray();
+
+        foreach (var part in allParts)
+        {
+            if (part != null && part.slot == slot)
+            {
+                if (string.IsNullOrEmpty(part.bodyTypeTag) ||
+                    part.bodyTypeTag == "universal" ||
+                    part.bodyTypeTag == bodyType)
+                {
+                    result.Add(part);
+                }
+            }
+        }
+        return result.ToArray();
+    }
+
     private void EnsureLookup()
     {
         if (idLookup != null) return;
