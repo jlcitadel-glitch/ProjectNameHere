@@ -199,6 +199,7 @@ public class EquipmentManager : MonoBehaviour
                     break;
                 case EquipmentSlotType.Boots:
                     playerAppearance.SetPart(BodyPartSlot.Legs, item?.visualPart);
+                    playerAppearance.SetPart(BodyPartSlot.Feet, null); // Equipment boots cover feet
                     break;
                 case EquipmentSlotType.Weapon:
                     playerAppearance.SetPart(BodyPartSlot.WeaponFront, item?.visualPart);

@@ -224,6 +224,11 @@ public class SkillManager : MonoBehaviour
         mage.parentJob = beginner;
         rogue.parentJob = beginner;
 
+        // --- Wire starter equipment from Resources ---
+        WireRuntimeStarterEquipment(warrior, "warrior_sword", "warrior_chainmail", "warrior_greaves");
+        WireRuntimeStarterEquipment(mage, "mage_staff", "mage_robe", "mage_shoes");
+        WireRuntimeStarterEquipment(rogue, "rogue_dagger", "rogue_vest", "rogue_boots");
+
         // --- Assign to serialized fields ---
         allSkillData = new SkillData[] { cleave, ironWill, warCry, fireball, frostNova, arcaneShield, quickStrike, shadowStep, poisonBlade };
         allJobData = new JobClassData[] { beginner, warrior, mage, rogue };
@@ -341,6 +346,18 @@ public class SkillManager : MonoBehaviour
         job.defaultSprite = null;
         job.name = jobName;
         return job;
+    }
+
+    private void WireRuntimeStarterEquipment(JobClassData job, params string[] ids)
+    {
+        var equipment = new List<EquipmentData>();
+        foreach (var id in ids)
+        {
+            var equip = Resources.Load<EquipmentData>($"Equipment/{id}");
+            if (equip != null) equipment.Add(equip);
+        }
+        if (equipment.Count > 0)
+            job.starterEquipment = equipment.ToArray();
     }
 
     /// <summary>

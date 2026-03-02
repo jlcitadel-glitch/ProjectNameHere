@@ -599,6 +599,14 @@ namespace ProjectName.UI
                     if (hairParts.Length > 0) builtAppearance.hair = hairParts[0];
                     builtAppearance.skinTint = SkinTonePresets[0];
                     builtAppearance.hairTint = HairColorPresets[0];
+
+                    // Add default clothing so character isn't naked
+                    var torsoParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Torso);
+                    if (torsoParts.Length > 0) builtAppearance.SetPart(BodyPartSlot.Torso, torsoParts[0]);
+                    var legsParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Legs);
+                    if (legsParts.Length > 0) builtAppearance.SetPart(BodyPartSlot.Legs, legsParts[0]);
+                    var feetParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Feet);
+                    if (feetParts.Length > 0) builtAppearance.SetPart(BodyPartSlot.Feet, feetParts[0]);
                 }
             }
 
@@ -637,6 +645,7 @@ namespace ProjectName.UI
                             break;
                         case EquipmentSlotType.Boots:
                             merged.legs = equip.visualPart;
+                            merged.SetPart(BodyPartSlot.Feet, null); // Equipment boots cover feet
                             hasEquipment = true;
                             break;
                         case EquipmentSlotType.Weapon:
@@ -969,6 +978,22 @@ namespace ProjectName.UI
                 defaultLegs = legsParts[0];
             if (defaultLegs != null)
                 builtAppearance.SetPart(BodyPartSlot.Legs, defaultLegs);
+
+            // Feet: prefers "basic_boots", falls back to first feet part
+            var feetParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Feet, selectedBodyType);
+            BodyPartData defaultFeet = null;
+            foreach (var part in feetParts)
+            {
+                if (part.partId != null && part.partId.Contains("basic_boots"))
+                {
+                    defaultFeet = part;
+                    break;
+                }
+            }
+            if (defaultFeet == null && feetParts.Length > 0)
+                defaultFeet = feetParts[0];
+            if (defaultFeet != null)
+                builtAppearance.SetPart(BodyPartSlot.Feet, defaultFeet);
         }
 
         private void RefreshAppearancePreview()
