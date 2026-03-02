@@ -10,7 +10,8 @@ public enum TintCategory
     Skin,
     Hair,
     ArmorPrimary,
-    ArmorSecondary
+    ArmorSecondary,
+    Eyes
 }
 
 /// <summary>

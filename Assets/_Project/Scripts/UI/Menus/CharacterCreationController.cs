@@ -69,13 +69,16 @@ namespace ProjectName.UI
         [SerializeField] private Button bodyTypeFemaleButton;
         [SerializeField] private TMP_Text bodyTypeLabel;
 
-        [Header("Slot Cycling (Generic)")]
-        [Tooltip("Container for slot tab buttons — if null, only legacy hair/skin cycling is used")]
-        [SerializeField] private Transform slotTabContainer;
-        [SerializeField] private Button slotPrevButton;
-        [SerializeField] private Button slotNextButton;
-        [SerializeField] private TMP_Text slotPartNameText;
-        [SerializeField] private TMP_Text slotCategoryLabel;
+        [Header("Beard")]
+        [SerializeField] private Button beardPrevButton;
+        [SerializeField] private Button beardNextButton;
+        [SerializeField] private TMP_Text beardNameText;
+
+        [Header("Eye Color")]
+        [SerializeField] private Button eyeColorPrevButton;
+        [SerializeField] private Button eyeColorNextButton;
+        [SerializeField] private Image eyeColorPreview;
+        [SerializeField] private TMP_Text eyeColorNameText;
 
         private UILayeredSpritePreview appearancePreview;
 
@@ -102,18 +105,26 @@ namespace ProjectName.UI
         private CharacterAppearanceConfig builtAppearance;
         private string selectedBodyType = "male";
 
-        // Generic slot cycling state
-        private BodyPartSlot activeSlot = BodyPartSlot.Hair;
-        private BodyPartData[] activeSlotParts;
-        private int activeSlotIndex;
+        // Beard cycling state
+        private BodyPartData[] availableBeardStyles;
+        private int selectedBeardIndex = -1; // -1 = None
 
-        // Slot tab tracking
-        private readonly List<Button> slotTabButtons = new List<Button>();
-        private readonly List<BodyPartSlot> populatedSlots = new List<BodyPartSlot>();
+        // Eye color cycling state
+        private int selectedEyeColorIndex;
 
-        // Tab colors
-        private static readonly Color TabActive = new Color(0.35f, 0.3f, 0.2f, 1f);
-        private static readonly Color TabInactive = new Color(0.18f, 0.18f, 0.22f, 1f);
+        private static readonly Color[] EyeColorPresets = new Color[]
+        {
+            new Color(0.45f, 0.30f, 0.15f),     // Brown
+            new Color(0.30f, 0.50f, 0.80f),     // Blue
+            new Color(0.30f, 0.60f, 0.30f),     // Green
+            new Color(0.55f, 0.45f, 0.25f),     // Hazel
+            new Color(0.55f, 0.55f, 0.55f),     // Gray
+            new Color(0.75f, 0.50f, 0.10f),     // Amber
+        };
+        private static readonly string[] EyeColorNames = new string[]
+        {
+            "Brown", "Blue", "Green", "Hazel", "Gray", "Amber"
+        };
 
         private static readonly Color[] SkinTonePresets = new Color[]
         {
@@ -260,16 +271,28 @@ namespace ProjectName.UI
                 bodyTypeFemaleButton.onClick.AddListener(() => SetBodyType("female"));
             }
 
-            // Generic slot cycling
-            if (slotPrevButton != null)
+            // Beard cycling
+            if (beardPrevButton != null)
             {
-                slotPrevButton.onClick.RemoveAllListeners();
-                slotPrevButton.onClick.AddListener(() => CycleActiveSlot(-1));
+                beardPrevButton.onClick.RemoveAllListeners();
+                beardPrevButton.onClick.AddListener(() => CycleBeard(-1));
             }
-            if (slotNextButton != null)
+            if (beardNextButton != null)
             {
-                slotNextButton.onClick.RemoveAllListeners();
-                slotNextButton.onClick.AddListener(() => CycleActiveSlot(1));
+                beardNextButton.onClick.RemoveAllListeners();
+                beardNextButton.onClick.AddListener(() => CycleBeard(1));
+            }
+
+            // Eye color cycling
+            if (eyeColorPrevButton != null)
+            {
+                eyeColorPrevButton.onClick.RemoveAllListeners();
+                eyeColorPrevButton.onClick.AddListener(() => CycleEyeColor(-1));
+            }
+            if (eyeColorNextButton != null)
+            {
+                eyeColorNextButton.onClick.RemoveAllListeners();
+                eyeColorNextButton.onClick.AddListener(() => CycleEyeColor(1));
             }
         }
 
@@ -287,11 +310,10 @@ namespace ProjectName.UI
             selectedHairIndex = 0;
             selectedSkinToneIndex = 0;
             selectedHairColorIndex = 0;
+            selectedBeardIndex = -1;
+            selectedEyeColorIndex = 0;
             builtAppearance = null;
             selectedBodyType = "male";
-            activeSlot = BodyPartSlot.Hair;
-            activeSlotParts = null;
-            activeSlotIndex = 0;
 
             if (appearancePreview != null)
                 appearancePreview.Clear();
@@ -724,8 +746,9 @@ namespace ProjectName.UI
             SetPanelActive(classSelectionPanel, false);
             SetPanelActive(appearancePanel, true);
 
-            // Gather available hair styles (filtered by body type)
+            // Gather available styles (filtered by body type)
             availableHairStyles = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Hair, selectedBodyType);
+            availableBeardStyles = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Beard, selectedBodyType);
 
             // Only initialize appearance if not already built (preserve choices when navigating back)
             if (builtAppearance == null)
@@ -733,6 +756,8 @@ namespace ProjectName.UI
                 selectedHairIndex = 0;
                 selectedSkinToneIndex = 0;
                 selectedHairColorIndex = 0;
+                selectedBeardIndex = -1;
+                selectedEyeColorIndex = 0;
 
                 builtAppearance = ScriptableObject.CreateInstance<CharacterAppearanceConfig>();
                 builtAppearance.bodyType = selectedBodyType;
@@ -744,11 +769,10 @@ namespace ProjectName.UI
                 if (availableHairStyles.Length > 0) builtAppearance.hair = availableHairStyles[0];
                 builtAppearance.skinTint = SkinTonePresets[0];
                 builtAppearance.hairTint = HairColorPresets[0];
-            }
+                builtAppearance.eyeTint = EyeColorPresets[0];
 
-            // Build slot tabs and initialize to Hair
-            PopulateSlotTabs();
-            SwitchActiveSlot(BodyPartSlot.Hair);
+                AssignDefaultClothing();
+            }
 
             UpdateBodyTypeUI();
             RefreshAppearancePreview();
@@ -784,6 +808,75 @@ namespace ProjectName.UI
             UpdateAppearanceUI();
         }
 
+        private void CycleBeard(int direction)
+        {
+            if (availableBeardStyles == null || availableBeardStyles.Length == 0)
+            {
+                selectedBeardIndex = -1;
+                if (builtAppearance != null)
+                    builtAppearance.SetPart(BodyPartSlot.Beard, null);
+                UpdateAppearanceUI();
+                return;
+            }
+
+            int totalOptions = availableBeardStyles.Length + 1; // +1 for "None"
+            int adjustedIndex = selectedBeardIndex + 1; // shift so None=0
+            adjustedIndex = (adjustedIndex + direction + totalOptions) % totalOptions;
+            selectedBeardIndex = adjustedIndex - 1;
+
+            var selectedPart = selectedBeardIndex >= 0 ? availableBeardStyles[selectedBeardIndex] : null;
+            if (builtAppearance != null)
+                builtAppearance.SetPart(BodyPartSlot.Beard, selectedPart);
+
+            UIManager.Instance?.PlayNavigateSound();
+            RefreshAppearancePreview();
+            UpdateAppearanceUI();
+        }
+
+        private void CycleEyeColor(int direction)
+        {
+            selectedEyeColorIndex = (selectedEyeColorIndex + direction + EyeColorPresets.Length) % EyeColorPresets.Length;
+            builtAppearance.eyeTint = EyeColorPresets[selectedEyeColorIndex];
+            UIManager.Instance?.PlayNavigateSound();
+            RefreshAppearancePreview();
+            UpdateAppearanceUI();
+        }
+
+        private void AssignDefaultClothing()
+        {
+            if (builtAppearance == null || bodyPartRegistry == null) return;
+
+            var torsoParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Torso, selectedBodyType);
+            BodyPartData defaultTorso = null;
+            foreach (var part in torsoParts)
+            {
+                if (part.partId != null && part.partId.Contains("tshirt"))
+                {
+                    defaultTorso = part;
+                    break;
+                }
+            }
+            if (defaultTorso == null && torsoParts.Length > 0)
+                defaultTorso = torsoParts[0];
+            if (defaultTorso != null)
+                builtAppearance.SetPart(BodyPartSlot.Torso, defaultTorso);
+
+            var legsParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Legs, selectedBodyType);
+            BodyPartData defaultLegs = null;
+            foreach (var part in legsParts)
+            {
+                if (part.partId != null && part.partId.Contains("pants"))
+                {
+                    defaultLegs = part;
+                    break;
+                }
+            }
+            if (defaultLegs == null && legsParts.Length > 0)
+                defaultLegs = legsParts[0];
+            if (defaultLegs != null)
+                builtAppearance.SetPart(BodyPartSlot.Legs, defaultLegs);
+        }
+
         private void RefreshAppearancePreview()
         {
             if (appearancePreview != null)
@@ -805,6 +898,25 @@ namespace ProjectName.UI
 
             if (hairColorNameText != null && selectedHairColorIndex >= 0 && selectedHairColorIndex < HairColorNames.Length)
                 hairColorNameText.text = HairColorNames[selectedHairColorIndex];
+
+            // Beard name
+            if (beardNameText != null)
+            {
+                if (selectedBeardIndex < 0 || availableBeardStyles == null || availableBeardStyles.Length == 0)
+                    beardNameText.text = "None";
+                else
+                {
+                    var part = availableBeardStyles[selectedBeardIndex];
+                    beardNameText.text = !string.IsNullOrEmpty(part.displayName) ? part.displayName : part.partId;
+                }
+            }
+
+            // Eye color
+            if (eyeColorPreview != null)
+                eyeColorPreview.color = builtAppearance.eyeTint;
+
+            if (eyeColorNameText != null && selectedEyeColorIndex >= 0 && selectedEyeColorIndex < EyeColorNames.Length)
+                eyeColorNameText.text = EyeColorNames[selectedEyeColorIndex];
         }
 
         // ----- Body Type -----
@@ -829,222 +941,6 @@ namespace ProjectName.UI
                 bodyTypeMaleButton.interactable = selectedBodyType != "male";
             if (bodyTypeFemaleButton != null)
                 bodyTypeFemaleButton.interactable = selectedBodyType != "female";
-        }
-
-        // ----- Generic Slot Cycling -----
-
-        /// <summary>
-        /// Switches the active slot for the generic prev/next cycling controls.
-        /// </summary>
-        private void SwitchActiveSlot(BodyPartSlot slot)
-        {
-            activeSlot = slot;
-            activeSlotParts = bodyPartRegistry.GetPartsForSlot(slot, selectedBodyType);
-            activeSlotIndex = 0;
-
-            // For optional slots with no current selection, start at "None" (-1)
-            var currentPart = builtAppearance?.GetPart(slot);
-            if (currentPart == null && IsOptionalSlot(slot))
-            {
-                activeSlotIndex = -1;
-            }
-            else if (currentPart != null && activeSlotParts != null)
-            {
-                for (int i = 0; i < activeSlotParts.Length; i++)
-                {
-                    if (activeSlotParts[i] == currentPart)
-                    {
-                        activeSlotIndex = i;
-                        break;
-                    }
-                }
-            }
-
-            // Also keep legacy hair index in sync
-            if (slot == BodyPartSlot.Hair)
-            {
-                availableHairStyles = activeSlotParts;
-                selectedHairIndex = activeSlotIndex;
-            }
-
-            HighlightActiveTab();
-            UpdateSlotCyclingUI();
-        }
-
-        private void CycleActiveSlot(int direction)
-        {
-            if (activeSlotParts == null || activeSlotParts.Length == 0)
-            {
-                // For optional slots, allow cycling to "None"
-                if (IsOptionalSlot(activeSlot))
-                {
-                    builtAppearance?.SetPart(activeSlot, null);
-                    RefreshAppearancePreview();
-                    UpdateSlotCyclingUI();
-                }
-                return;
-            }
-
-            // For optional slots, include a "None" option at index -1
-            if (IsOptionalSlot(activeSlot))
-            {
-                int totalOptions = activeSlotParts.Length + 1; // +1 for "None"
-                // activeSlotIndex: -1 = None, 0..Length-1 = parts
-                int adjustedIndex = activeSlotIndex + 1; // shift so None=0
-                adjustedIndex = (adjustedIndex + direction + totalOptions) % totalOptions;
-                activeSlotIndex = adjustedIndex - 1;
-            }
-            else
-            {
-                activeSlotIndex = (activeSlotIndex + direction + activeSlotParts.Length) % activeSlotParts.Length;
-            }
-
-            var selectedPart = activeSlotIndex >= 0 ? activeSlotParts[activeSlotIndex] : null;
-
-            if (builtAppearance != null)
-                builtAppearance.SetPart(activeSlot, selectedPart);
-
-            // Also keep legacy hair index in sync
-            if (activeSlot == BodyPartSlot.Hair)
-                selectedHairIndex = activeSlotIndex;
-
-            UIManager.Instance?.PlayNavigateSound();
-            RefreshAppearancePreview();
-            UpdateSlotCyclingUI();
-            UpdateAppearanceUI();
-        }
-
-        private void UpdateSlotCyclingUI()
-        {
-            if (slotCategoryLabel != null)
-                slotCategoryLabel.text = activeSlot.ToString();
-
-            if (slotPartNameText != null)
-            {
-                if (activeSlotIndex < 0 || activeSlotParts == null || activeSlotParts.Length == 0)
-                    slotPartNameText.text = "None";
-                else if (activeSlotIndex < activeSlotParts.Length)
-                {
-                    var part = activeSlotParts[activeSlotIndex];
-                    slotPartNameText.text = !string.IsNullOrEmpty(part.displayName) ? part.displayName : part.partId;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Creates or rebuilds slot tab buttons based on which slots have parts
-        /// for the current body type. Called when appearance panel opens or body type changes.
-        /// </summary>
-        private void PopulateSlotTabs()
-        {
-            if (slotTabContainer == null || bodyPartRegistry == null) return;
-
-            // Clear existing tabs
-            foreach (var btn in slotTabButtons)
-            {
-                if (btn != null) Destroy(btn.gameObject);
-            }
-            slotTabButtons.Clear();
-            populatedSlots.Clear();
-
-            // Order slots by enum value (render order) for consistent tab ordering
-            var allSlots = (BodyPartSlot[])Enum.GetValues(typeof(BodyPartSlot));
-            Array.Sort(allSlots, (a, b) => ((int)a).CompareTo((int)b));
-
-            foreach (var slot in allSlots)
-            {
-                // Skip Shadow — not user-selectable
-                if (slot == BodyPartSlot.Shadow) continue;
-
-                var parts = bodyPartRegistry.GetPartsForSlot(slot, selectedBodyType);
-                if (parts.Length == 0) continue;
-
-                populatedSlots.Add(slot);
-
-                string label = $"{SlotDisplayName(slot)} ({parts.Length})";
-                var tabGo = new GameObject(slot + "Tab", typeof(RectTransform));
-                tabGo.transform.SetParent(slotTabContainer, false);
-
-                var img = tabGo.AddComponent<Image>();
-                img.color = TabInactive;
-
-                var btn = tabGo.AddComponent<Button>();
-                btn.targetGraphic = img;
-                var colors = btn.colors;
-                colors.normalColor = TabInactive;
-                colors.highlightedColor = BtnHover;
-                colors.pressedColor = BtnPress;
-                colors.selectedColor = TabInactive;
-                colors.fadeDuration = 0.1f;
-                btn.colors = colors;
-
-                var layout = tabGo.AddComponent<LayoutElement>();
-                layout.preferredWidth = Mathf.Max(90f, label.Length * 10f);
-                layout.preferredHeight = 36f;
-
-                var textGo = new GameObject("Text", typeof(RectTransform));
-                textGo.transform.SetParent(tabGo.transform, false);
-                var textRt = textGo.GetComponent<RectTransform>();
-                textRt.anchorMin = Vector2.zero;
-                textRt.anchorMax = Vector2.one;
-                textRt.offsetMin = new Vector2(4f, 0f);
-                textRt.offsetMax = new Vector2(-4f, 0f);
-
-                var tmp = textGo.AddComponent<TextMeshProUGUI>();
-                tmp.text = label;
-                tmp.fontSize = 16f;
-                tmp.color = TextCol;
-                tmp.alignment = TextAlignmentOptions.Center;
-
-                var capturedSlot = slot;
-                btn.onClick.AddListener(() =>
-                {
-                    SwitchActiveSlot(capturedSlot);
-                    UIManager.Instance?.PlayNavigateSound();
-                });
-
-                slotTabButtons.Add(btn);
-            }
-        }
-
-        private void HighlightActiveTab()
-        {
-            for (int i = 0; i < populatedSlots.Count && i < slotTabButtons.Count; i++)
-            {
-                var btn = slotTabButtons[i];
-                if (btn == null) continue;
-
-                bool isActive = populatedSlots[i] == activeSlot;
-                var img = btn.GetComponent<Image>();
-                if (img != null)
-                    img.color = isActive ? TabActive : TabInactive;
-
-                var colors = btn.colors;
-                colors.normalColor = isActive ? TabActive : TabInactive;
-                btn.colors = colors;
-            }
-        }
-
-        private static string SlotDisplayName(BodyPartSlot slot)
-        {
-            // Insert spaces before capitals for multi-word enum names
-            string name = slot.ToString();
-            for (int i = name.Length - 1; i > 0; i--)
-            {
-                if (char.IsUpper(name[i]) && char.IsLower(name[i - 1]))
-                    name = name.Insert(i, " ");
-            }
-            return name;
-        }
-
-        private bool IsOptionalSlot(BodyPartSlot slot)
-        {
-            return slot == BodyPartSlot.Hat || slot == BodyPartSlot.Beard ||
-                   slot == BodyPartSlot.Cape || slot == BodyPartSlot.Accessories ||
-                   slot == BodyPartSlot.Shield || slot == BodyPartSlot.Shoulders ||
-                   slot == BodyPartSlot.Gloves || slot == BodyPartSlot.Feet ||
-                   slot == BodyPartSlot.Eyes || slot == BodyPartSlot.WeaponFront ||
-                   slot == BodyPartSlot.WeaponBehind;
         }
 
         private void OnAppearanceBack()
@@ -1207,7 +1103,6 @@ namespace ProjectName.UI
             ctrl.appearancePanel = panel;
 
             var content = MakeContentColumn(panel.transform);
-            // Widen for all controls
             var contentRt = content.GetComponent<RectTransform>();
             contentRt.sizeDelta = new Vector2(800f, 0f);
 
@@ -1222,7 +1117,7 @@ namespace ProjectName.UI
             ctrl.bodyTypeFemaleButton = MakeButton(bodyTypeRow.transform, "Female", 100f, 38f);
             ctrl.bodyTypeLabel = MakeLabel(bodyTypeRow.transform, "Male", 20f);
             ctrl.bodyTypeLabel.GetComponent<LayoutElement>().preferredWidth = 0f;
-            ctrl.bodyTypeLabel.gameObject.SetActive(false); // label hidden, buttons show state
+            ctrl.bodyTypeLabel.gameObject.SetActive(false);
 
             MakeSpacer(content.transform, 8f);
 
@@ -1237,7 +1132,25 @@ namespace ProjectName.UI
 
             MakeSpacer(content.transform, 6f);
 
-            // Skin tone selector
+            // Hair style row
+            var hairRow = MakeHRow(content.transform, 10f, 40f);
+            var hairLabel = MakeLabel(hairRow.transform, "Hair Style", 20f);
+            hairLabel.GetComponent<LayoutElement>().preferredWidth = 100f;
+            ctrl.hairPrevButton = MakeButton(hairRow.transform, "<", 40f, 35f);
+            ctrl.hairNameText = MakeLabel(hairRow.transform, "None", 18f);
+            ctrl.hairNameText.GetComponent<LayoutElement>().preferredWidth = 160f;
+            ctrl.hairNextButton = MakeButton(hairRow.transform, ">", 40f, 35f);
+
+            // Beard row
+            var beardRow = MakeHRow(content.transform, 10f, 40f);
+            var beardLabel = MakeLabel(beardRow.transform, "Beard", 20f);
+            beardLabel.GetComponent<LayoutElement>().preferredWidth = 100f;
+            ctrl.beardPrevButton = MakeButton(beardRow.transform, "<", 40f, 35f);
+            ctrl.beardNameText = MakeLabel(beardRow.transform, "None", 18f);
+            ctrl.beardNameText.GetComponent<LayoutElement>().preferredWidth = 160f;
+            ctrl.beardNextButton = MakeButton(beardRow.transform, ">", 40f, 35f);
+
+            // Skin tone row
             var skinRow = MakeHRow(content.transform, 10f, 40f);
             var skinLabel = MakeLabel(skinRow.transform, "Skin Tone", 20f);
             skinLabel.GetComponent<LayoutElement>().preferredWidth = 100f;
@@ -1251,7 +1164,7 @@ namespace ProjectName.UI
             ctrl.skinColorPreview = skinPreviewImg;
             ctrl.skinNextButton = MakeButton(skinRow.transform, ">", 40f, 35f);
 
-            // Hair color selector
+            // Hair color row
             var hairColorRow = MakeHRow(content.transform, 10f, 40f);
             var hcLabel = MakeLabel(hairColorRow.transform, "Hair Color", 20f);
             hcLabel.GetComponent<LayoutElement>().preferredWidth = 100f;
@@ -1275,65 +1188,29 @@ namespace ProjectName.UI
             ctrl.hairColorNameText = hairColorNameTmp;
             ctrl.hairColorNextButton = MakeButton(hairColorRow.transform, ">", 40f, 35f);
 
-            MakeSpacer(content.transform, 10f);
-
-            // Slot tab bar (horizontal scrollable)
-            var tabBarGo = MakeUIObject("SlotTabBar", content.transform);
-            var tabBarLayout = tabBarGo.AddComponent<LayoutElement>();
-            tabBarLayout.preferredHeight = 42f;
-            tabBarLayout.flexibleWidth = 1f;
-
-            // Mask for horizontal scrolling
-            var tabBarImg = tabBarGo.AddComponent<Image>();
-            tabBarImg.color = new Color(0.1f, 0.1f, 0.12f, 0.8f);
-            tabBarGo.AddComponent<Mask>().showMaskGraphic = true;
-
-            // Scrollable content inside
-            var tabScroll = tabBarGo.AddComponent<ScrollRect>();
-            tabScroll.vertical = false;
-            tabScroll.horizontal = true;
-            tabScroll.movementType = ScrollRect.MovementType.Clamped;
-            tabScroll.scrollSensitivity = 20f;
-
-            var tabContent = MakeUIObject("TabContent", tabBarGo.transform);
-            var tabContentRt = tabContent.GetComponent<RectTransform>();
-            tabContentRt.anchorMin = new Vector2(0f, 0f);
-            tabContentRt.anchorMax = new Vector2(0f, 1f);
-            tabContentRt.pivot = new Vector2(0f, 0.5f);
-            tabContentRt.offsetMin = Vector2.zero;
-            tabContentRt.offsetMax = Vector2.zero;
-
-            var tabHlg = tabContent.AddComponent<HorizontalLayoutGroup>();
-            tabHlg.childAlignment = TextAnchor.MiddleLeft;
-            tabHlg.childControlWidth = false;
-            tabHlg.childControlHeight = true;
-            tabHlg.childForceExpandWidth = false;
-            tabHlg.childForceExpandHeight = true;
-            tabHlg.spacing = 4f;
-            tabHlg.padding = new RectOffset(4, 4, 2, 2);
-
-            var tabCsf = tabContent.AddComponent<ContentSizeFitter>();
-            tabCsf.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-            tabScroll.content = tabContentRt;
-            ctrl.slotTabContainer = tabContent.transform;
-
-            MakeSpacer(content.transform, 6f);
-
-            // Generic slot cycling: category label + < part name >
-            ctrl.slotCategoryLabel = MakeLabel(content.transform, "Hair", 22f);
-            ctrl.slotCategoryLabel.GetComponent<LayoutElement>().preferredHeight = 28f;
-
-            var slotRow = MakeHRow(content.transform, 12f, 42f);
-            ctrl.slotPrevButton = MakeButton(slotRow.transform, "<", 50f, 38f);
-            ctrl.slotPartNameText = MakeLabel(slotRow.transform, "None", 20f);
-            ctrl.slotPartNameText.GetComponent<LayoutElement>().preferredWidth = 250f;
-            ctrl.slotNextButton = MakeButton(slotRow.transform, ">", 50f, 38f);
-
-            // Wire hair prev/next to slot cycling (legacy compatibility)
-            ctrl.hairPrevButton = ctrl.slotPrevButton;
-            ctrl.hairNextButton = ctrl.slotNextButton;
-            ctrl.hairNameText = ctrl.slotPartNameText;
+            // Eye color row
+            var eyeColorRow = MakeHRow(content.transform, 10f, 40f);
+            var ecLabel = MakeLabel(eyeColorRow.transform, "Eye Color", 20f);
+            ecLabel.GetComponent<LayoutElement>().preferredWidth = 100f;
+            ctrl.eyeColorPrevButton = MakeButton(eyeColorRow.transform, "<", 40f, 35f);
+            var eyeColorPreviewGo = MakeUIObject("EyeColorPreview", eyeColorRow.transform);
+            var eyeColorPreviewImg = eyeColorPreviewGo.AddComponent<Image>();
+            eyeColorPreviewImg.color = EyeColorPresets[0];
+            var eyeColorPreviewLE = eyeColorPreviewGo.AddComponent<LayoutElement>();
+            eyeColorPreviewLE.preferredWidth = 50f;
+            eyeColorPreviewLE.preferredHeight = 30f;
+            ctrl.eyeColorPreview = eyeColorPreviewImg;
+            var eyeColorNameGo = MakeUIObject("EyeColorName", eyeColorRow.transform);
+            var eyeColorNameTmp = eyeColorNameGo.AddComponent<TextMeshProUGUI>();
+            eyeColorNameTmp.text = EyeColorNames[0];
+            eyeColorNameTmp.fontSize = 18f;
+            eyeColorNameTmp.alignment = TextAlignmentOptions.Center;
+            eyeColorNameTmp.color = Color.white;
+            var eyeColorNameLE = eyeColorNameGo.AddComponent<LayoutElement>();
+            eyeColorNameLE.preferredWidth = 70f;
+            eyeColorNameLE.preferredHeight = 30f;
+            ctrl.eyeColorNameText = eyeColorNameTmp;
+            ctrl.eyeColorNextButton = MakeButton(eyeColorRow.transform, ">", 40f, 35f);
 
             MakeSpacer(content.transform, 15f);
 
@@ -1934,16 +1811,16 @@ namespace ProjectName.UI
             if (classConfirmButton != null) classConfirmButton.onClick.RemoveAllListeners();
             if (appearanceBackButton != null) appearanceBackButton.onClick.RemoveAllListeners();
             if (appearanceConfirmButton != null) appearanceConfirmButton.onClick.RemoveAllListeners();
+            if (hairPrevButton != null) hairPrevButton.onClick.RemoveAllListeners();
+            if (hairNextButton != null) hairNextButton.onClick.RemoveAllListeners();
             if (skinPrevButton != null) skinPrevButton.onClick.RemoveAllListeners();
             if (skinNextButton != null) skinNextButton.onClick.RemoveAllListeners();
             if (hairColorPrevButton != null) hairColorPrevButton.onClick.RemoveAllListeners();
             if (hairColorNextButton != null) hairColorNextButton.onClick.RemoveAllListeners();
-            if (slotPrevButton != null) slotPrevButton.onClick.RemoveAllListeners();
-            if (slotNextButton != null) slotNextButton.onClick.RemoveAllListeners();
-            foreach (var btn in slotTabButtons)
-            {
-                if (btn != null) btn.onClick.RemoveAllListeners();
-            }
+            if (beardPrevButton != null) beardPrevButton.onClick.RemoveAllListeners();
+            if (beardNextButton != null) beardNextButton.onClick.RemoveAllListeners();
+            if (eyeColorPrevButton != null) eyeColorPrevButton.onClick.RemoveAllListeners();
+            if (eyeColorNextButton != null) eyeColorNextButton.onClick.RemoveAllListeners();
         }
     }
 }

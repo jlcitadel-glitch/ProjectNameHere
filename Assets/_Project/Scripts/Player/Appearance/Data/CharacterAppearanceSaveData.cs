@@ -27,6 +27,7 @@ public class CharacterAppearanceSaveData
     public string hairTintHex;
     public string armorPrimaryTintHex;
     public string armorSecondaryTintHex;
+    public string eyeTintHex;
 
     /// <summary>
     /// Creates save data from a CharacterAppearanceConfig.
@@ -43,7 +44,8 @@ public class CharacterAppearanceSaveData
             skinTintHex = ColorUtility.ToHtmlStringRGBA(config.skinTint),
             hairTintHex = ColorUtility.ToHtmlStringRGBA(config.hairTint),
             armorPrimaryTintHex = ColorUtility.ToHtmlStringRGBA(config.armorPrimaryTint),
-            armorSecondaryTintHex = ColorUtility.ToHtmlStringRGBA(config.armorSecondaryTint)
+            armorSecondaryTintHex = ColorUtility.ToHtmlStringRGBA(config.armorSecondaryTint),
+            eyeTintHex = ColorUtility.ToHtmlStringRGBA(config.eyeTint)
         };
 
         // Populate dictionary for all slots
@@ -120,6 +122,8 @@ public class CharacterAppearanceSaveData
             config.armorPrimaryTint = primary;
         if (ColorUtility.TryParseHtmlString("#" + armorSecondaryTintHex, out var secondary))
             config.armorSecondaryTint = secondary;
+        if (ColorUtility.TryParseHtmlString("#" + eyeTintHex, out var eyes))
+            config.eyeTint = eyes;
 
         return config;
     }
