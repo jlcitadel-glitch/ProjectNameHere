@@ -629,6 +629,14 @@ namespace ProjectName.UI
             merged.skinTint = builtAppearance.skinTint;
             merged.hairTint = builtAppearance.hairTint;
 
+            // Carry default clothing as baseline so character isn't naked if equipment visuals fail
+            var baseTorso = builtAppearance.GetPart(BodyPartSlot.Torso);
+            if (baseTorso != null) merged.torso = baseTorso;
+            var baseLegs = builtAppearance.GetPart(BodyPartSlot.Legs);
+            if (baseLegs != null) merged.legs = baseLegs;
+            var baseFeet = builtAppearance.GetPart(BodyPartSlot.Feet);
+            if (baseFeet != null) merged.SetPart(BodyPartSlot.Feet, baseFeet);
+
             bool hasEquipment = false;
 
             // Primary: per-class starter equipment visuals
