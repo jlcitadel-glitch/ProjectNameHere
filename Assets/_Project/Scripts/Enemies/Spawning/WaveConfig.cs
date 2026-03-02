@@ -43,6 +43,10 @@ public class WaveConfig : ScriptableObject
     [Tooltip("Seconds between individual enemy spawns within a wave")]
     public float spawnInterval = 0.5f;
 
+    [Header("Encounter Templates")]
+    [Tooltip("Role-based encounter templates. If empty, legacy weighted-random spawning is used.")]
+    public EncounterTemplate[] encounterTemplates;
+
     [Header("Boss Waves")]
     [Tooltip("Spawn a boss every N waves. 0 = no boss waves.")]
     public int bossWaveInterval = 5;

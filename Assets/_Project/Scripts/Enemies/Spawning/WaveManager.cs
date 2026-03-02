@@ -247,27 +247,15 @@ public class WaveManager : MonoBehaviour
             yield break;
         }
 
-        float totalWeight = 0f;
-        foreach (var entry in eligible)
-            totalWeight += entry.spawnWeight;
-
-        while (spawnedThisWave < totalEnemiesThisWave)
+        // Use encounter templates if available, otherwise legacy weighted random
+        var templates = GetEligibleTemplates();
+        if (templates.Count > 0)
         {
-            // Wait if at max alive limit
-            while (spawnManager.AliveCount >= waveConfig.maxEnemiesAlive)
-            {
-                yield return null;
-            }
-
-            // Weighted random selection
-            GameObject prefab = PickWeightedRandom(eligible, totalWeight);
-            spawnManager.SpawnEnemy(prefab, currentWave, waveConfig);
-            spawnedThisWave++;
-
-            if (spawnedThisWave < totalEnemiesThisWave)
-            {
-                yield return new WaitForSeconds(waveConfig.spawnInterval);
-            }
+            yield return SpawnEncountersCoroutine(eligible, templates);
+        }
+        else
+        {
+            yield return SpawnLegacyCoroutine(eligible);
         }
 
         // All enemies spawned — transition to Active
@@ -275,7 +263,109 @@ public class WaveManager : MonoBehaviour
         activeCoroutine = null;
 
         if (debugLogging)
-            Debug.Log($"[WaveManager] All {totalEnemiesThisWave} enemies spawned, entering Active state");
+            Debug.Log($"[WaveManager] All {spawnedThisWave}/{totalEnemiesThisWave} enemies spawned, entering Active state");
+    }
+
+    private IEnumerator SpawnLegacyCoroutine(List<WaveConfig.EnemySpawnEntry> eligible)
+    {
+        float totalWeight = 0f;
+        foreach (var entry in eligible)
+            totalWeight += entry.spawnWeight;
+
+        while (spawnedThisWave < totalEnemiesThisWave)
+        {
+            while (spawnManager.AliveCount >= waveConfig.maxEnemiesAlive)
+                yield return null;
+
+            GameObject prefab = PickWeightedRandom(eligible, totalWeight);
+            spawnManager.SpawnEnemy(prefab, currentWave, waveConfig);
+            spawnedThisWave++;
+
+            if (spawnedThisWave < totalEnemiesThisWave)
+                yield return new WaitForSeconds(waveConfig.spawnInterval);
+        }
+    }
+
+    private IEnumerator SpawnEncountersCoroutine(
+        List<WaveConfig.EnemySpawnEntry> eligible,
+        List<EncounterTemplate> templates)
+    {
+        while (spawnedThisWave < totalEnemiesThisWave)
+        {
+            while (spawnManager.AliveCount >= waveConfig.maxEnemiesAlive)
+                yield return null;
+
+            EncounterTemplate template = PickWeightedTemplate(templates);
+            List<GameObject> group = EncounterBuilder.BuildEncounter(template, eligible);
+
+            if (group.Count == 0)
+            {
+                Debug.LogWarning($"[WaveManager] Encounter '{template.encounterName}' produced no enemies — falling back to random");
+                // Fallback: spawn one random enemy so the wave doesn't stall
+                float totalWeight = 0f;
+                foreach (var entry in eligible)
+                    totalWeight += entry.spawnWeight;
+                GameObject fallback = PickWeightedRandom(eligible, totalWeight);
+                spawnManager.SpawnEnemy(fallback, currentWave, waveConfig);
+                spawnedThisWave++;
+                yield return new WaitForSeconds(waveConfig.spawnInterval);
+                continue;
+            }
+
+            if (debugLogging)
+                Debug.Log($"[WaveManager] Spawning encounter '{template.encounterName}' ({group.Count} enemies)");
+
+            // Spawn the group with stagger
+            foreach (GameObject prefab in group)
+            {
+                if (spawnedThisWave >= totalEnemiesThisWave)
+                    break;
+
+                while (spawnManager.AliveCount >= waveConfig.maxEnemiesAlive)
+                    yield return null;
+
+                spawnManager.SpawnEnemy(prefab, currentWave, waveConfig);
+                spawnedThisWave++;
+
+                if (spawnedThisWave < totalEnemiesThisWave)
+                    yield return new WaitForSeconds(waveConfig.spawnInterval);
+            }
+
+            // Inter-group gap before next encounter
+            if (spawnedThisWave < totalEnemiesThisWave)
+                yield return new WaitForSeconds(waveConfig.spawnInterval * 2f);
+        }
+    }
+
+    private List<EncounterTemplate> GetEligibleTemplates()
+    {
+        var result = new List<EncounterTemplate>();
+        if (waveConfig.encounterTemplates == null)
+            return result;
+
+        foreach (var template in waveConfig.encounterTemplates)
+        {
+            if (template != null && currentWave >= template.minWaveToAppear)
+                result.Add(template);
+        }
+        return result;
+    }
+
+    private EncounterTemplate PickWeightedTemplate(List<EncounterTemplate> templates)
+    {
+        float totalWeight = 0f;
+        foreach (var t in templates)
+            totalWeight += t.selectionWeight;
+
+        float roll = UnityEngine.Random.Range(0f, totalWeight);
+        float cumulative = 0f;
+        foreach (var t in templates)
+        {
+            cumulative += t.selectionWeight;
+            if (roll <= cumulative)
+                return t;
+        }
+        return templates[templates.Count - 1];
     }
 
     private List<WaveConfig.EnemySpawnEntry> GetEligibleEnemies()

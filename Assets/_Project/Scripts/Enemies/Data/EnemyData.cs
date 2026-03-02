@@ -74,6 +74,23 @@ public class EnemyData : ScriptableObject
     [Tooltip("Hazard prefab spawned at death position (e.g., poison cloud)")]
     public GameObject deathHazardPrefab;
 
+    [Header("Design Card — Role & Behavior")]
+    public CombatRole combatRole = CombatRole.DPS;
+    public ThreatClock threatClock = ThreatClock.ShortFuse;
+    [Range(1, 5)] public int axisAggression = 3;
+    [Range(1, 5)] public int axisMobility = 2;
+    [Range(1, 5)] public int axisRange = 1;
+    [Range(1, 5)] public int axisPredictability = 3;
+    [Range(1, 5)] public int axisPersistence = 3;
+
+    [Header("Design Card — Synergies")]
+    [Tooltip("Enemies that pair well together")]
+    public EnemyData[] synergyPartners;
+    [Tooltip("Enemies that should never be paired together")]
+    public EnemyData[] antiSynergyPartners;
+    [Tooltip("Exclude from encounter pool (e.g., MiniSlime spawned only on death)")]
+    public bool isDeathSpawnOnly;
+
     [Header("Audio")]
     public AudioClip spawnSound;
     public AudioClip idleSound;

@@ -33,3 +33,26 @@ public enum DetectionType
     Cone,
     LineOfSight
 }
+
+/// <summary>
+/// Combat role for encounter template slot matching.
+/// </summary>
+public enum CombatRole
+{
+    DPS,
+    Tank,
+    Support,
+    Controller,
+    Artillery
+}
+
+/// <summary>
+/// How quickly this enemy threatens the player after spawning.
+/// </summary>
+public enum ThreatClock
+{
+    Immediate,
+    ShortFuse,
+    Delayed,
+    Ambient
+}
