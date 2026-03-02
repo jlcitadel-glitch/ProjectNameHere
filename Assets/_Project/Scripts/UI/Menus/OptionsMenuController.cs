@@ -37,6 +37,15 @@ namespace ProjectName.UI
         [SerializeField] private TMP_Dropdown aspectRatioDropdown;
         [SerializeField] private Button applyDisplayButton;
 
+        [Header("Graphics Settings")]
+        [SerializeField] private Slider brightnessSlider;
+        [SerializeField] private Slider contrastSlider;
+        [SerializeField] private Slider saturationSlider;
+        [SerializeField] private TMP_Text brightnessText;
+        [SerializeField] private TMP_Text contrastText;
+        [SerializeField] private TMP_Text saturationText;
+        [SerializeField] private Button resetGraphicsButton;
+
         [Header("Audio Settings")]
         [SerializeField] private Slider masterVolumeSlider;
         [SerializeField] private Slider musicVolumeSlider;
@@ -76,6 +85,7 @@ namespace ProjectName.UI
             SetupTabButtons();
             SetupDisplaySettings();
             SetupAudioSettings();
+            SetupGraphicsSettings();
         }
 
         private void AutoFindReferences()
@@ -370,6 +380,82 @@ namespace ProjectName.UI
                 if (applyBtn != null)
                     applyDisplayButton = applyBtn.GetComponent<Button>();
             }
+
+            // Graphics sliders (row indices 4-6, gap after display dropdowns)
+            var brightRow = displayPanel.transform.Find("BrightnessRow");
+            if (brightRow == null)
+            {
+                CreateSettingsRow(displayPanel.transform, "BrightnessRow", "Brightness", 4, false);
+                brightRow = displayPanel.transform.Find("BrightnessRow");
+            }
+            if (brightnessSlider == null && brightRow != null)
+            {
+                var slider = brightRow.Find("Slider");
+                if (slider != null)
+                {
+                    brightnessSlider = slider.GetComponent<Slider>();
+                    brightnessSlider.minValue = -2f;
+                    brightnessSlider.maxValue = 2f;
+                    brightnessSlider.value = 0f;
+                }
+                var valueText = brightRow.Find("ValueText");
+                if (valueText != null)
+                    brightnessText = valueText.GetComponent<TMP_Text>();
+            }
+
+            var contRow = displayPanel.transform.Find("ContrastRow");
+            if (contRow == null)
+            {
+                CreateSettingsRow(displayPanel.transform, "ContrastRow", "Contrast", 5, false);
+                contRow = displayPanel.transform.Find("ContrastRow");
+            }
+            if (contrastSlider == null && contRow != null)
+            {
+                var slider = contRow.Find("Slider");
+                if (slider != null)
+                {
+                    contrastSlider = slider.GetComponent<Slider>();
+                    contrastSlider.minValue = -100f;
+                    contrastSlider.maxValue = 100f;
+                    contrastSlider.value = 0f;
+                }
+                var valueText = contRow.Find("ValueText");
+                if (valueText != null)
+                    contrastText = valueText.GetComponent<TMP_Text>();
+            }
+
+            var satRow = displayPanel.transform.Find("SaturationRow");
+            if (satRow == null)
+            {
+                CreateSettingsRow(displayPanel.transform, "SaturationRow", "Saturation", 6, false);
+                satRow = displayPanel.transform.Find("SaturationRow");
+            }
+            if (saturationSlider == null && satRow != null)
+            {
+                var slider = satRow.Find("Slider");
+                if (slider != null)
+                {
+                    saturationSlider = slider.GetComponent<Slider>();
+                    saturationSlider.minValue = -100f;
+                    saturationSlider.maxValue = 100f;
+                    saturationSlider.value = 0f;
+                }
+                var valueText = satRow.Find("ValueText");
+                if (valueText != null)
+                    saturationText = valueText.GetComponent<TMP_Text>();
+            }
+
+            // Reset Graphics button
+            if (displayPanel.transform.Find("ResetGraphicsButton") == null)
+            {
+                CreateResetGraphicsButton();
+            }
+            if (resetGraphicsButton == null)
+            {
+                var resetBtn = displayPanel.transform.Find("ResetGraphicsButton");
+                if (resetBtn != null)
+                    resetGraphicsButton = resetBtn.GetComponent<Button>();
+            }
         }
 
         private void EnsureAudioPanelContent()
@@ -647,6 +733,48 @@ namespace ProjectName.UI
             Debug.Log("[OptionsMenu] Created ApplyButton");
         }
 
+        private void CreateResetGraphicsButton()
+        {
+            if (displayPanel == null) return;
+
+            var buttonGO = new GameObject("ResetGraphicsButton");
+            buttonGO.transform.SetParent(displayPanel.transform, false);
+
+            var buttonImage = buttonGO.AddComponent<Image>();
+            buttonImage.color = new Color(0.3f, 0.3f, 0.3f, 0.8f);
+
+            var button = buttonGO.AddComponent<Button>();
+            var colors = button.colors;
+            colors.normalColor = new Color(0.3f, 0.3f, 0.3f, 0.8f);
+            colors.highlightedColor = new Color(0.812f, 0.710f, 0.231f, 1f);
+            colors.pressedColor = new Color(0.2f, 0.2f, 0.2f, 1f);
+            colors.selectedColor = new Color(0.812f, 0.710f, 0.231f, 1f);
+            button.colors = colors;
+
+            var buttonRect = buttonGO.GetComponent<RectTransform>();
+            buttonRect.anchorMin = new Vector2(0.5f, 0);
+            buttonRect.anchorMax = new Vector2(0.5f, 0);
+            buttonRect.pivot = new Vector2(0.5f, 0);
+            buttonRect.anchoredPosition = new Vector2(-120, 20);
+            buttonRect.sizeDelta = new Vector2(200, 45);
+
+            var textGO = new GameObject("Text");
+            textGO.transform.SetParent(buttonGO.transform, false);
+            var tmp = textGO.AddComponent<TextMeshProUGUI>();
+            ApplyDefaultFont(tmp);
+            tmp.text = "Reset Graphics";
+            tmp.fontSize = 22;
+            tmp.alignment = TextAlignmentOptions.Center;
+            tmp.color = new Color(0.961f, 0.961f, 0.863f, 1f);
+            var textRect = textGO.GetComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+
+            Debug.Log("[OptionsMenu] Created ResetGraphicsButton");
+        }
+
         private void FixDropdownTemplate(TMP_Dropdown dropdown)
         {
             if (dropdown == null) return;
@@ -847,6 +975,7 @@ namespace ProjectName.UI
             // Refresh settings when opened
             RefreshDisplaySettings();
             RefreshAudioSettings();
+            RefreshGraphicsSettings();
 
             // Show first tab
             SwitchToTab(0, immediate: true);
@@ -1121,6 +1250,77 @@ namespace ProjectName.UI
 
         #endregion
 
+        #region Graphics Settings
+
+        private void SetupGraphicsSettings()
+        {
+            if (brightnessSlider != null)
+                brightnessSlider.onValueChanged.AddListener(OnBrightnessChanged);
+            if (contrastSlider != null)
+                contrastSlider.onValueChanged.AddListener(OnContrastChanged);
+            if (saturationSlider != null)
+                saturationSlider.onValueChanged.AddListener(OnSaturationChanged);
+            if (resetGraphicsButton != null)
+                resetGraphicsButton.onClick.AddListener(OnResetGraphicsClicked);
+        }
+
+        private void RefreshGraphicsSettings()
+        {
+            if (GraphicsSettings.Instance == null)
+            {
+                var go = new GameObject("GraphicsSettings");
+                go.AddComponent<GraphicsSettings>();
+            }
+
+            var gs = GraphicsSettings.Instance;
+            if (gs == null) return;
+
+            if (brightnessSlider != null)
+                brightnessSlider.SetValueWithoutNotify(gs.Brightness);
+            if (contrastSlider != null)
+                contrastSlider.SetValueWithoutNotify(gs.Contrast);
+            if (saturationSlider != null)
+                saturationSlider.SetValueWithoutNotify(gs.Saturation);
+
+            UpdateGraphicsTexts();
+        }
+
+        private void OnBrightnessChanged(float value)
+        {
+            GraphicsSettings.Instance?.SetBrightness(value);
+            UpdateGraphicsTexts();
+        }
+
+        private void OnContrastChanged(float value)
+        {
+            GraphicsSettings.Instance?.SetContrast(value);
+            UpdateGraphicsTexts();
+        }
+
+        private void OnSaturationChanged(float value)
+        {
+            GraphicsSettings.Instance?.SetSaturation(value);
+            UpdateGraphicsTexts();
+        }
+
+        private void OnResetGraphicsClicked()
+        {
+            GraphicsSettings.Instance?.ResetToDefaults();
+            RefreshGraphicsSettings();
+        }
+
+        private void UpdateGraphicsTexts()
+        {
+            if (brightnessText != null && brightnessSlider != null)
+                brightnessText.text = brightnessSlider.value.ToString("F1");
+            if (contrastText != null && contrastSlider != null)
+                contrastText.text = Mathf.RoundToInt(contrastSlider.value).ToString();
+            if (saturationText != null && saturationSlider != null)
+                saturationText.text = Mathf.RoundToInt(saturationSlider.value).ToString();
+        }
+
+        #endregion
+
         private void OnDestroy()
         {
             if (displayTabButton != null) displayTabButton.onClick.RemoveAllListeners();
@@ -1135,6 +1335,11 @@ namespace ProjectName.UI
             if (masterVolumeSlider != null) masterVolumeSlider.onValueChanged.RemoveListener(OnMasterVolumeChanged);
             if (musicVolumeSlider != null) musicVolumeSlider.onValueChanged.RemoveListener(OnMusicVolumeChanged);
             if (sfxVolumeSlider != null) sfxVolumeSlider.onValueChanged.RemoveListener(OnSFXVolumeChanged);
+
+            if (brightnessSlider != null) brightnessSlider.onValueChanged.RemoveListener(OnBrightnessChanged);
+            if (contrastSlider != null) contrastSlider.onValueChanged.RemoveListener(OnContrastChanged);
+            if (saturationSlider != null) saturationSlider.onValueChanged.RemoveListener(OnSaturationChanged);
+            if (resetGraphicsButton != null) resetGraphicsButton.onClick.RemoveAllListeners();
         }
     }
 }

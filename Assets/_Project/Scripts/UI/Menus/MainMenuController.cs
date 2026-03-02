@@ -106,6 +106,7 @@ namespace ProjectName.UI
             EnsureSaveManager();
             EnsureSceneLoader();
             EnsureDisplaySettings();
+            EnsureGraphicsSettings();
             EnsureMusicManager();
             EnsureHighscoreManager();
             EnsureCharacterCreation();
@@ -191,6 +192,15 @@ namespace ProjectName.UI
             var go = new GameObject("DisplaySettings");
             go.AddComponent<DisplaySettings>();
             // DisplaySettings handles DontDestroyOnLoad in its Awake
+        }
+
+        private void EnsureGraphicsSettings()
+        {
+            if (GraphicsSettings.Instance != null)
+                return;
+
+            var go = new GameObject("GraphicsSettings");
+            go.AddComponent<GraphicsSettings>();
         }
 
         private void EnsureGameManager()

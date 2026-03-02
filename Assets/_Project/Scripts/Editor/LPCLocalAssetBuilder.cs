@@ -63,6 +63,33 @@ public static class LPCLocalAssetBuilder
         { "WeaponFront", BodyPartSlot.WeaponFront },
     };
 
+    // Prefix-based slot overrides for items inside the Head/ directory.
+    // The LPC library puts hats, hair, eyes, accessories, etc. all under Head/.
+    // We remap them to the correct BodyPartSlot based on folder name prefix.
+    // Order matters: more specific prefixes first.
+    private static readonly (string prefix, BodyPartSlot slot)[] HEAD_PREFIX_REMAP = new[]
+    {
+        ("hat_", BodyPartSlot.Hat),
+        ("hair_", BodyPartSlot.Hair),
+        ("hairextr_", BodyPartSlot.Hair),
+        ("hairextl_", BodyPartSlot.Hair),
+        ("hairtie_", BodyPartSlot.Hair),
+        ("ponytail_", BodyPartSlot.Hair),
+        ("updo_", BodyPartSlot.Hair),
+        ("eyes_", BodyPartSlot.Eyes),
+        ("eyebrows_", BodyPartSlot.Eyes),
+        ("facial_", BodyPartSlot.Eyes),
+        ("accessory_", BodyPartSlot.Accessories),
+        ("charm_", BodyPartSlot.Accessories),
+        ("earring_", BodyPartSlot.Accessories),
+        ("earrings_", BodyPartSlot.Accessories),
+        ("necklace_", BodyPartSlot.Accessories),
+        ("visor_", BodyPartSlot.Hat),
+        ("headcover_", BodyPartSlot.Hat),
+        ("bandana_", BodyPartSlot.Hat),
+        // Remaining prefixes stay as Head: head_, ears_, nose_, wrinkes_, furry_, fins_, horns_, neck_
+    };
+
     /// <summary>
     /// Main entry point. Scans LPC sprite folders, creates BodyPartData assets,
     /// deletes legacy flat assets, and rebuilds the registry.
@@ -82,6 +109,11 @@ public static class LPCLocalAssetBuilder
             Debug.LogError($"[LPC Local] Sprite root not found: {SPRITE_ROOT}");
             return;
         }
+
+        // Clean up all existing BodyPartData assets for a fresh rebuild
+        int cleaned = CleanAllSlotAssets();
+        if (cleaned > 0)
+            Debug.Log($"[LPC Local] Cleaned {cleaned} existing assets for fresh rebuild");
 
         // Discover all leaf folders (directories containing PNGs to process)
         var leafFolders = DiscoverLeafFolders(fullRoot);
@@ -183,6 +215,9 @@ public static class LPCLocalAssetBuilder
                 // New format: subdirectories contain PNGs
                 if (DIR_SLOT_MAP.TryGetValue(dirName, out var slot))
                 {
+                    bool isHeadDir = dirName.Equals("head", StringComparison.OrdinalIgnoreCase)
+                                  || dirName.Equals("Head", StringComparison.OrdinalIgnoreCase);
+
                     foreach (var subDir in subDirs)
                     {
                         string subName = Path.GetFileName(subDir);
@@ -190,12 +225,17 @@ public static class LPCLocalAssetBuilder
 
                         if (Directory.GetFiles(subDir, "*.png").Length > 0)
                         {
+                            // For items inside the Head/ directory, remap by prefix
+                            BodyPartSlot leafSlot = slot;
+                            if (isHeadDir)
+                                leafSlot = RemapHeadPrefix(subName, slot);
+
                             result.Add(new LeafFolder
                             {
                                 fullPath = subDir.Replace('\\', '/'),
                                 assetPath = ToAssetPath(subDir, projectRoot),
                                 folderName = subName,
-                                slot = slot,
+                                slot = leafSlot,
                                 isOldFormat = false,
                             });
                         }
@@ -219,6 +259,16 @@ public static class LPCLocalAssetBuilder
         }
         slot = default;
         return false;
+    }
+
+    private static BodyPartSlot RemapHeadPrefix(string folderName, BodyPartSlot defaultSlot)
+    {
+        foreach (var (prefix, slot) in HEAD_PREFIX_REMAP)
+        {
+            if (folderName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                return slot;
+        }
+        return defaultSlot;
     }
 
     private static string ToAssetPath(string fullPath, string projectRoot)
@@ -486,6 +536,30 @@ public static class LPCLocalAssetBuilder
 
     // ===== Cleanup & Registry =====
 
+    private static int CleanAllSlotAssets()
+    {
+        string bodyPartsRoot = $"{DATA_ROOT}/BodyParts";
+        string fullRoot = Path.GetFullPath(bodyPartsRoot).Replace('\\', '/');
+        if (!Directory.Exists(fullRoot)) return 0;
+
+        var allAssets = Directory.GetFiles(fullRoot, "*.asset", SearchOption.AllDirectories)
+            .Where(f => !f.EndsWith(".meta"))
+            .ToArray();
+
+        int deleted = 0;
+        foreach (var file in allAssets)
+        {
+            string assetPath = ToAssetPath(file, Path.GetFullPath("Assets/..").Replace('\\', '/') + "/");
+            if (AssetDatabase.DeleteAsset(assetPath))
+                deleted++;
+        }
+
+        if (deleted > 0)
+            AssetDatabase.Refresh();
+
+        return deleted;
+    }
+
     private static int DeleteLegacyAssets()
     {
         // Legacy assets are flat in BodyParts/ root (not in slot subfolders)
@@ -563,6 +637,7 @@ public static class LPCLocalAssetBuilder
         {
             case BodyPartSlot.Body:
             case BodyPartSlot.Head:
+            case BodyPartSlot.Eyes:
                 return TintCategory.Skin;
             case BodyPartSlot.Hair:
             case BodyPartSlot.Beard:
