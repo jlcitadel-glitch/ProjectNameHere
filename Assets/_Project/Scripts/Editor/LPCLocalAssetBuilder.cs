@@ -356,10 +356,13 @@ public static class LPCLocalAssetBuilder
         if (bodyPart == null)
         {
             bodyPart = ScriptableObject.CreateInstance<BodyPartData>();
-            AssetDatabase.CreateAsset(bodyPart, assetPath);
             isNew = true;
         }
 
+        // Set ALL fields BEFORE CreateAsset so the file on disk always has correct
+        // values. Previously, CreateAsset wrote defaults first, and subsequent
+        // AssetDatabase reimport cascades could revert the in-memory object to those
+        // defaults before SaveAssets() ran, producing empty assets.
         bodyPart.partId = partId;
         bodyPart.displayName = displayName;
         bodyPart.slot = leaf.slot;
@@ -392,6 +395,10 @@ public static class LPCLocalAssetBuilder
                 if (found) break;
             }
         }
+
+        // Write to disk AFTER fields are set (new assets get correct data immediately)
+        if (isNew)
+            AssetDatabase.CreateAsset(bodyPart, assetPath);
 
         EditorUtility.SetDirty(bodyPart);
         return bodyPart;
@@ -582,8 +589,10 @@ public static class LPCLocalAssetBuilder
                 deleted++;
         }
 
-        if (deleted > 0)
-            AssetDatabase.Refresh();
+        // Do NOT call AssetDatabase.Refresh() here. DeleteAsset already updates the
+        // database internally, and a premature Refresh triggers reimport cascades that
+        // interfere with subsequent CreateAsset + SliceSpritesheet operations,
+        // causing newly created BodyPartData assets to revert to empty defaults.
 
         return deleted;
     }
