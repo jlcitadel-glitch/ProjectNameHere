@@ -614,28 +614,48 @@ public class SkillManager : MonoBehaviour
 
     /// <summary>
     /// Checks if player can advance to a specific job.
+    /// Supports both linear advancement (child of current job) and
+    /// hybrid advancement (requires multiple jobs in history).
     /// </summary>
     public bool CanAdvanceJob(JobClassData targetJob)
     {
         if (targetJob == null) return false;
 
-        // Must be a valid next job from current
-        if (currentJob != null && currentJob.childJobs != null)
+        // For hybrid jobs, check if all required parent jobs are in history
+        if (targetJob.IsHybrid)
         {
-            bool isValidAdvancement = false;
-            foreach (var child in currentJob.childJobs)
+            bool allParentsInHistory = true;
+            foreach (var parent in targetJob.parentJobs)
             {
-                if (child == targetJob)
+                if (parent == null) continue;
+                if (!jobHistory.Contains(parent))
                 {
-                    isValidAdvancement = true;
+                    allParentsInHistory = false;
                     break;
                 }
             }
-            if (!isValidAdvancement) return false;
+            if (!allParentsInHistory) return false;
+        }
+        else
+        {
+            // Linear advancement: must be a valid child of current job
+            if (currentJob != null && currentJob.childJobs != null)
+            {
+                bool isValidAdvancement = false;
+                foreach (var child in currentJob.childJobs)
+                {
+                    if (child == targetJob)
+                    {
+                        isValidAdvancement = true;
+                        break;
+                    }
+                }
+                if (!isValidAdvancement) return false;
+            }
         }
 
-        // Check requirements
-        return targetJob.CanAdvance(playerLevel, GetSkillLevel);
+        // Check level, skill, and hybrid parent requirements
+        return targetJob.CanAdvance(playerLevel, GetSkillLevel, job => jobHistory.Contains(job));
     }
 
     /// <summary>
@@ -666,18 +686,36 @@ public class SkillManager : MonoBehaviour
 
     /// <summary>
     /// Gets available job advancements.
+    /// Checks direct children of current job plus any hybrid jobs
+    /// whose parent requirements are met by the player's job history.
     /// </summary>
     public JobClassData[] GetAvailableAdvancements()
     {
-        if (currentJob?.childJobs == null)
-            return new JobClassData[0];
-
         var available = new List<JobClassData>();
-        foreach (var child in currentJob.childJobs)
+        var seen = new HashSet<string>();
+
+        // Check direct children of current job
+        if (currentJob?.childJobs != null)
         {
-            if (CanAdvanceJob(child))
-                available.Add(child);
+            foreach (var child in currentJob.childJobs)
+            {
+                if (child != null && CanAdvanceJob(child) && seen.Add(child.jobId))
+                    available.Add(child);
+            }
         }
+
+        // Check all known jobs for hybrid advancements where all parents are in history
+        if (allJobData != null)
+        {
+            foreach (var job in allJobData)
+            {
+                if (job == null || !job.IsHybrid) continue;
+                if (seen.Contains(job.jobId)) continue;
+                if (CanAdvanceJob(job) && seen.Add(job.jobId))
+                    available.Add(job);
+            }
+        }
+
         return available.ToArray();
     }
 

@@ -23,13 +23,13 @@ MonoBehaviour:
   skillType: 3
   damageType: 0
   requiredJobId: warrior
-  requiredPlayerLevel: 20
-  maxSkillLevel: 20
+  requiredPlayerLevel: 15
+  maxSkillLevel: 10
   prerequisiteSkills:
   - {fileID: 11400000, guid: d1218e61ea4202a4683a7397d24dc02a, type: 2}
   - {fileID: 11400000, guid: 0f43217642467c0498f5992f2ce1dc2f, type: 2}
   prerequisiteLevels: 0500000005000000
-  spCost: 3
+  spCost: 1
   baseDamage: 0
   baseManaCost: 40
   baseCooldown: 60

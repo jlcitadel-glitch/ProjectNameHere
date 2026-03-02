@@ -22,13 +22,13 @@ MonoBehaviour:
   skillType: 0
   damageType: 2
   requiredJobId: mage
-  requiredPlayerLevel: 20
-  maxSkillLevel: 20
+  requiredPlayerLevel: 15
+  maxSkillLevel: 10
   prerequisiteSkills:
   - {fileID: 11400000, guid: aabbd849ae9bcf146a10ee16708217ab, type: 2}
   - {fileID: 11400000, guid: 51908f3d0fd3f4a41970e255cfab48ed, type: 2}
-  prerequisiteLevels: 0a00000005000000
-  spCost: 3
+  prerequisiteLevels: 0500000005000000
+  spCost: 1
   baseDamage: 150
   baseManaCost: 60
   baseCooldown: 45

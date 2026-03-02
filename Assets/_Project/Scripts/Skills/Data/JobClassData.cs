@@ -28,8 +28,17 @@ public class JobClassData : ScriptableObject
     [Tooltip("Advancement tier of this job")]
     public JobTier tier = JobTier.Beginner;
 
-    [Tooltip("Parent job (null for Beginner)")]
+    [Tooltip("Base archetypes this job belongs to (single for pure, multiple for hybrid)")]
+    public BaseArchetype[] archetypes;
+
+    [Tooltip("Advancement line within the archetype tree")]
+    public JobLine jobLine = JobLine.None;
+
+    [Tooltip("Primary parent job for linear advancement (null for Beginner)")]
     public JobClassData parentJob;
+
+    [Tooltip("All parent jobs required for advancement (used for hybrid jobs requiring multiple paths)")]
+    public JobClassData[] parentJobs;
 
     [Tooltip("Available advancement options from this job")]
     public JobClassData[] childJobs;
@@ -113,7 +122,26 @@ public class JobClassData : ScriptableObject
     public EquipmentData[] starterEquipment;
 
     /// <summary>
+    /// Whether this is a hybrid job requiring multiple parent job paths.
+    /// </summary>
+    public bool IsHybrid => parentJobs != null && parentJobs.Length > 1;
+
+    /// <summary>
+    /// Checks if this job belongs to a specific archetype.
+    /// </summary>
+    public bool HasArchetype(BaseArchetype archetype)
+    {
+        if (archetypes == null) return false;
+        for (int i = 0; i < archetypes.Length; i++)
+        {
+            if (archetypes[i] == archetype) return true;
+        }
+        return false;
+    }
+
+    /// <summary>
     /// Checks if a player meets the requirements to advance to this job.
+    /// For hybrid jobs, also checks that all required parent jobs are in history.
     /// </summary>
     public bool CanAdvance(int playerLevel, System.Func<SkillData, int> getSkillLevel)
     {
@@ -140,7 +168,29 @@ public class JobClassData : ScriptableObject
     }
 
     /// <summary>
-    /// Gets the full job path from Beginner to this job.
+    /// Checks if a player meets all requirements including hybrid parent job history.
+    /// </summary>
+    public bool CanAdvance(int playerLevel, System.Func<SkillData, int> getSkillLevel,
+        System.Func<JobClassData, bool> hasJobInHistory)
+    {
+        if (!CanAdvance(playerLevel, getSkillLevel))
+            return false;
+
+        // Hybrid jobs require all parent jobs to be in history
+        if (parentJobs != null && parentJobs.Length > 1 && hasJobInHistory != null)
+        {
+            for (int i = 0; i < parentJobs.Length; i++)
+            {
+                if (parentJobs[i] != null && !hasJobInHistory(parentJobs[i]))
+                    return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Gets the full job path from Beginner to this job (follows primary parent).
     /// </summary>
     public JobClassData[] GetJobPath()
     {
@@ -154,6 +204,19 @@ public class JobClassData : ScriptableObject
         }
 
         return path.ToArray();
+    }
+
+    /// <summary>
+    /// Gets all parent jobs (hybrid-aware). Returns parentJobs array if set,
+    /// otherwise wraps parentJob in a single-element array.
+    /// </summary>
+    public JobClassData[] GetAllParentJobs()
+    {
+        if (parentJobs != null && parentJobs.Length > 0)
+            return parentJobs;
+        if (parentJob != null)
+            return new JobClassData[] { parentJob };
+        return new JobClassData[0];
     }
 
     /// <summary>
@@ -187,6 +250,17 @@ public class JobClassData : ScriptableObject
         var requirements = new System.Text.StringBuilder();
 
         requirements.AppendLine($"Level {requiredLevel} Required");
+
+        // Show hybrid parent requirements
+        if (parentJobs != null && parentJobs.Length > 1)
+        {
+            requirements.AppendLine("Required Job History:");
+            for (int i = 0; i < parentJobs.Length; i++)
+            {
+                if (parentJobs[i] != null)
+                    requirements.AppendLine($"  - {parentJobs[i].jobName}");
+            }
+        }
 
         if (requiredSkills != null && requiredSkills.Length > 0)
         {

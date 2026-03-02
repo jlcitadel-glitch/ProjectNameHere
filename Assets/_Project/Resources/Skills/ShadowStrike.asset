@@ -23,13 +23,13 @@ MonoBehaviour:
   skillType: 0
   damageType: 6
   requiredJobId: rogue
-  requiredPlayerLevel: 20
-  maxSkillLevel: 20
+  requiredPlayerLevel: 15
+  maxSkillLevel: 10
   prerequisiteSkills:
   - {fileID: 11400000, guid: 7b38ea316a623e1489ebff101bc1974d, type: 2}
   - {fileID: 11400000, guid: 33829c9d580c1164ea92fe7a2e2ab775, type: 2}
   prerequisiteLevels: 0500000005000000
-  spCost: 3
+  spCost: 1
   baseDamage: 100
   baseManaCost: 35
   baseCooldown: 30
