@@ -34,4 +34,10 @@ public static class LPCBulkImporterRunner
             Object.DestroyImmediate(importer);
         }
     }
+
+    [MenuItem("Tools/LPC Import/3 Build Assets from Local Files")]
+    public static void RunLocalBuild()
+    {
+        LPCLocalAssetBuilder.Run();
+    }
 }

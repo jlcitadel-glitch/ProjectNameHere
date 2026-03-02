@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -105,6 +106,14 @@ namespace ProjectName.UI
         private BodyPartSlot activeSlot = BodyPartSlot.Hair;
         private BodyPartData[] activeSlotParts;
         private int activeSlotIndex;
+
+        // Slot tab tracking
+        private readonly List<Button> slotTabButtons = new List<Button>();
+        private readonly List<BodyPartSlot> populatedSlots = new List<BodyPartSlot>();
+
+        // Tab colors
+        private static readonly Color TabActive = new Color(0.35f, 0.3f, 0.2f, 1f);
+        private static readonly Color TabInactive = new Color(0.18f, 0.18f, 0.22f, 1f);
 
         private static readonly Color[] SkinTonePresets = new Color[]
         {
@@ -737,7 +746,8 @@ namespace ProjectName.UI
                 builtAppearance.hairTint = HairColorPresets[0];
             }
 
-            // Initialize generic slot cycling to Hair
+            // Build slot tabs and initialize to Hair
+            PopulateSlotTabs();
             SwitchActiveSlot(BodyPartSlot.Hair);
 
             UpdateBodyTypeUI();
@@ -832,9 +842,13 @@ namespace ProjectName.UI
             activeSlotParts = bodyPartRegistry.GetPartsForSlot(slot, selectedBodyType);
             activeSlotIndex = 0;
 
-            // Find current selection in the list
+            // For optional slots with no current selection, start at "None" (-1)
             var currentPart = builtAppearance?.GetPart(slot);
-            if (currentPart != null && activeSlotParts != null)
+            if (currentPart == null && IsOptionalSlot(slot))
+            {
+                activeSlotIndex = -1;
+            }
+            else if (currentPart != null && activeSlotParts != null)
             {
                 for (int i = 0; i < activeSlotParts.Length; i++)
                 {
@@ -846,6 +860,14 @@ namespace ProjectName.UI
                 }
             }
 
+            // Also keep legacy hair index in sync
+            if (slot == BodyPartSlot.Hair)
+            {
+                availableHairStyles = activeSlotParts;
+                selectedHairIndex = activeSlotIndex;
+            }
+
+            HighlightActiveTab();
             UpdateSlotCyclingUI();
         }
 
@@ -907,6 +929,112 @@ namespace ProjectName.UI
                     slotPartNameText.text = !string.IsNullOrEmpty(part.displayName) ? part.displayName : part.partId;
                 }
             }
+        }
+
+        /// <summary>
+        /// Creates or rebuilds slot tab buttons based on which slots have parts
+        /// for the current body type. Called when appearance panel opens or body type changes.
+        /// </summary>
+        private void PopulateSlotTabs()
+        {
+            if (slotTabContainer == null || bodyPartRegistry == null) return;
+
+            // Clear existing tabs
+            foreach (var btn in slotTabButtons)
+            {
+                if (btn != null) Destroy(btn.gameObject);
+            }
+            slotTabButtons.Clear();
+            populatedSlots.Clear();
+
+            // Order slots by enum value (render order) for consistent tab ordering
+            var allSlots = (BodyPartSlot[])Enum.GetValues(typeof(BodyPartSlot));
+            Array.Sort(allSlots, (a, b) => ((int)a).CompareTo((int)b));
+
+            foreach (var slot in allSlots)
+            {
+                // Skip Shadow — not user-selectable
+                if (slot == BodyPartSlot.Shadow) continue;
+
+                var parts = bodyPartRegistry.GetPartsForSlot(slot, selectedBodyType);
+                if (parts.Length == 0) continue;
+
+                populatedSlots.Add(slot);
+
+                string label = $"{SlotDisplayName(slot)} ({parts.Length})";
+                var tabGo = new GameObject(slot + "Tab", typeof(RectTransform));
+                tabGo.transform.SetParent(slotTabContainer, false);
+
+                var img = tabGo.AddComponent<Image>();
+                img.color = TabInactive;
+
+                var btn = tabGo.AddComponent<Button>();
+                btn.targetGraphic = img;
+                var colors = btn.colors;
+                colors.normalColor = TabInactive;
+                colors.highlightedColor = BtnHover;
+                colors.pressedColor = BtnPress;
+                colors.selectedColor = TabInactive;
+                colors.fadeDuration = 0.1f;
+                btn.colors = colors;
+
+                var layout = tabGo.AddComponent<LayoutElement>();
+                layout.preferredWidth = Mathf.Max(90f, label.Length * 10f);
+                layout.preferredHeight = 36f;
+
+                var textGo = new GameObject("Text", typeof(RectTransform));
+                textGo.transform.SetParent(tabGo.transform, false);
+                var textRt = textGo.GetComponent<RectTransform>();
+                textRt.anchorMin = Vector2.zero;
+                textRt.anchorMax = Vector2.one;
+                textRt.offsetMin = new Vector2(4f, 0f);
+                textRt.offsetMax = new Vector2(-4f, 0f);
+
+                var tmp = textGo.AddComponent<TextMeshProUGUI>();
+                tmp.text = label;
+                tmp.fontSize = 16f;
+                tmp.color = TextCol;
+                tmp.alignment = TextAlignmentOptions.Center;
+
+                var capturedSlot = slot;
+                btn.onClick.AddListener(() =>
+                {
+                    SwitchActiveSlot(capturedSlot);
+                    UIManager.Instance?.PlayNavigateSound();
+                });
+
+                slotTabButtons.Add(btn);
+            }
+        }
+
+        private void HighlightActiveTab()
+        {
+            for (int i = 0; i < populatedSlots.Count && i < slotTabButtons.Count; i++)
+            {
+                var btn = slotTabButtons[i];
+                if (btn == null) continue;
+
+                bool isActive = populatedSlots[i] == activeSlot;
+                var img = btn.GetComponent<Image>();
+                if (img != null)
+                    img.color = isActive ? TabActive : TabInactive;
+
+                var colors = btn.colors;
+                colors.normalColor = isActive ? TabActive : TabInactive;
+                btn.colors = colors;
+            }
+        }
+
+        private static string SlotDisplayName(BodyPartSlot slot)
+        {
+            // Insert spaces before capitals for multi-word enum names
+            string name = slot.ToString();
+            for (int i = name.Length - 1; i > 0; i--)
+            {
+                if (char.IsUpper(name[i]) && char.IsLower(name[i - 1]))
+                    name = name.Insert(i, " ");
+            }
+            return name;
         }
 
         private bool IsOptionalSlot(BodyPartSlot slot)
@@ -1079,73 +1207,135 @@ namespace ProjectName.UI
             ctrl.appearancePanel = panel;
 
             var content = MakeContentColumn(panel.transform);
-            // Widen for preview + controls side by side
+            // Widen for all controls
             var contentRt = content.GetComponent<RectTransform>();
             contentRt.sizeDelta = new Vector2(800f, 0f);
 
             MakeLabel(content.transform, "Customize Appearance", 36f);
-            MakeSpacer(content.transform, 10f);
+            MakeSpacer(content.transform, 8f);
 
-            // Preview area
+            // Body type toggle
+            var bodyTypeRow = MakeHRow(content.transform, 15f, 45f);
+            var btLabel = MakeLabel(bodyTypeRow.transform, "Body Type:", 22f);
+            btLabel.GetComponent<LayoutElement>().preferredWidth = 120f;
+            ctrl.bodyTypeMaleButton = MakeButton(bodyTypeRow.transform, "Male", 100f, 38f);
+            ctrl.bodyTypeFemaleButton = MakeButton(bodyTypeRow.transform, "Female", 100f, 38f);
+            ctrl.bodyTypeLabel = MakeLabel(bodyTypeRow.transform, "Male", 20f);
+            ctrl.bodyTypeLabel.GetComponent<LayoutElement>().preferredWidth = 0f;
+            ctrl.bodyTypeLabel.gameObject.SetActive(false); // label hidden, buttons show state
+
+            MakeSpacer(content.transform, 8f);
+
+            // Character preview area
             var previewGo = MakeUIObject("CharacterPreview", content.transform);
             var previewLayout = previewGo.AddComponent<LayoutElement>();
-            previewLayout.preferredHeight = 300f;
+            previewLayout.preferredHeight = 260f;
             previewLayout.preferredWidth = 200f;
             var previewBg = previewGo.AddComponent<Image>();
             previewBg.color = new Color(0.12f, 0.12f, 0.15f, 1f);
             ctrl.appearancePreview = previewGo.AddComponent<UILayeredSpritePreview>();
 
-            MakeSpacer(content.transform, 15f);
-
-            // Hair style selector
-            MakeLabel(content.transform, "Hair Style", 24f);
-            var hairRow = MakeHRow(content.transform, 15f, 45f);
-            ctrl.hairPrevButton = MakeButton(hairRow.transform, "<", 50f, 40f);
-            ctrl.hairNameText = MakeLabel(hairRow.transform, "Default", 22f);
-            ctrl.hairNameText.GetComponent<LayoutElement>().preferredWidth = 200f;
-            ctrl.hairNextButton = MakeButton(hairRow.transform, ">", 50f, 40f);
-
-            MakeSpacer(content.transform, 10f);
+            MakeSpacer(content.transform, 6f);
 
             // Skin tone selector
-            MakeLabel(content.transform, "Skin Tone", 24f);
-            var skinRow = MakeHRow(content.transform, 15f, 45f);
-            ctrl.skinPrevButton = MakeButton(skinRow.transform, "<", 50f, 40f);
+            var skinRow = MakeHRow(content.transform, 10f, 40f);
+            var skinLabel = MakeLabel(skinRow.transform, "Skin Tone", 20f);
+            skinLabel.GetComponent<LayoutElement>().preferredWidth = 100f;
+            ctrl.skinPrevButton = MakeButton(skinRow.transform, "<", 40f, 35f);
             var skinPreviewGo = MakeUIObject("SkinPreview", skinRow.transform);
             var skinPreviewImg = skinPreviewGo.AddComponent<Image>();
             skinPreviewImg.color = SkinTonePresets[0];
-            var skinPreviewLayout = skinPreviewGo.AddComponent<LayoutElement>();
-            skinPreviewLayout.preferredWidth = 60f;
-            skinPreviewLayout.preferredHeight = 35f;
+            var skinPreviewLE = skinPreviewGo.AddComponent<LayoutElement>();
+            skinPreviewLE.preferredWidth = 50f;
+            skinPreviewLE.preferredHeight = 30f;
             ctrl.skinColorPreview = skinPreviewImg;
-            ctrl.skinNextButton = MakeButton(skinRow.transform, ">", 50f, 40f);
-
-            MakeSpacer(content.transform, 10f);
+            ctrl.skinNextButton = MakeButton(skinRow.transform, ">", 40f, 35f);
 
             // Hair color selector
-            MakeLabel(content.transform, "Hair Color", 24f);
-            var hairColorRow = MakeHRow(content.transform, 15f, 45f);
-            ctrl.hairColorPrevButton = MakeButton(hairColorRow.transform, "<", 50f, 40f);
+            var hairColorRow = MakeHRow(content.transform, 10f, 40f);
+            var hcLabel = MakeLabel(hairColorRow.transform, "Hair Color", 20f);
+            hcLabel.GetComponent<LayoutElement>().preferredWidth = 100f;
+            ctrl.hairColorPrevButton = MakeButton(hairColorRow.transform, "<", 40f, 35f);
             var hairColorPreviewGo = MakeUIObject("HairColorPreview", hairColorRow.transform);
             var hairColorPreviewImg = hairColorPreviewGo.AddComponent<Image>();
             hairColorPreviewImg.color = HairColorPresets[0];
-            var hairColorPreviewLayout = hairColorPreviewGo.AddComponent<LayoutElement>();
-            hairColorPreviewLayout.preferredWidth = 60f;
-            hairColorPreviewLayout.preferredHeight = 35f;
+            var hairColorPreviewLE = hairColorPreviewGo.AddComponent<LayoutElement>();
+            hairColorPreviewLE.preferredWidth = 50f;
+            hairColorPreviewLE.preferredHeight = 30f;
             ctrl.hairColorPreview = hairColorPreviewImg;
             var hairColorNameGo = MakeUIObject("HairColorName", hairColorRow.transform);
             var hairColorNameTmp = hairColorNameGo.AddComponent<TextMeshProUGUI>();
             hairColorNameTmp.text = HairColorNames[0];
-            hairColorNameTmp.fontSize = 20f;
+            hairColorNameTmp.fontSize = 18f;
             hairColorNameTmp.alignment = TextAlignmentOptions.Center;
             hairColorNameTmp.color = Color.white;
-            var hairColorNameLayout = hairColorNameGo.AddComponent<LayoutElement>();
-            hairColorNameLayout.preferredWidth = 80f;
-            hairColorNameLayout.preferredHeight = 35f;
+            var hairColorNameLE = hairColorNameGo.AddComponent<LayoutElement>();
+            hairColorNameLE.preferredWidth = 70f;
+            hairColorNameLE.preferredHeight = 30f;
             ctrl.hairColorNameText = hairColorNameTmp;
-            ctrl.hairColorNextButton = MakeButton(hairColorRow.transform, ">", 50f, 40f);
+            ctrl.hairColorNextButton = MakeButton(hairColorRow.transform, ">", 40f, 35f);
 
-            MakeSpacer(content.transform, 20f);
+            MakeSpacer(content.transform, 10f);
+
+            // Slot tab bar (horizontal scrollable)
+            var tabBarGo = MakeUIObject("SlotTabBar", content.transform);
+            var tabBarLayout = tabBarGo.AddComponent<LayoutElement>();
+            tabBarLayout.preferredHeight = 42f;
+            tabBarLayout.flexibleWidth = 1f;
+
+            // Mask for horizontal scrolling
+            var tabBarImg = tabBarGo.AddComponent<Image>();
+            tabBarImg.color = new Color(0.1f, 0.1f, 0.12f, 0.8f);
+            tabBarGo.AddComponent<Mask>().showMaskGraphic = true;
+
+            // Scrollable content inside
+            var tabScroll = tabBarGo.AddComponent<ScrollRect>();
+            tabScroll.vertical = false;
+            tabScroll.horizontal = true;
+            tabScroll.movementType = ScrollRect.MovementType.Clamped;
+            tabScroll.scrollSensitivity = 20f;
+
+            var tabContent = MakeUIObject("TabContent", tabBarGo.transform);
+            var tabContentRt = tabContent.GetComponent<RectTransform>();
+            tabContentRt.anchorMin = new Vector2(0f, 0f);
+            tabContentRt.anchorMax = new Vector2(0f, 1f);
+            tabContentRt.pivot = new Vector2(0f, 0.5f);
+            tabContentRt.offsetMin = Vector2.zero;
+            tabContentRt.offsetMax = Vector2.zero;
+
+            var tabHlg = tabContent.AddComponent<HorizontalLayoutGroup>();
+            tabHlg.childAlignment = TextAnchor.MiddleLeft;
+            tabHlg.childControlWidth = false;
+            tabHlg.childControlHeight = true;
+            tabHlg.childForceExpandWidth = false;
+            tabHlg.childForceExpandHeight = true;
+            tabHlg.spacing = 4f;
+            tabHlg.padding = new RectOffset(4, 4, 2, 2);
+
+            var tabCsf = tabContent.AddComponent<ContentSizeFitter>();
+            tabCsf.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            tabScroll.content = tabContentRt;
+            ctrl.slotTabContainer = tabContent.transform;
+
+            MakeSpacer(content.transform, 6f);
+
+            // Generic slot cycling: category label + < part name >
+            ctrl.slotCategoryLabel = MakeLabel(content.transform, "Hair", 22f);
+            ctrl.slotCategoryLabel.GetComponent<LayoutElement>().preferredHeight = 28f;
+
+            var slotRow = MakeHRow(content.transform, 12f, 42f);
+            ctrl.slotPrevButton = MakeButton(slotRow.transform, "<", 50f, 38f);
+            ctrl.slotPartNameText = MakeLabel(slotRow.transform, "None", 20f);
+            ctrl.slotPartNameText.GetComponent<LayoutElement>().preferredWidth = 250f;
+            ctrl.slotNextButton = MakeButton(slotRow.transform, ">", 50f, 38f);
+
+            // Wire hair prev/next to slot cycling (legacy compatibility)
+            ctrl.hairPrevButton = ctrl.slotPrevButton;
+            ctrl.hairNextButton = ctrl.slotNextButton;
+            ctrl.hairNameText = ctrl.slotPartNameText;
+
+            MakeSpacer(content.transform, 15f);
 
             // Nav buttons
             var navRow = MakeHRow(content.transform, 20f, 65f);
@@ -1744,12 +1934,16 @@ namespace ProjectName.UI
             if (classConfirmButton != null) classConfirmButton.onClick.RemoveAllListeners();
             if (appearanceBackButton != null) appearanceBackButton.onClick.RemoveAllListeners();
             if (appearanceConfirmButton != null) appearanceConfirmButton.onClick.RemoveAllListeners();
-            if (hairPrevButton != null) hairPrevButton.onClick.RemoveAllListeners();
-            if (hairNextButton != null) hairNextButton.onClick.RemoveAllListeners();
             if (skinPrevButton != null) skinPrevButton.onClick.RemoveAllListeners();
             if (skinNextButton != null) skinNextButton.onClick.RemoveAllListeners();
             if (hairColorPrevButton != null) hairColorPrevButton.onClick.RemoveAllListeners();
             if (hairColorNextButton != null) hairColorNextButton.onClick.RemoveAllListeners();
+            if (slotPrevButton != null) slotPrevButton.onClick.RemoveAllListeners();
+            if (slotNextButton != null) slotNextButton.onClick.RemoveAllListeners();
+            foreach (var btn in slotTabButtons)
+            {
+                if (btn != null) btn.onClick.RemoveAllListeners();
+            }
         }
     }
 }
