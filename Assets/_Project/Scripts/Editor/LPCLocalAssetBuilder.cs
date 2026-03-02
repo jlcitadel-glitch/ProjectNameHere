@@ -66,18 +66,19 @@ public static class LPCLocalAssetBuilder
     // Prefix-based slot overrides for items inside the Head/ directory.
     // The LPC library puts hats, hair, eyes, accessories, etc. all under Head/.
     // We remap them to the correct BodyPartSlot based on folder name prefix.
-    // Order matters: more specific prefixes first.
     private static readonly (string prefix, BodyPartSlot slot)[] HEAD_PREFIX_REMAP = new[]
     {
         ("hat_", BodyPartSlot.Hat),
-        ("hair_", BodyPartSlot.Hair),
         ("hairextr_", BodyPartSlot.Hair),
         ("hairextl_", BodyPartSlot.Hair),
         ("hairtie_", BodyPartSlot.Hair),
+        ("hair_", BodyPartSlot.Hair),
         ("ponytail_", BodyPartSlot.Hair),
         ("updo_", BodyPartSlot.Hair),
         ("eyes_", BodyPartSlot.Eyes),
         ("eyebrows_", BodyPartSlot.Eyes),
+        ("eye_", BodyPartSlot.Eyes),
+        ("expression_", BodyPartSlot.Eyes),
         ("facial_", BodyPartSlot.Eyes),
         ("accessory_", BodyPartSlot.Accessories),
         ("charm_", BodyPartSlot.Accessories),
@@ -87,7 +88,27 @@ public static class LPCLocalAssetBuilder
         ("visor_", BodyPartSlot.Hat),
         ("headcover_", BodyPartSlot.Hat),
         ("bandana_", BodyPartSlot.Hat),
-        // Remaining prefixes stay as Head: head_, ears_, nose_, wrinkes_, furry_, fins_, horns_, neck_
+        // Remaining stay as Head: head_, ears_, nose_, wrinkes_, furry_, fins_, horns_, neck_
+    };
+
+    // Prefix-based slot overrides for items inside the body/ directory.
+    // LPC puts wings, tails, wheelchairs under body/ but they belong elsewhere.
+    private static readonly (string prefix, BodyPartSlot slot)[] BODY_PREFIX_REMAP = new[]
+    {
+        ("wings_", BodyPartSlot.Cape),
+        ("tail_", BodyPartSlot.Accessories),
+        ("wheelchair_", BodyPartSlot.Accessories),
+        // body_ stays as Body
+    };
+
+    // Prefix-based slot overrides for items inside the Gloves/ directory.
+    // LPC puts shoulders, rings, etc. under Gloves/ but they belong elsewhere.
+    private static readonly (string prefix, BodyPartSlot slot)[] GLOVES_PREFIX_REMAP = new[]
+    {
+        ("shoulders_", BodyPartSlot.Shoulders),
+        ("bauldron_", BodyPartSlot.Shoulders),
+        ("ring_", BodyPartSlot.Accessories),
+        // gloves_, bracers_, wrists_, arms_ stay as Gloves
     };
 
     /// <summary>
@@ -215,8 +236,15 @@ public static class LPCLocalAssetBuilder
                 // New format: subdirectories contain PNGs
                 if (DIR_SLOT_MAP.TryGetValue(dirName, out var slot))
                 {
-                    bool isHeadDir = dirName.Equals("head", StringComparison.OrdinalIgnoreCase)
-                                  || dirName.Equals("Head", StringComparison.OrdinalIgnoreCase);
+                    // Select the appropriate prefix remap table for this directory
+                    (string prefix, BodyPartSlot slot)[] prefixRemap = null;
+                    if (dirName.Equals("head", StringComparison.OrdinalIgnoreCase)
+                        || dirName.Equals("Head", StringComparison.OrdinalIgnoreCase))
+                        prefixRemap = HEAD_PREFIX_REMAP;
+                    else if (dirName.Equals("body", StringComparison.OrdinalIgnoreCase))
+                        prefixRemap = BODY_PREFIX_REMAP;
+                    else if (dirName.Equals("Gloves", StringComparison.OrdinalIgnoreCase))
+                        prefixRemap = GLOVES_PREFIX_REMAP;
 
                     foreach (var subDir in subDirs)
                     {
@@ -225,10 +253,10 @@ public static class LPCLocalAssetBuilder
 
                         if (Directory.GetFiles(subDir, "*.png").Length > 0)
                         {
-                            // For items inside the Head/ directory, remap by prefix
+                            // Remap by prefix if this directory has a remap table
                             BodyPartSlot leafSlot = slot;
-                            if (isHeadDir)
-                                leafSlot = RemapHeadPrefix(subName, slot);
+                            if (prefixRemap != null)
+                                leafSlot = RemapByPrefix(subName, prefixRemap, slot);
 
                             result.Add(new LeafFolder
                             {
@@ -261,9 +289,9 @@ public static class LPCLocalAssetBuilder
         return false;
     }
 
-    private static BodyPartSlot RemapHeadPrefix(string folderName, BodyPartSlot defaultSlot)
+    private static BodyPartSlot RemapByPrefix(string folderName, (string prefix, BodyPartSlot slot)[] remapTable, BodyPartSlot defaultSlot)
     {
-        foreach (var (prefix, slot) in HEAD_PREFIX_REMAP)
+        foreach (var (prefix, slot) in remapTable)
         {
             if (folderName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                 return slot;

@@ -45,7 +45,7 @@ TextureImporter:
     heightScale: 0.25
     normalMapFilter: 0
     flipGreenChannel: 0
-  isReadable: 0
+  isReadable: 1
   streamingMipmaps: 0
   streamingMipmapsPriority: 0
   vTOnly: 0
@@ -58,7 +58,7 @@ TextureImporter:
   maxTextureSize: 2048
   textureSettings:
     serializedVersion: 2
-    filterMode: 1
+    filterMode: 0
     aniso: 1
     mipBias: 0
     wrapU: 1
@@ -72,7 +72,7 @@ TextureImporter:
   spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 100
+  spritePixelsToUnits: 32
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -96,7 +96,7 @@ TextureImporter:
     maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 1
+    textureCompression: 0
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -121,177 +121,177 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: ledgegrab_0
+      name: ledgegrab_0_0
       rect:
         serializedVersion: 2
-        x: 20
-        y: 216
-        width: 24
-        height: 27
-      alignment: 0
-      pivot: {x: 0, y: 0}
+        x: 0
+        y: 192
+        width: 64
+        height: 64
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 50a412364df9dac40800000000000000
-      internalID: 5525248052398475781
+      spriteID: a795e2f2154d3124caf6e1e4999ee212
+      internalID: -1130048714
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: ledgegrab_1
+      name: ledgegrab_0_1
       rect:
         serializedVersion: 2
-        x: 84
-        y: 217
-        width: 24
-        height: 27
-      alignment: 0
-      pivot: {x: 0, y: 0}
+        x: 64
+        y: 192
+        width: 64
+        height: 64
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 0cc4866d3140537b0800000000000000
-      internalID: -5245281707755025216
+      spriteID: 618bfdf7d817129409178782c390b70c
+      internalID: 1448267655
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: ledgegrab_2
+      name: ledgegrab_1_0
       rect:
         serializedVersion: 2
-        x: 19
-        y: 157
-        width: 24
-        height: 22
-      alignment: 0
-      pivot: {x: 0, y: 0}
+        x: 0
+        y: 128
+        width: 64
+        height: 64
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: eb00f37e6d9d80740800000000000000
-      internalID: 5118580493532463294
+      spriteID: 869ac2ec63e508b4690fbf383b08be02
+      internalID: -129059965
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: ledgegrab_3
+      name: ledgegrab_1_1
       rect:
         serializedVersion: 2
-        x: 83
-        y: 158
-        width: 24
-        height: 22
-      alignment: 0
-      pivot: {x: 0, y: 0}
+        x: 64
+        y: 128
+        width: 64
+        height: 64
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: b449ef0d2cc080fb0800000000000000
-      internalID: -4681477781782096821
+      spriteID: b217a0b838b87a14ab2ae573df1fee47
+      internalID: 863019059
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: ledgegrab_4
+      name: ledgegrab_2_0
       rect:
         serializedVersion: 2
-        x: 19
-        y: 96
-        width: 26
-        height: 29
-      alignment: 0
-      pivot: {x: 0, y: 0}
+        x: 0
+        y: 64
+        width: 64
+        height: 64
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: bb09dfa566356b720800000000000000
-      internalID: 2861566312318865595
+      spriteID: 0cea58b07b18b3a4d823137f4ff8adbe
+      internalID: 458476218
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: ledgegrab_5
+      name: ledgegrab_2_1
       rect:
         serializedVersion: 2
-        x: 83
-        y: 97
-        width: 26
-        height: 29
-      alignment: 0
-      pivot: {x: 0, y: 0}
+        x: 64
+        y: 64
+        width: 64
+        height: 64
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 2a688cf6992136830800000000000000
-      internalID: 4063111739033028258
+      spriteID: b9be4da54f4db4f40a67159b5f0ac279
+      internalID: -1111731402
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: ledgegrab_6
+      name: ledgegrab_3_0
       rect:
         serializedVersion: 2
-        x: 21
-        y: 29
-        width: 24
-        height: 22
-      alignment: 0
-      pivot: {x: 0, y: 0}
+        x: 0
+        y: 0
+        width: 64
+        height: 64
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: d256bbdd0f446f850800000000000000
-      internalID: 6410386920911365421
+      spriteID: 391ddf99d81711646aae2e145d638823
+      internalID: 148996945
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: ledgegrab_7
+      name: ledgegrab_3_1
       rect:
         serializedVersion: 2
-        x: 85
-        y: 30
-        width: 24
-        height: 22
-      alignment: 0
-      pivot: {x: 0, y: 0}
+        x: 64
+        y: 0
+        width: 64
+        height: 64
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 561ca3f2dcdd48f40800000000000000
-      internalID: 5729948499252527461
+      spriteID: 4789c0f1935d3734390d72da74bdaf4f
+      internalID: -1813272987
       vertices: []
       indices: 
       edges: []
@@ -300,7 +300,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: 227afce006762084ba4d49d9e16bd72f
     internalID: 0
     vertices: []
     indices: 
@@ -310,14 +310,14 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      ledgegrab_0: 5525248052398475781
-      ledgegrab_1: -5245281707755025216
-      ledgegrab_2: 5118580493532463294
-      ledgegrab_3: -4681477781782096821
-      ledgegrab_4: 2861566312318865595
-      ledgegrab_5: 4063111739033028258
-      ledgegrab_6: 6410386920911365421
-      ledgegrab_7: 5729948499252527461
+      ledgegrab_0_0: -1130048714
+      ledgegrab_0_1: 1448267655
+      ledgegrab_1_0: -129059965
+      ledgegrab_1_1: 863019059
+      ledgegrab_2_0: 458476218
+      ledgegrab_2_1: -1111731402
+      ledgegrab_3_0: 148996945
+      ledgegrab_3_1: -1813272987
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
