@@ -1,0 +1,42 @@
+{
+  "$schema": "handoff-v1",
+  "agent": "enemy-behavior",
+  "bead_id": "ProjectNameHere-rvsd",
+  "status": "completed",
+  "timestamp": "2026-03-01T12:00:00-05:00",
+  "session_summary": "Implemented encounter-based spawn combination system with role-tagged templates",
+  "done": [
+    "Added CombatRole and ThreatClock enums to EnemyEnums.cs",
+    "Added design card fields (role, axes, synergies, isDeathSpawnOnly) to EnemyData.cs",
+    "Created EncounterTemplate ScriptableObject for role-based group definitions",
+    "Created EncounterBuilder static helper to fill template slots from enemy pool with anti-synergy checks",
+    "Added encounterTemplates array to WaveConfig (empty array = legacy behavior)",
+    "Added encounter spawn path to WaveManager with SpawnEncountersCoroutine, fallback to legacy SpawnLegacyCoroutine",
+    "Created SetupEncounterSystem editor script (Tools > Setup Encounter System) to set design card defaults and create 6 starter encounter templates"
+  ],
+  "remaining": [],
+  "decisions": [
+    "Encounter templates use CombatRole slots filled at runtime from pool — not hardcoded enemy references — for flexibility",
+    "Anti-synergy check does one re-roll, no complex backtracking, for simplicity",
+    "Empty encounterTemplates array falls through to legacy weighted-random path for full backwards compatibility",
+    "Inter-group gap is 2x spawnInterval to give visual separation between encounter groups",
+    "Created editor script to generate template assets since Unity MCP was unavailable — run Tools > Setup Encounter System after recompile"
+  ],
+  "files_touched": [
+    "Assets/_Project/Scripts/Enemies/Core/EnemyEnums.cs",
+    "Assets/_Project/Scripts/Enemies/Data/EnemyData.cs",
+    "Assets/_Project/Scripts/Enemies/Spawning/EncounterTemplate.cs",
+    "Assets/_Project/Scripts/Enemies/Spawning/EncounterBuilder.cs",
+    "Assets/_Project/Scripts/Enemies/Spawning/WaveConfig.cs",
+    "Assets/_Project/Scripts/Enemies/Spawning/WaveManager.cs",
+    "Assets/_Project/Scripts/Enemies/Editor/SetupEncounterSystem.cs"
+  ],
+  "beads_created": ["ProjectNameHere-rvsd"],
+  "next_steps": [
+    "Run Tools > Setup Encounter System in Unity to create the 6 starter template assets and set design card defaults on all EnemyData",
+    "Verify recompilation succeeds with no errors",
+    "Play-test the arena with encounter templates wired into SurvivalWaveConfig",
+    "Set synergyPartners and antiSynergyPartners on EnemyData assets for richer encounter composition",
+    "Consider adding more encounter templates for mid/late-game variety"
+  ]
+}
