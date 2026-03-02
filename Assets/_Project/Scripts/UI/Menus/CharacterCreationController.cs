@@ -74,12 +74,6 @@ namespace ProjectName.UI
         [SerializeField] private Button beardNextButton;
         [SerializeField] private TMP_Text beardNameText;
 
-        [Header("Eye Color")]
-        [SerializeField] private Button eyeColorPrevButton;
-        [SerializeField] private Button eyeColorNextButton;
-        [SerializeField] private Image eyeColorPreview;
-        [SerializeField] private TMP_Text eyeColorNameText;
-
         private UILayeredSpritePreview appearancePreview;
 
         // Animated preview components (added at runtime)
@@ -108,6 +102,14 @@ namespace ProjectName.UI
         // Beard cycling state
         private BodyPartData[] availableBeardStyles;
         private int selectedBeardIndex = -1; // -1 = None
+
+        // Eyes cycling state
+        private BodyPartData[] availableEyeStyles;
+        private int selectedEyesIndex;
+
+        // Ears cycling state
+        private BodyPartData[] availableEarStyles;
+        private int selectedEarsIndex = -1; // -1 = None (human ears from head base)
 
         // Eye color cycling state
         private int selectedEyeColorIndex;
@@ -283,17 +285,6 @@ namespace ProjectName.UI
                 beardNextButton.onClick.AddListener(() => CycleBeard(1));
             }
 
-            // Eye color cycling
-            if (eyeColorPrevButton != null)
-            {
-                eyeColorPrevButton.onClick.RemoveAllListeners();
-                eyeColorPrevButton.onClick.AddListener(() => CycleEyeColor(-1));
-            }
-            if (eyeColorNextButton != null)
-            {
-                eyeColorNextButton.onClick.RemoveAllListeners();
-                eyeColorNextButton.onClick.AddListener(() => CycleEyeColor(1));
-            }
         }
 
         /// <summary>
@@ -311,6 +302,8 @@ namespace ProjectName.UI
             selectedSkinToneIndex = 0;
             selectedHairColorIndex = 0;
             selectedBeardIndex = -1;
+            selectedEyesIndex = 0;
+            selectedEarsIndex = -1;
             selectedEyeColorIndex = 0;
             builtAppearance = null;
             selectedBodyType = "male";
@@ -599,9 +592,10 @@ namespace ProjectName.UI
                     builtAppearance = ScriptableObject.CreateInstance<CharacterAppearanceConfig>();
                     var bodyParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Body);
                     var headParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Head);
+                    var faceHeads = FilterByPrefix(headParts, "head_");
                     var hairParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Hair);
                     if (bodyParts.Length > 0) builtAppearance.body = bodyParts[0];
-                    if (headParts.Length > 0) builtAppearance.head = headParts[0];
+                    builtAppearance.head = FindDefaultHumanHead(faceHeads, headParts, "male");
                     if (hairParts.Length > 0) builtAppearance.hair = hairParts[0];
                     builtAppearance.skinTint = SkinTonePresets[0];
                     builtAppearance.hairTint = HairColorPresets[0];
@@ -747,28 +741,50 @@ namespace ProjectName.UI
             SetPanelActive(appearancePanel, true);
 
             // Gather available styles (filtered by body type)
-            availableHairStyles = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Hair, selectedBodyType);
+            availableHairStyles = FilterHairStyles(
+                bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Hair, selectedBodyType), selectedBodyType);
             availableBeardStyles = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Beard, selectedBodyType);
+
+            // Filter head parts: only "head_" prefixed parts are actual face bases
+            var allHeadParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Head, selectedBodyType);
+            var filteredHeadParts = FilterByPrefix(allHeadParts, "head_");
+            availableEarStyles = FilterByPrefix(allHeadParts, "ears_");
+
+            // Eyes come from the Eyes slot
+            var allEyeParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Eyes, selectedBodyType);
+            availableEyeStyles = FilterByPrefix(allEyeParts, "eyes_");
+            // If prefix filter found nothing, use all eye parts as fallback
+            if (availableEyeStyles.Length == 0)
+                availableEyeStyles = allEyeParts;
 
             // Only initialize appearance if not already built (preserve choices when navigating back)
             if (builtAppearance == null)
             {
-                selectedHairIndex = 0;
+                selectedHairIndex = FindPartIndex(availableHairStyles, "hair_messy1");
                 selectedSkinToneIndex = 0;
-                selectedHairColorIndex = 0;
+                selectedHairColorIndex = 3; // Brown
                 selectedBeardIndex = -1;
+                selectedEyesIndex = -1;
+                selectedEarsIndex = -1;
                 selectedEyeColorIndex = 0;
 
                 builtAppearance = ScriptableObject.CreateInstance<CharacterAppearanceConfig>();
                 builtAppearance.bodyType = selectedBodyType;
 
                 var bodyParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Body, selectedBodyType);
-                var headParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Head, selectedBodyType);
                 if (bodyParts.Length > 0) builtAppearance.body = bodyParts[0];
-                if (headParts.Length > 0) builtAppearance.head = headParts[0];
-                if (availableHairStyles.Length > 0) builtAppearance.hair = availableHairStyles[0];
+
+                // Pick the default human head matching body type
+                builtAppearance.head = FindDefaultHumanHead(filteredHeadParts, allHeadParts, selectedBodyType);
+
+                if (availableHairStyles.Length > 0)
+                    builtAppearance.hair = availableHairStyles[selectedHairIndex];
+
+                // Eyes default to None — normal human eyes are part of the head sprite.
+                // Ears default to None — human ears come from the head base.
+
                 builtAppearance.skinTint = SkinTonePresets[0];
-                builtAppearance.hairTint = HairColorPresets[0];
+                builtAppearance.hairTint = HairColorPresets[selectedHairColorIndex];
                 builtAppearance.eyeTint = EyeColorPresets[0];
 
                 AssignDefaultClothing();
@@ -833,13 +849,91 @@ namespace ProjectName.UI
             UpdateAppearanceUI();
         }
 
-        private void CycleEyeColor(int direction)
+        private static BodyPartData[] FilterByPrefix(BodyPartData[] parts, string prefix)
         {
-            selectedEyeColorIndex = (selectedEyeColorIndex + direction + EyeColorPresets.Length) % EyeColorPresets.Length;
-            builtAppearance.eyeTint = EyeColorPresets[selectedEyeColorIndex];
-            UIManager.Instance?.PlayNavigateSound();
-            RefreshAppearancePreview();
-            UpdateAppearanceUI();
+            return Array.FindAll(parts, p => p.partId != null && p.partId.StartsWith(prefix));
+        }
+
+        private static int FindPartIndex(BodyPartData[] parts, string partId)
+        {
+            if (parts == null) return 0;
+            for (int i = 0; i < parts.Length; i++)
+            {
+                if (parts[i].partId == partId)
+                    return i;
+            }
+            return 0;
+        }
+
+        /// <summary>
+        /// Filters hair parts to only standalone styles for the given body type.
+        /// Excludes extension overlays (hairextl_, hairextr_, hairtie_, ponytail_, updo_)
+        /// and drops universal/unsuffixed duplicates when a gender-specific variant exists.
+        /// </summary>
+        private static BodyPartData[] FilterHairStyles(BodyPartData[] parts, string bodyType)
+        {
+            string suffix = "_" + bodyType; // "_male" or "_female"
+            var genderedIds = new HashSet<string>();
+
+            // First pass: collect base names that have a gender-specific variant
+            foreach (var p in parts)
+            {
+                if (p.partId == null) continue;
+                if (p.partId.EndsWith(suffix))
+                    genderedIds.Add(p.partId.Substring(0, p.partId.Length - suffix.Length));
+            }
+
+            var result = new List<BodyPartData>();
+            foreach (var p in parts)
+            {
+                if (p.partId == null) continue;
+
+                // Exclude extension/overlay prefixes — these aren't standalone hairstyles
+                if (p.partId.StartsWith("hairextl_") || p.partId.StartsWith("hairextr_") ||
+                    p.partId.StartsWith("hairtie_") || p.partId.StartsWith("ponytail_") ||
+                    p.partId.StartsWith("updo_"))
+                    continue;
+
+                // If this is a universal part and a gendered variant exists, skip the duplicate
+                if (!p.partId.EndsWith(suffix) && genderedIds.Contains(p.partId))
+                    continue;
+
+                result.Add(p);
+            }
+            return result.ToArray();
+        }
+
+        /// <summary>
+        /// Finds the best default human head for the given body type.
+        /// Prefers "head_human_male_male" / "head_human_female_female",
+        /// then any "head_human_" part, then first filtered, then first raw.
+        /// </summary>
+        private static BodyPartData FindDefaultHumanHead(BodyPartData[] filteredHeads, BodyPartData[] allHeads, string bodyType)
+        {
+            // Exact match: head_human_male_male or head_human_female_female
+            string preferredId = bodyType == "female" ? "head_human_female_female" : "head_human_male_male";
+            foreach (var part in filteredHeads)
+            {
+                if (part.partId == preferredId)
+                    return part;
+            }
+
+            // Any human head
+            foreach (var part in filteredHeads)
+            {
+                if (part.partId != null && part.partId.StartsWith("head_human_"))
+                    return part;
+            }
+
+            // First filtered head (non-human but at least a head_ part)
+            if (filteredHeads.Length > 0)
+                return filteredHeads[0];
+
+            // Last resort: first raw head part
+            if (allHeads.Length > 0)
+                return allHeads[0];
+
+            return null;
         }
 
         private void AssignDefaultClothing()
@@ -911,12 +1005,6 @@ namespace ProjectName.UI
                 }
             }
 
-            // Eye color
-            if (eyeColorPreview != null)
-                eyeColorPreview.color = builtAppearance.eyeTint;
-
-            if (eyeColorNameText != null && selectedEyeColorIndex >= 0 && selectedEyeColorIndex < EyeColorNames.Length)
-                eyeColorNameText.text = EyeColorNames[selectedEyeColorIndex];
         }
 
         // ----- Body Type -----
@@ -1187,30 +1275,6 @@ namespace ProjectName.UI
             hairColorNameLE.preferredHeight = 30f;
             ctrl.hairColorNameText = hairColorNameTmp;
             ctrl.hairColorNextButton = MakeButton(hairColorRow.transform, ">", 40f, 35f);
-
-            // Eye color row
-            var eyeColorRow = MakeHRow(content.transform, 10f, 40f);
-            var ecLabel = MakeLabel(eyeColorRow.transform, "Eye Color", 20f);
-            ecLabel.GetComponent<LayoutElement>().preferredWidth = 100f;
-            ctrl.eyeColorPrevButton = MakeButton(eyeColorRow.transform, "<", 40f, 35f);
-            var eyeColorPreviewGo = MakeUIObject("EyeColorPreview", eyeColorRow.transform);
-            var eyeColorPreviewImg = eyeColorPreviewGo.AddComponent<Image>();
-            eyeColorPreviewImg.color = EyeColorPresets[0];
-            var eyeColorPreviewLE = eyeColorPreviewGo.AddComponent<LayoutElement>();
-            eyeColorPreviewLE.preferredWidth = 50f;
-            eyeColorPreviewLE.preferredHeight = 30f;
-            ctrl.eyeColorPreview = eyeColorPreviewImg;
-            var eyeColorNameGo = MakeUIObject("EyeColorName", eyeColorRow.transform);
-            var eyeColorNameTmp = eyeColorNameGo.AddComponent<TextMeshProUGUI>();
-            eyeColorNameTmp.text = EyeColorNames[0];
-            eyeColorNameTmp.fontSize = 18f;
-            eyeColorNameTmp.alignment = TextAlignmentOptions.Center;
-            eyeColorNameTmp.color = Color.white;
-            var eyeColorNameLE = eyeColorNameGo.AddComponent<LayoutElement>();
-            eyeColorNameLE.preferredWidth = 70f;
-            eyeColorNameLE.preferredHeight = 30f;
-            ctrl.eyeColorNameText = eyeColorNameTmp;
-            ctrl.eyeColorNextButton = MakeButton(eyeColorRow.transform, ">", 40f, 35f);
 
             MakeSpacer(content.transform, 15f);
 
@@ -1819,8 +1883,6 @@ namespace ProjectName.UI
             if (hairColorNextButton != null) hairColorNextButton.onClick.RemoveAllListeners();
             if (beardPrevButton != null) beardPrevButton.onClick.RemoveAllListeners();
             if (beardNextButton != null) beardNextButton.onClick.RemoveAllListeners();
-            if (eyeColorPrevButton != null) eyeColorPrevButton.onClick.RemoveAllListeners();
-            if (eyeColorNextButton != null) eyeColorNextButton.onClick.RemoveAllListeners();
         }
     }
 }
