@@ -646,11 +646,16 @@ namespace ProjectName.UI
                     builtAppearance.skinTint = SkinTonePresets[0];
                     builtAppearance.hairTint = HairColorPresets[0];
 
-                    // Add default eye overlay so eye color tinting works
+                    // Add eye color overlay so eye tinting works
                     var eyeParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Eyes);
-                    var defaultEyeParts = FilterByPrefix(eyeParts, "eyes_default");
-                    if (defaultEyeParts.Length > 0) builtAppearance.SetPart(BodyPartSlot.Eyes, defaultEyeParts[0]);
-                    else if (eyeParts.Length > 0) builtAppearance.SetPart(BodyPartSlot.Eyes, eyeParts[0]);
+                    BodyPartData defaultEye = null;
+                    foreach (var ep in eyeParts)
+                    {
+                        if (ep.partId != null && ep.partId.StartsWith("eye_color_"))
+                        { defaultEye = ep; break; }
+                    }
+                    if (defaultEye == null && eyeParts.Length > 0) defaultEye = eyeParts[0];
+                    if (defaultEye != null) builtAppearance.SetPart(BodyPartSlot.Eyes, defaultEye);
                     builtAppearance.eyeTint = EyeColorPresets[0];
 
                     // Add default clothing so character isn't naked
@@ -1013,21 +1018,31 @@ namespace ProjectName.UI
         {
             if (builtAppearance == null || bodyPartRegistry == null) return;
 
-            // Auto-assign default eye overlay so eye color tinting works
+            // Auto-assign eye color overlay so eye tinting works.
+            // Prefer "eye_color_" parts (aligned to standard heads) over "eyes_" (elderly).
             var eyeParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Eyes, selectedBodyType);
-            var eyeStyles = FilterByPrefix(eyeParts, "eyes_");
-            if (eyeStyles.Length == 0) eyeStyles = eyeParts;
             BodyPartData defaultEyes = null;
-            foreach (var part in eyeStyles)
+            foreach (var part in eyeParts)
             {
-                if (part.partId != null && part.partId.Contains("eyes_default"))
+                if (part.partId != null && part.partId.StartsWith("eye_color_"))
                 {
                     defaultEyes = part;
                     break;
                 }
             }
-            if (defaultEyes == null && eyeStyles.Length > 0)
-                defaultEyes = eyeStyles[0];
+            if (defaultEyes == null)
+            {
+                foreach (var part in eyeParts)
+                {
+                    if (part.partId != null && part.partId.Contains("eyes_default"))
+                    {
+                        defaultEyes = part;
+                        break;
+                    }
+                }
+            }
+            if (defaultEyes == null && eyeParts.Length > 0)
+                defaultEyes = eyeParts[0];
             if (defaultEyes != null)
                 builtAppearance.SetPart(BodyPartSlot.Eyes, defaultEyes);
 
