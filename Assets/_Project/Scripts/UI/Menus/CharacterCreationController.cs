@@ -75,9 +75,6 @@ namespace ProjectName.UI
         [SerializeField] private TMP_Text beardNameText;
 
         [Header("Eyes")]
-        [SerializeField] private Button eyesPrevButton;
-        [SerializeField] private Button eyesNextButton;
-        [SerializeField] private TMP_Text eyesNameText;
         [SerializeField] private Button eyeColorPrevButton;
         [SerializeField] private Button eyeColorNextButton;
         [SerializeField] private Image eyeColorPreview;
@@ -118,10 +115,6 @@ namespace ProjectName.UI
         private BodyPartData[] availableBeardStyles;
         private int selectedBeardIndex = -1; // -1 = None
 
-        // Eyes cycling state
-        private BodyPartData[] availableEyeStyles;
-        private int selectedEyesIndex;
-
         // Ears cycling state
         private BodyPartData[] availableEarStyles;
         private int selectedEarsIndex = -1; // -1 = None (human ears from head base)
@@ -145,17 +138,18 @@ namespace ProjectName.UI
 
         private static readonly Color[] SkinTonePresets = new Color[]
         {
-            new Color(1f, 0.87f, 0.75f),       // Light
-            new Color(0.96f, 0.80f, 0.64f),     // Fair
-            new Color(0.84f, 0.67f, 0.50f),     // Medium
-            new Color(0.70f, 0.49f, 0.32f),     // Tan
-            new Color(0.55f, 0.36f, 0.22f),     // Brown
-            new Color(0.40f, 0.26f, 0.16f),     // Dark
+            new Color(1.00f, 0.89f, 0.78f),     // Light
+            new Color(0.90f, 0.72f, 0.49f),     // Amber
+            new Color(0.78f, 0.72f, 0.55f),     // Olive
+            new Color(0.70f, 0.58f, 0.48f),     // Taupe
+            new Color(0.57f, 0.42f, 0.28f),     // Bronze
+            new Color(0.42f, 0.30f, 0.20f),     // Brown
+            new Color(0.28f, 0.20f, 0.15f),     // Black
         };
         private int selectedSkinToneIndex;
         private static readonly string[] SkinToneNames = new string[]
         {
-            "Light", "Fair", "Medium", "Tan", "Brown", "Dark"
+            "Light", "Amber", "Olive", "Taupe", "Bronze", "Brown", "Black"
         };
 
         private static readonly Color[] HairColorPresets = new Color[]
@@ -304,18 +298,17 @@ namespace ProjectName.UI
                 beardNextButton.onClick.AddListener(() => CycleBeard(1));
             }
 
-            // Eyes cycling
-            if (eyesPrevButton != null)
+            // Eye color cycling
+            if (eyeColorPrevButton != null)
             {
-                eyesPrevButton.onClick.RemoveAllListeners();
-                eyesPrevButton.onClick.AddListener(() => CycleEyes(-1));
+                eyeColorPrevButton.onClick.RemoveAllListeners();
+                eyeColorPrevButton.onClick.AddListener(() => CycleEyeColor(-1));
             }
-            if (eyesNextButton != null)
+            if (eyeColorNextButton != null)
             {
-                eyesNextButton.onClick.RemoveAllListeners();
-                eyesNextButton.onClick.AddListener(() => CycleEyes(1));
+                eyeColorNextButton.onClick.RemoveAllListeners();
+                eyeColorNextButton.onClick.AddListener(() => CycleEyeColor(1));
             }
-
 
         }
 
@@ -334,7 +327,6 @@ namespace ProjectName.UI
             selectedSkinToneIndex = 0;
             selectedHairColorIndex = 0;
             selectedBeardIndex = -1;
-            selectedEyesIndex = 0;
             selectedEarsIndex = -1;
             selectedEyeColorIndex = 0;
             builtAppearance = null;
@@ -654,6 +646,13 @@ namespace ProjectName.UI
                     builtAppearance.skinTint = SkinTonePresets[0];
                     builtAppearance.hairTint = HairColorPresets[0];
 
+                    // Add default eye overlay so eye color tinting works
+                    var eyeParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Eyes);
+                    var defaultEyeParts = FilterByPrefix(eyeParts, "eyes_default");
+                    if (defaultEyeParts.Length > 0) builtAppearance.SetPart(BodyPartSlot.Eyes, defaultEyeParts[0]);
+                    else if (eyeParts.Length > 0) builtAppearance.SetPart(BodyPartSlot.Eyes, eyeParts[0]);
+                    builtAppearance.eyeTint = EyeColorPresets[0];
+
                     // Add default clothing so character isn't naked
                     var torsoParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Torso);
                     if (torsoParts.Length > 0) builtAppearance.SetPart(BodyPartSlot.Torso, torsoParts[0]);
@@ -682,6 +681,9 @@ namespace ProjectName.UI
             merged.hair = builtAppearance.hair;
             merged.skinTint = builtAppearance.skinTint;
             merged.hairTint = builtAppearance.hairTint;
+            merged.eyeTint = builtAppearance.eyeTint;
+            var baseEyes = builtAppearance.GetPart(BodyPartSlot.Eyes);
+            if (baseEyes != null) merged.SetPart(BodyPartSlot.Eyes, baseEyes);
 
             // Carry default clothing as baseline so character isn't naked if equipment visuals fail
             var baseTorso = builtAppearance.GetPart(BodyPartSlot.Torso);
@@ -821,13 +823,6 @@ namespace ProjectName.UI
             var filteredHeadParts = FilterByPrefix(allHeadParts, "head_");
             availableEarStyles = FilterByPrefix(allHeadParts, "ears_");
 
-            // Eyes come from the Eyes slot
-            var allEyeParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Eyes, selectedBodyType);
-            availableEyeStyles = FilterByPrefix(allEyeParts, "eyes_");
-            // If prefix filter found nothing, use all eye parts as fallback
-            if (availableEyeStyles.Length == 0)
-                availableEyeStyles = allEyeParts;
-
             // Only initialize appearance if not already built (preserve choices when navigating back)
             if (builtAppearance == null)
             {
@@ -835,7 +830,6 @@ namespace ProjectName.UI
                 selectedSkinToneIndex = 0;
                 selectedHairColorIndex = 3; // Brown
                 selectedBeardIndex = -1;
-                selectedEyesIndex = -1;
                 selectedEarsIndex = -1;
                 selectedEyeColorIndex = 0;
 
@@ -851,7 +845,6 @@ namespace ProjectName.UI
                 if (availableHairStyles.Length > 0)
                     builtAppearance.hair = availableHairStyles[selectedHairIndex];
 
-                // Eyes default to None — normal human eyes are part of the head sprite.
                 // Ears default to None — human ears come from the head base.
 
                 builtAppearance.skinTint = SkinTonePresets[0];
@@ -914,31 +907,6 @@ namespace ProjectName.UI
             var selectedPart = selectedBeardIndex >= 0 ? availableBeardStyles[selectedBeardIndex] : null;
             if (builtAppearance != null)
                 builtAppearance.SetPart(BodyPartSlot.Beard, selectedPart);
-
-            UIManager.Instance?.PlayNavigateSound();
-            RefreshAppearancePreview();
-            UpdateAppearanceUI();
-        }
-
-        private void CycleEyes(int direction)
-        {
-            if (availableEyeStyles == null || availableEyeStyles.Length == 0)
-            {
-                selectedEyesIndex = -1;
-                if (builtAppearance != null)
-                    builtAppearance.SetPart(BodyPartSlot.Eyes, null);
-                UpdateAppearanceUI();
-                return;
-            }
-
-            int totalOptions = availableEyeStyles.Length + 1; // +1 for "None"
-            int adjustedIndex = selectedEyesIndex + 1; // shift so None=0
-            adjustedIndex = (adjustedIndex + direction + totalOptions) % totalOptions;
-            selectedEyesIndex = adjustedIndex - 1;
-
-            var selectedPart = selectedEyesIndex >= 0 ? availableEyeStyles[selectedEyesIndex] : null;
-            if (builtAppearance != null)
-                builtAppearance.SetPart(BodyPartSlot.Eyes, selectedPart);
 
             UIManager.Instance?.PlayNavigateSound();
             RefreshAppearancePreview();
@@ -1045,6 +1013,24 @@ namespace ProjectName.UI
         {
             if (builtAppearance == null || bodyPartRegistry == null) return;
 
+            // Auto-assign default eye overlay so eye color tinting works
+            var eyeParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Eyes, selectedBodyType);
+            var eyeStyles = FilterByPrefix(eyeParts, "eyes_");
+            if (eyeStyles.Length == 0) eyeStyles = eyeParts;
+            BodyPartData defaultEyes = null;
+            foreach (var part in eyeStyles)
+            {
+                if (part.partId != null && part.partId.Contains("eyes_default"))
+                {
+                    defaultEyes = part;
+                    break;
+                }
+            }
+            if (defaultEyes == null && eyeStyles.Length > 0)
+                defaultEyes = eyeStyles[0];
+            if (defaultEyes != null)
+                builtAppearance.SetPart(BodyPartSlot.Eyes, defaultEyes);
+
             var torsoParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Torso, selectedBodyType);
             BodyPartData defaultTorso = null;
             foreach (var part in torsoParts)
@@ -1075,12 +1061,12 @@ namespace ProjectName.UI
             if (defaultLegs != null)
                 builtAppearance.SetPart(BodyPartSlot.Legs, defaultLegs);
 
-            // Feet: prefers "basic_boots", falls back to first feet part
+            // Feet: prefers "basic_shoes", falls back to first feet part
             var feetParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Feet, selectedBodyType);
             BodyPartData defaultFeet = null;
             foreach (var part in feetParts)
             {
-                if (part.partId != null && part.partId.Contains("basic_boots"))
+                if (part.partId != null && part.partId.Contains("basic_shoes"))
                 {
                     defaultFeet = part;
                     break;
@@ -1128,19 +1114,11 @@ namespace ProjectName.UI
                 }
             }
 
-            // Eyes name
-            if (eyesNameText != null)
-            {
-                if (selectedEyesIndex < 0 || availableEyeStyles == null || availableEyeStyles.Length == 0)
-                    eyesNameText.text = "None";
-                else
-                {
-                    var part = availableEyeStyles[selectedEyesIndex];
-                    eyesNameText.text = !string.IsNullOrEmpty(part.displayName) ? part.displayName : part.partId;
-                }
-            }
-
-
+            // Eye color
+            if (eyeColorPreview != null)
+                eyeColorPreview.color = builtAppearance.eyeTint;
+            if (eyeColorNameText != null && selectedEyeColorIndex >= 0 && selectedEyeColorIndex < EyeColorNames.Length)
+                eyeColorNameText.text = EyeColorNames[selectedEyeColorIndex];
         }
 
         // ----- Body Type -----
@@ -1159,7 +1137,7 @@ namespace ProjectName.UI
         private void UpdateBodyTypeUI()
         {
             if (bodyTypeLabel != null)
-                bodyTypeLabel.text = selectedBodyType == "male" ? "Male" : "Female";
+                bodyTypeLabel.text = selectedBodyType == "male" ? "A" : "B";
 
             // Active: crimson bg + gold text; inactive: normal midnight blue
             ApplyBodyTypeButtonStyle(bodyTypeMaleButton, selectedBodyType == "male");
@@ -1277,10 +1255,6 @@ namespace ProjectName.UI
             title.color = FrameGold;
             MakeSpacer(content.transform, 6f);
 
-            // Subtitle
-            var subtitle = MakeLabel(content.transform, "Every legend begins with a name", 20f);
-            subtitle.color = TextSecondary;
-            subtitle.fontStyle = FontStyles.Italic;
             MakeSpacer(content.transform, 20f);
 
             // Input field with gold border
@@ -1414,56 +1388,119 @@ namespace ProjectName.UI
 
             var content = MakeContentColumn(panel.transform);
             var contentRt = content.GetComponent<RectTransform>();
-            contentRt.sizeDelta = new Vector2(800f, 0f);
+            contentRt.sizeDelta = new Vector2(900f, 0f);
 
             // Gothic title
             var title = MakeLabel(content.transform, "Forge Your Likeness", 38f);
             title.color = FrameGold;
             MakeSpacer(content.transform, 4f);
 
-            // Body type toggle
-            var bodyTypeRow = MakeHRow(content.transform, 15f, 45f);
+            // === Two-column layout ===
+            var columnsRow = MakeUIObject("ColumnsRow", content.transform);
+            var columnsHlg = columnsRow.AddComponent<HorizontalLayoutGroup>();
+            columnsHlg.childAlignment = TextAnchor.UpperCenter;
+            columnsHlg.childControlWidth = true;
+            columnsHlg.childControlHeight = true;
+            columnsHlg.childForceExpandWidth = false;
+            columnsHlg.childForceExpandHeight = true;
+            columnsHlg.spacing = 20f;
+            var columnsLayout = columnsRow.AddComponent<LayoutElement>();
+            columnsLayout.flexibleWidth = 1f;
+
+            // --- Left column: preview + body type ---
+            var leftCol = MakeUIObject("LeftColumn", columnsRow.transform);
+            var leftVlg = leftCol.AddComponent<VerticalLayoutGroup>();
+            leftVlg.childAlignment = TextAnchor.UpperCenter;
+            leftVlg.childControlWidth = true;
+            leftVlg.childControlHeight = true;
+            leftVlg.childForceExpandWidth = false;
+            leftVlg.childForceExpandHeight = false;
+            leftVlg.spacing = 6f;
+            var leftLayout = leftCol.AddComponent<LayoutElement>();
+            leftLayout.preferredWidth = 340f;
+
+            var previewFrame = MakeGothicFrame(leftCol.transform, 280f, 360f);
+            ctrl.appearancePreview = previewFrame.AddComponent<UILayeredSpritePreview>();
+
+            var bodyTypeRow = MakeHRow(leftCol.transform, 10f, 45f);
             var btLabel = MakeLabel(bodyTypeRow.transform, "Body Type", 22f);
             btLabel.textWrappingMode = TextWrappingModes.NoWrap;
-            btLabel.GetComponent<LayoutElement>().preferredWidth = 130f;
-            ctrl.bodyTypeMaleButton = MakeButton(bodyTypeRow.transform, "Male", 110f, 40f);
-            ctrl.bodyTypeFemaleButton = MakeButton(bodyTypeRow.transform, "Female", 110f, 40f);
-            ctrl.bodyTypeLabel = MakeLabel(bodyTypeRow.transform, "Male", 20f);
+            btLabel.GetComponent<LayoutElement>().preferredWidth = 110f;
+            ctrl.bodyTypeMaleButton = MakeButton(bodyTypeRow.transform, "A", 90f, 40f);
+            ctrl.bodyTypeFemaleButton = MakeButton(bodyTypeRow.transform, "B", 90f, 40f);
+            ctrl.bodyTypeLabel = MakeLabel(bodyTypeRow.transform, "A", 20f);
             ctrl.bodyTypeLabel.GetComponent<LayoutElement>().preferredWidth = 0f;
             ctrl.bodyTypeLabel.gameObject.SetActive(false);
 
-            MakeSpacer(content.transform, 6f);
+            // --- Right column: options in scroll view ---
+            var rightCol = MakeUIObject("RightColumn", columnsRow.transform);
+            var rightVlg = rightCol.AddComponent<VerticalLayoutGroup>();
+            rightVlg.childAlignment = TextAnchor.UpperCenter;
+            rightVlg.childControlWidth = true;
+            rightVlg.childControlHeight = true;
+            rightVlg.childForceExpandWidth = true;
+            rightVlg.childForceExpandHeight = true;
+            rightVlg.spacing = 0f;
+            var rightLayout = rightCol.AddComponent<LayoutElement>();
+            rightLayout.flexibleWidth = 1f;
 
-            // Character preview with gothic frame
-            var previewFrame = MakeGothicFrame(content.transform, 280f, 300f);
-            ctrl.appearancePreview = previewFrame.AddComponent<UILayeredSpritePreview>();
+            // ScrollRect wrapping the options
+            var scrollGo = MakeUIObject("ScrollArea", rightCol.transform);
+            Stretch(scrollGo);
+            var scrollRect = scrollGo.AddComponent<ScrollRect>();
+            scrollRect.horizontal = false;
+            scrollRect.vertical = true;
+            scrollRect.movementType = ScrollRect.MovementType.Clamped;
+            scrollRect.scrollSensitivity = 30f;
+            var scrollLayout = scrollGo.AddComponent<LayoutElement>();
+            scrollLayout.flexibleHeight = 1f;
+            scrollLayout.flexibleWidth = 1f;
 
-            MakeSpacer(content.transform, 6f);
+            var viewport = MakeUIObject("Viewport", scrollGo.transform);
+            Stretch(viewport);
+            viewport.AddComponent<RectMask2D>();
+            scrollRect.viewport = viewport.GetComponent<RectTransform>();
 
-            // === BODY section header ===
-            MakeSectionHeader(content.transform, "BODY");
-
-            // Hair style
-            MakeOptionRow(content.transform, "Hair Style", out ctrl.hairPrevButton, out ctrl.hairNextButton, out ctrl.hairNameText);
-
-            // Beard
-            MakeOptionRow(content.transform, "Beard", out ctrl.beardPrevButton, out ctrl.beardNextButton, out ctrl.beardNameText);
+            var scrollContent = MakeUIObject("ScrollContent", viewport.transform);
+            var scrollContentRt = scrollContent.GetComponent<RectTransform>();
+            scrollContentRt.anchorMin = new Vector2(0f, 1f);
+            scrollContentRt.anchorMax = new Vector2(1f, 1f);
+            scrollContentRt.pivot = new Vector2(0.5f, 1f);
+            scrollContentRt.sizeDelta = new Vector2(0f, 0f);
+            var scrollVlg = scrollContent.AddComponent<VerticalLayoutGroup>();
+            scrollVlg.childAlignment = TextAnchor.UpperCenter;
+            scrollVlg.childControlWidth = true;
+            scrollVlg.childControlHeight = true;
+            scrollVlg.childForceExpandWidth = true;
+            scrollVlg.childForceExpandHeight = false;
+            scrollVlg.spacing = 5f;
+            scrollVlg.padding = new RectOffset(5, 5, 0, 5);
+            var scrollCsf = scrollContent.AddComponent<ContentSizeFitter>();
+            scrollCsf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            scrollRect.content = scrollContentRt;
 
             // === FEATURES section header ===
-            MakeSectionHeader(content.transform, "FEATURES");
+            MakeSectionHeader(scrollContent.transform, "FEATURES");
 
-            // Eye style
-            MakeOptionRow(content.transform, "Eye Style", out ctrl.eyesPrevButton, out ctrl.eyesNextButton, out ctrl.eyesNameText);
+            // Hair style
+            MakeOptionRow(scrollContent.transform, "Hair Style", out ctrl.hairPrevButton, out ctrl.hairNextButton, out ctrl.hairNameText);
+
+            // Beard
+            MakeOptionRow(scrollContent.transform, "Beard", out ctrl.beardPrevButton, out ctrl.beardNextButton, out ctrl.beardNameText);
 
             // === COLORS section header ===
-            MakeSectionHeader(content.transform, "COLORS");
+            MakeSectionHeader(scrollContent.transform, "COLORS");
+
+            // Eye color
+            MakeColorRow(scrollContent.transform, "Eye Color", EyeColorPresets[0], EyeColorNames[0],
+                out ctrl.eyeColorPrevButton, out ctrl.eyeColorNextButton, out ctrl.eyeColorPreview, out ctrl.eyeColorNameText);
 
             // Skin tone
-            MakeColorRow(content.transform, "Skin Tone", SkinTonePresets[0], SkinToneNames[0],
+            MakeColorRow(scrollContent.transform, "Skin Tone", SkinTonePresets[0], SkinToneNames[0],
                 out ctrl.skinPrevButton, out ctrl.skinNextButton, out ctrl.skinColorPreview, out ctrl.skinToneNameText);
 
             // Hair color
-            MakeColorRow(content.transform, "Hair Color", HairColorPresets[0], HairColorNames[0],
+            MakeColorRow(scrollContent.transform, "Hair Color", HairColorPresets[0], HairColorNames[0],
                 out ctrl.hairColorPrevButton, out ctrl.hairColorNextButton, out ctrl.hairColorPreview, out ctrl.hairColorNameText);
 
             MakeSpacer(content.transform, 10f);
@@ -1962,25 +1999,38 @@ namespace ProjectName.UI
         private static void MakeSectionHeader(Transform parent, string title)
         {
             MakeSpacer(parent, 4f);
-            var row = MakeHRow(parent, 8f, 24f);
 
-            // Left divider
-            var leftDiv = MakeUIObject("DivL", row.transform);
+            // Build row without ContentSizeFitter so dividers stretch
+            // to fill width from the parent VLG
+            var go = MakeUIObject("SectionHeader", parent);
+            var hlg = go.AddComponent<HorizontalLayoutGroup>();
+            hlg.childAlignment = TextAnchor.MiddleCenter;
+            hlg.childControlWidth = true;
+            hlg.childControlHeight = true;
+            hlg.childForceExpandWidth = false;
+            hlg.childForceExpandHeight = false;
+            hlg.spacing = 8f;
+
+            var rowLayout = go.AddComponent<LayoutElement>();
+            rowLayout.preferredHeight = 24f;
+
+            // Left divider — flexible width to fill available space
+            var leftDiv = MakeUIObject("DivL", go.transform);
             leftDiv.AddComponent<Image>().color = DividerColor;
             var ldLayout = leftDiv.AddComponent<LayoutElement>();
-            ldLayout.preferredWidth = 80f;
+            ldLayout.flexibleWidth = 1f;
             ldLayout.preferredHeight = 1f;
 
-            // Title text
-            var label = MakeLabel(row.transform, title, 18f);
+            // Title text — fixed width
+            var label = MakeLabel(go.transform, title, 18f);
             label.color = FrameGold;
             label.GetComponent<LayoutElement>().preferredWidth = 120f;
 
-            // Right divider
-            var rightDiv = MakeUIObject("DivR", row.transform);
+            // Right divider — flexible width to fill available space
+            var rightDiv = MakeUIObject("DivR", go.transform);
             rightDiv.AddComponent<Image>().color = DividerColor;
             var rdLayout = rightDiv.AddComponent<LayoutElement>();
-            rdLayout.preferredWidth = 80f;
+            rdLayout.flexibleWidth = 1f;
             rdLayout.preferredHeight = 1f;
         }
 
@@ -2135,8 +2185,8 @@ namespace ProjectName.UI
             if (hairColorNextButton != null) hairColorNextButton.onClick.RemoveAllListeners();
             if (beardPrevButton != null) beardPrevButton.onClick.RemoveAllListeners();
             if (beardNextButton != null) beardNextButton.onClick.RemoveAllListeners();
-            if (eyesPrevButton != null) eyesPrevButton.onClick.RemoveAllListeners();
-            if (eyesNextButton != null) eyesNextButton.onClick.RemoveAllListeners();
+            if (eyeColorPrevButton != null) eyeColorPrevButton.onClick.RemoveAllListeners();
+            if (eyeColorNextButton != null) eyeColorNextButton.onClick.RemoveAllListeners();
         }
     }
 }
