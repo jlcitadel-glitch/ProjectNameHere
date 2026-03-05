@@ -618,8 +618,8 @@ namespace ProjectName.UI
                 var info = SaveManager.Instance.GetSlotInfo(slotIndex);
                 if (overwriteSlotInfoText != null)
                 {
-                    string waveInfo = !string.IsNullOrEmpty(info.FormattedWave) ? $" - {info.FormattedWave}" : "";
-                    overwriteSlotInfoText.text = $"Slot {slotIndex + 1}: {info.characterName} - Lv. {info.playerLevel}{waveInfo}\n{info.FormattedPlayTime} playtime - {info.FormattedDate}";
+                    string waveInfo = !string.IsNullOrEmpty(info.FormattedWave) ? $" \u00b7 {info.FormattedWave}" : "";
+                    overwriteSlotInfoText.text = $"{info.characterName} \u00b7 Lv. {info.playerLevel}{waveInfo}\n{info.FormattedPlayTime} \u00b7 {info.FormattedDate}";
                 }
             }
 
@@ -643,8 +643,8 @@ namespace ProjectName.UI
                 var info = SaveManager.Instance.GetSlotInfo(slotIndex);
                 if (deleteSlotInfoText != null)
                 {
-                    string waveInfo = !string.IsNullOrEmpty(info.FormattedWave) ? $" - {info.FormattedWave}" : "";
-                    deleteSlotInfoText.text = $"Slot {slotIndex + 1}: {info.characterName} - Lv. {info.playerLevel}{waveInfo}\n{info.FormattedPlayTime} playtime - {info.FormattedDate}";
+                    string waveInfo = !string.IsNullOrEmpty(info.FormattedWave) ? $" \u00b7 {info.FormattedWave}" : "";
+                    deleteSlotInfoText.text = $"{info.characterName} \u00b7 Lv. {info.playerLevel}{waveInfo}\n{info.FormattedPlayTime} \u00b7 {info.FormattedDate}";
                 }
             }
 
@@ -994,36 +994,84 @@ namespace ProjectName.UI
                 }
             }
 
-            // Resize save selection panel to fit 5 slots comfortably
+            // Gothic save selection panel
             if (saveSelectionPanel != null)
             {
                 var panelRect = saveSelectionPanel.GetComponent<RectTransform>();
                 if (panelRect != null)
+                    panelRect.sizeDelta = new Vector2(850, 760);
+
+                // Obsidian panel background
+                var panelImg = saveSelectionPanel.GetComponent<Image>();
+                if (panelImg != null)
+                    panelImg.color = new Color(0.06f, 0.05f, 0.08f, 0.97f);
+
+                // Gothic title: "Thy Chronicles"
+                if (saveSelectionPanel.transform.Find("GothicTitle") == null)
                 {
-                    panelRect.sizeDelta = new Vector2(800, 700);
+                    var titleGo = new GameObject("GothicTitle", typeof(RectTransform));
+                    titleGo.transform.SetParent(saveSelectionPanel.transform, false);
+                    titleGo.transform.SetAsFirstSibling();
+                    var titleTmp = titleGo.AddComponent<TextMeshProUGUI>();
+                    titleTmp.text = "Thy Chronicles";
+                    titleTmp.fontSize = 34;
+                    titleTmp.alignment = TextAlignmentOptions.Center;
+                    titleTmp.color = new Color(0.81f, 0.71f, 0.23f, 1f);
+                    var titleRt = titleGo.GetComponent<RectTransform>();
+                    titleRt.anchorMin = new Vector2(0.5f, 1);
+                    titleRt.anchorMax = new Vector2(0.5f, 1);
+                    titleRt.pivot = new Vector2(0.5f, 1);
+                    titleRt.anchoredPosition = new Vector2(0, -16);
+                    titleRt.sizeDelta = new Vector2(600, 45);
                 }
 
-                // Increase each slot's height
+                // Gold divider under title
+                if (saveSelectionPanel.transform.Find("TitleDivider") == null)
+                {
+                    var divGo = new GameObject("TitleDivider", typeof(RectTransform));
+                    divGo.transform.SetParent(saveSelectionPanel.transform, false);
+                    divGo.transform.SetSiblingIndex(1);
+                    divGo.AddComponent<Image>().color = new Color(0.81f, 0.71f, 0.23f, 0.4f);
+                    var divRt = divGo.GetComponent<RectTransform>();
+                    divRt.anchorMin = new Vector2(0.5f, 1);
+                    divRt.anchorMax = new Vector2(0.5f, 1);
+                    divRt.pivot = new Vector2(0.5f, 1);
+                    divRt.anchoredPosition = new Vector2(0, -64);
+                    divRt.sizeDelta = new Vector2(500, 1);
+                }
+
+                // Slot heights
                 var slots = saveSelectionPanel.GetComponentsInChildren<SaveSlotUI>(true);
                 foreach (var slot in slots)
                 {
                     var le = slot.GetComponent<LayoutElement>();
                     if (le != null)
+                        le.preferredHeight = 110;
+                }
+
+                // Slot container spacing
+                if (saveSlotContainer != null)
+                {
+                    var vlg = saveSlotContainer.GetComponent<VerticalLayoutGroup>();
+                    if (vlg != null)
                     {
-                        le.preferredHeight = 100;
+                        vlg.spacing = 8f;
+                        vlg.padding = new RectOffset(12, 12, 0, 0);
                     }
                 }
 
-                // Scale down navigation buttons (Back, New Game)
-                ScaleButton(backFromSaveButton, 140, 36, 16);
-                ScaleButton(newGameButton, 140, 36, 16);
+                // Gothic nav buttons
+                StyleGothicButton(backFromSaveButton, 160, 42, 18, false);
+                StyleGothicButton(newGameButton, 180, 42, 18, true);
             }
 
-            // Scale down confirmation panel buttons
-            ScaleButton(confirmOverwriteButton, 120, 36, 16);
-            ScaleButton(cancelOverwriteButton, 120, 36, 16);
-            ScaleButton(confirmDeleteButton, 120, 36, 16);
-            ScaleButton(cancelDeleteButton, 120, 36, 16);
+            // Gothic confirmation dialogs
+            StyleConfirmDialog(overwriteConfirmPanel, overwriteWarningText,
+                "This chronicle will be overwritten.",
+                confirmOverwriteButton, cancelOverwriteButton);
+            StyleConfirmDialog(deleteConfirmPanel, deleteWarningText,
+                "This chronicle will be lost forever.",
+                confirmDeleteButton, cancelDeleteButton);
         }
 
         private static void ScaleButton(Button btn, float width, float height, float fontSize)
@@ -1035,6 +1083,72 @@ namespace ProjectName.UI
             var tmp = btn.GetComponentInChildren<TMP_Text>();
             if (tmp != null)
                 tmp.fontSize = fontSize;
+        }
+
+        private static void StyleGothicButton(Button btn, float width, float height, float fontSize, bool isCrimson)
+        {
+            if (btn == null) return;
+            var rt = btn.GetComponent<RectTransform>();
+            if (rt != null)
+                rt.sizeDelta = new Vector2(width, height);
+
+            var btnColors = btn.colors;
+            if (isCrimson)
+            {
+                btnColors.normalColor = new Color(0.55f, 0f, 0f, 1f);
+                btnColors.highlightedColor = new Color(0.65f, 0.05f, 0.05f, 1f);
+                btnColors.pressedColor = new Color(0.40f, 0f, 0f, 1f);
+                btnColors.selectedColor = new Color(0.65f, 0.05f, 0.05f, 1f);
+            }
+            else
+            {
+                btnColors.normalColor = new Color(0.10f, 0.10f, 0.44f, 1f);
+                btnColors.highlightedColor = new Color(0.15f, 0.15f, 0.55f, 1f);
+                btnColors.pressedColor = new Color(0.08f, 0.08f, 0.35f, 1f);
+                btnColors.selectedColor = new Color(0.15f, 0.15f, 0.55f, 1f);
+            }
+            btn.colors = btnColors;
+
+            var tmp = btn.GetComponentInChildren<TMP_Text>();
+            if (tmp != null)
+            {
+                tmp.fontSize = fontSize;
+                tmp.color = isCrimson
+                    ? new Color(0.81f, 0.71f, 0.23f, 1f)
+                    : new Color(0.93f, 0.89f, 0.82f, 1f);
+            }
+        }
+
+        private static void StyleConfirmDialog(GameObject panel, TMP_Text warningText,
+            string warningMessage, Button confirmBtn, Button cancelBtn)
+        {
+            if (panel == null) return;
+
+            // Obsidian background
+            var panelImg = panel.GetComponent<Image>();
+            if (panelImg != null)
+                panelImg.color = new Color(0.06f, 0.05f, 0.08f, 0.97f);
+
+            // Warning text styling
+            if (warningText != null)
+            {
+                warningText.text = warningMessage;
+                warningText.color = new Color(0.93f, 0.89f, 0.82f, 1f);
+                warningText.fontSize = 22;
+            }
+
+            // Slot info text styling
+            var slotInfoText = panel.transform.Find("SlotInfoText")?.GetComponent<TMP_Text>();
+            if (slotInfoText != null)
+            {
+                slotInfoText.color = new Color(0.65f, 0.60f, 0.52f, 1f);
+                slotInfoText.fontSize = 18;
+            }
+
+            // Confirm button: crimson with gold text
+            StyleGothicButton(confirmBtn, 140, 40, 17, true);
+            // Cancel button: midnight blue with bone text
+            StyleGothicButton(cancelBtn, 140, 40, 17, false);
         }
 
         private void OnDestroy()

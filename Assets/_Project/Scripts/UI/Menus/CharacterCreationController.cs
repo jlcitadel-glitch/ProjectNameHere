@@ -74,6 +74,16 @@ namespace ProjectName.UI
         [SerializeField] private Button beardNextButton;
         [SerializeField] private TMP_Text beardNameText;
 
+        [Header("Eyes")]
+        [SerializeField] private Button eyesPrevButton;
+        [SerializeField] private Button eyesNextButton;
+        [SerializeField] private TMP_Text eyesNameText;
+        [SerializeField] private Button eyeColorPrevButton;
+        [SerializeField] private Button eyeColorNextButton;
+        [SerializeField] private Image eyeColorPreview;
+        [SerializeField] private TMP_Text eyeColorNameText;
+        [SerializeField] private TMP_Text skinToneNameText;
+
         private UILayeredSpritePreview appearancePreview;
 
         // Animated preview components (added at runtime)
@@ -85,6 +95,11 @@ namespace ProjectName.UI
         private UILayeredSpritePreview warriorLayeredPreview;
         private UILayeredSpritePreview mageLayeredPreview;
         private UILayeredSpritePreview rogueLayeredPreview;
+
+        // Selection highlight borders for class cards
+        private GameObject warriorSelectionBorder;
+        private GameObject mageSelectionBorder;
+        private GameObject rogueSelectionBorder;
 
         // Creation data
         private string characterName = "";
@@ -138,6 +153,10 @@ namespace ProjectName.UI
             new Color(0.40f, 0.26f, 0.16f),     // Dark
         };
         private int selectedSkinToneIndex;
+        private static readonly string[] SkinToneNames = new string[]
+        {
+            "Light", "Fair", "Medium", "Tan", "Brown", "Dark"
+        };
 
         private static readonly Color[] HairColorPresets = new Color[]
         {
@@ -285,6 +304,19 @@ namespace ProjectName.UI
                 beardNextButton.onClick.AddListener(() => CycleBeard(1));
             }
 
+            // Eyes cycling
+            if (eyesPrevButton != null)
+            {
+                eyesPrevButton.onClick.RemoveAllListeners();
+                eyesPrevButton.onClick.AddListener(() => CycleEyes(-1));
+            }
+            if (eyesNextButton != null)
+            {
+                eyesNextButton.onClick.RemoveAllListeners();
+                eyesNextButton.onClick.AddListener(() => CycleEyes(1));
+            }
+
+
         }
 
         /// <summary>
@@ -321,6 +353,11 @@ namespace ProjectName.UI
             if (warriorPreviewImage != null) warriorPreviewImage.enabled = true;
             if (magePreviewImage != null) magePreviewImage.enabled = true;
             if (roguePreviewImage != null) roguePreviewImage.enabled = true;
+
+            // Hide selection borders
+            if (warriorSelectionBorder != null) warriorSelectionBorder.SetActive(false);
+            if (mageSelectionBorder != null) mageSelectionBorder.SetActive(false);
+            if (rogueSelectionBorder != null) rogueSelectionBorder.SetActive(false);
 
             HideAllPanels();
         }
@@ -441,6 +478,14 @@ namespace ProjectName.UI
             UpdateClassPreview(classData);
             UIManager.Instance?.PlaySelectSound();
 
+            // Toggle selection borders
+            if (warriorSelectionBorder != null)
+                warriorSelectionBorder.SetActive(classData == warriorData);
+            if (mageSelectionBorder != null)
+                mageSelectionBorder.SetActive(classData == mageData);
+            if (rogueSelectionBorder != null)
+                rogueSelectionBorder.SetActive(classData == rogueData);
+
             if (classConfirmButton != null)
                 classConfirmButton.interactable = true;
         }
@@ -452,11 +497,6 @@ namespace ProjectName.UI
 
             if (classDescriptionText != null)
                 classDescriptionText.text = classData.description;
-
-            if (classStatsPreviewText != null)
-            {
-                classStatsPreviewText.text = "";
-            }
 
             // Animate selected class, show static first frame on others
             UpdatePreviewAnimation(warriorAnimSprite, warriorData, classData == warriorData);
@@ -512,6 +552,39 @@ namespace ProjectName.UI
                 animSprite.Stop();
         }
 
+        private static string FormatClassStats(JobClassData classData)
+        {
+            if (classData == null) return "";
+
+            string FormatMod(string label, float value)
+            {
+                string color = value > 1f ? "#7FFF7F" : value < 1f ? "#FF7F7F" : "#CFCFCF";
+                string sign = value > 1f ? "+" : "";
+                int pct = Mathf.RoundToInt((value - 1f) * 100f);
+                return $"<color={color}>{label} {sign}{pct}%</color>";
+            }
+
+            var parts = new List<string>();
+            parts.Add(FormatMod("ATK", classData.attackModifier));
+            parts.Add(FormatMod("MAG", classData.magicModifier));
+            parts.Add(FormatMod("DEF", classData.defenseModifier));
+
+            if (classData.baseHPBonus != 0)
+            {
+                string hpColor = classData.baseHPBonus > 0 ? "#7FFF7F" : "#FF7F7F";
+                string hpSign = classData.baseHPBonus > 0 ? "+" : "";
+                parts.Add($"<color={hpColor}>HP {hpSign}{classData.baseHPBonus}</color>");
+            }
+            if (classData.baseMPBonus != 0)
+            {
+                string mpColor = classData.baseMPBonus > 0 ? "#7FFF7F" : "#FF7F7F";
+                string mpSign = classData.baseMPBonus > 0 ? "+" : "";
+                parts.Add($"<color={mpColor}>MP {mpSign}{classData.baseMPBonus}</color>");
+            }
+
+            return string.Join("   ", parts);
+        }
+
         /// <summary>
         /// Sets initial static previews from JobClassData visual fields.
         /// </summary>
@@ -548,29 +621,10 @@ namespace ProjectName.UI
             }
             else
             {
-                // No valid sprite found; generate a procedural silhouette placeholder.
-                // This ensures the user always sees something for each class.
-                Color body = Color.gray;
-                Color accent = Color.white;
-                string n = jobData.jobName != null ? jobData.jobName.ToLower() : "";
-                if (n.Contains("warrior"))
-                {
-                    body = new Color(0.55f, 0f, 0f);
-                    accent = new Color(0.8f, 0.6f, 0.2f);
-                }
-                else if (n.Contains("mage"))
-                {
-                    body = new Color(0.15f, 0.15f, 0.5f);
-                    accent = new Color(0.3f, 0.7f, 1f);
-                }
-                else if (n.Contains("rogue"))
-                {
-                    body = new Color(0.1f, 0.3f, 0.1f);
-                    accent = new Color(0.4f, 0.9f, 0.4f);
-                }
-
-                previewImage.sprite = MakeCharacterSilhouette(body, accent);
-                previewImage.color = Color.white;
+                // No sprite data — apply a class-themed background tint.
+                // The layered preview (ApplyAppearanceToCard) will render over this.
+                previewImage.sprite = null;
+                previewImage.color = jobData.jobColor;
             }
         }
 
@@ -866,6 +920,40 @@ namespace ProjectName.UI
             UpdateAppearanceUI();
         }
 
+        private void CycleEyes(int direction)
+        {
+            if (availableEyeStyles == null || availableEyeStyles.Length == 0)
+            {
+                selectedEyesIndex = -1;
+                if (builtAppearance != null)
+                    builtAppearance.SetPart(BodyPartSlot.Eyes, null);
+                UpdateAppearanceUI();
+                return;
+            }
+
+            int totalOptions = availableEyeStyles.Length + 1; // +1 for "None"
+            int adjustedIndex = selectedEyesIndex + 1; // shift so None=0
+            adjustedIndex = (adjustedIndex + direction + totalOptions) % totalOptions;
+            selectedEyesIndex = adjustedIndex - 1;
+
+            var selectedPart = selectedEyesIndex >= 0 ? availableEyeStyles[selectedEyesIndex] : null;
+            if (builtAppearance != null)
+                builtAppearance.SetPart(BodyPartSlot.Eyes, selectedPart);
+
+            UIManager.Instance?.PlayNavigateSound();
+            RefreshAppearancePreview();
+            UpdateAppearanceUI();
+        }
+
+        private void CycleEyeColor(int direction)
+        {
+            selectedEyeColorIndex = (selectedEyeColorIndex + direction + EyeColorPresets.Length) % EyeColorPresets.Length;
+            builtAppearance.eyeTint = EyeColorPresets[selectedEyeColorIndex];
+            UIManager.Instance?.PlayNavigateSound();
+            RefreshAppearancePreview();
+            UpdateAppearanceUI();
+        }
+
         private static BodyPartData[] FilterByPrefix(BodyPartData[] parts, string prefix)
         {
             return Array.FindAll(parts, p => p.partId != null && p.partId.StartsWith(prefix));
@@ -1019,6 +1107,8 @@ namespace ProjectName.UI
 
             if (skinColorPreview != null)
                 skinColorPreview.color = builtAppearance.skinTint;
+            if (skinToneNameText != null && selectedSkinToneIndex >= 0 && selectedSkinToneIndex < SkinToneNames.Length)
+                skinToneNameText.text = SkinToneNames[selectedSkinToneIndex];
 
             if (hairColorPreview != null)
                 hairColorPreview.color = builtAppearance.hairTint;
@@ -1037,6 +1127,19 @@ namespace ProjectName.UI
                     beardNameText.text = !string.IsNullOrEmpty(part.displayName) ? part.displayName : part.partId;
                 }
             }
+
+            // Eyes name
+            if (eyesNameText != null)
+            {
+                if (selectedEyesIndex < 0 || availableEyeStyles == null || availableEyeStyles.Length == 0)
+                    eyesNameText.text = "None";
+                else
+                {
+                    var part = availableEyeStyles[selectedEyesIndex];
+                    eyesNameText.text = !string.IsNullOrEmpty(part.displayName) ? part.displayName : part.partId;
+                }
+            }
+
 
         }
 
@@ -1058,10 +1161,34 @@ namespace ProjectName.UI
             if (bodyTypeLabel != null)
                 bodyTypeLabel.text = selectedBodyType == "male" ? "Male" : "Female";
 
-            if (bodyTypeMaleButton != null)
-                bodyTypeMaleButton.interactable = selectedBodyType != "male";
-            if (bodyTypeFemaleButton != null)
-                bodyTypeFemaleButton.interactable = selectedBodyType != "female";
+            // Active: crimson bg + gold text; inactive: normal midnight blue
+            ApplyBodyTypeButtonStyle(bodyTypeMaleButton, selectedBodyType == "male");
+            ApplyBodyTypeButtonStyle(bodyTypeFemaleButton, selectedBodyType == "female");
+        }
+
+        private static void ApplyBodyTypeButtonStyle(Button btn, bool isActive)
+        {
+            if (btn == null) return;
+            var colors = btn.colors;
+            if (isActive)
+            {
+                colors.normalColor = BtnSelected;
+                colors.highlightedColor = BtnSelected;
+                colors.pressedColor = BtnSelected;
+                colors.selectedColor = BtnSelected;
+            }
+            else
+            {
+                colors.normalColor = BtnNormal;
+                colors.highlightedColor = BtnHover;
+                colors.pressedColor = BtnPress;
+                colors.selectedColor = BtnHover;
+            }
+            btn.colors = colors;
+
+            var tmp = btn.GetComponentInChildren<TextMeshProUGUI>();
+            if (tmp != null)
+                tmp.color = isActive ? FrameGold : TextCol;
         }
 
         private void OnAppearanceBack()
@@ -1097,13 +1224,20 @@ namespace ProjectName.UI
 
         #region Runtime UI Builder
 
-        // Colors for runtime-built UI
-        private static readonly Color PanelBg = new Color(0.08f, 0.08f, 0.1f, 0.97f);
-        private static readonly Color BtnNormal = new Color(0.2f, 0.2f, 0.25f, 1f);
-        private static readonly Color BtnHover = new Color(0.3f, 0.3f, 0.35f, 1f);
-        private static readonly Color BtnPress = new Color(0.15f, 0.15f, 0.2f, 1f);
-        private static readonly Color TextCol = new Color(0.9f, 0.85f, 0.75f, 1f);
-        private static readonly Color InputBg = new Color(0.12f, 0.12f, 0.15f, 1f);
+        // Gothic color palette for runtime-built UI
+        private static readonly Color PanelBg = new Color(0.06f, 0.05f, 0.08f, 0.97f);      // Obsidian
+        private static readonly Color BtnNormal = new Color(0.10f, 0.10f, 0.18f, 1f);        // Midnight Blue btn
+        private static readonly Color BtnHover = new Color(0.15f, 0.15f, 0.25f, 1f);
+        private static readonly Color BtnPress = new Color(0.08f, 0.08f, 0.14f, 1f);
+        private static readonly Color TextCol = new Color(0.93f, 0.89f, 0.82f, 1f);          // Bone White
+        private static readonly Color InputBg = new Color(0.10f, 0.09f, 0.12f, 1f);
+        private static readonly Color FrameGold = new Color(0.81f, 0.71f, 0.23f, 1f);        // Aged Gold #CFB53B
+        private static readonly Color DeepCrimson = new Color(0.55f, 0f, 0f, 1f);             // #8B0000
+        private static readonly Color MidnightBlue = new Color(0.10f, 0.10f, 0.44f, 1f);     // #191970
+        private static readonly Color SpectralCyan = new Color(0f, 0.81f, 0.82f, 1f);         // #00CED1
+        private static readonly Color TextSecondary = new Color(0.65f, 0.60f, 0.52f, 1f);
+        private static readonly Color DividerColor = new Color(0.81f, 0.71f, 0.23f, 0.4f);
+        private static readonly Color BtnSelected = new Color(0.55f, 0f, 0f, 1f);             // Deep Crimson
 
         /// <summary>
         /// Creates the full character creation UI at runtime.
@@ -1137,21 +1271,48 @@ namespace ProjectName.UI
             ctrl.nameEntryPanel = panel;
 
             var content = MakeContentColumn(panel.transform);
-            MakeLabel(content.transform, "Name Your Character", 36f);
+
+            // Gothic title
+            var title = MakeLabel(content.transform, "Speak Thy Name", 42f);
+            title.color = FrameGold;
+            MakeSpacer(content.transform, 6f);
+
+            // Subtitle
+            var subtitle = MakeLabel(content.transform, "Every legend begins with a name", 20f);
+            subtitle.color = TextSecondary;
+            subtitle.fontStyle = FontStyles.Italic;
             MakeSpacer(content.transform, 20f);
 
-            ctrl.nameInputField = MakeInputField(content.transform);
-            MakeSpacer(content.transform, 8f);
+            // Input field with gold border
+            var inputFrame = MakeGothicFrame(content.transform, 440f, 54f);
+            ctrl.nameInputField = MakeInputFieldInto(inputFrame);
+            MakeSpacer(content.transform, 6f);
 
             var err = MakeLabel(content.transform, "", 18f);
             err.color = new Color(0.9f, 0.3f, 0.3f, 1f);
             err.gameObject.SetActive(false);
             ctrl.nameErrorText = err;
-            MakeSpacer(content.transform, 20f);
+            MakeSpacer(content.transform, 24f);
 
-            var row = MakeHRow(content.transform, 10f, 50f);
-            ctrl.nameBackButton = MakeButton(row.transform, "Back", 150f);
-            ctrl.nameConfirmButton = MakeButton(row.transform, "Next", 150f);
+            // Nav buttons
+            var row = MakeHRow(content.transform, 20f, 55f);
+            ctrl.nameBackButton = MakeButton(row.transform, "Back", 180f, 50f);
+            var backTmp = ctrl.nameBackButton.GetComponentInChildren<TextMeshProUGUI>();
+            if (backTmp != null) backTmp.fontSize = 24f;
+
+            ctrl.nameConfirmButton = MakeButton(row.transform, "Next", 200f, 50f);
+            var nextColors = ctrl.nameConfirmButton.colors;
+            nextColors.normalColor = DeepCrimson;
+            nextColors.highlightedColor = new Color(0.65f, 0.05f, 0.05f, 1f);
+            nextColors.pressedColor = new Color(0.40f, 0f, 0f, 1f);
+            nextColors.selectedColor = new Color(0.65f, 0.05f, 0.05f, 1f);
+            ctrl.nameConfirmButton.colors = nextColors;
+            var nextTmp = ctrl.nameConfirmButton.GetComponentInChildren<TextMeshProUGUI>();
+            if (nextTmp != null)
+            {
+                nextTmp.fontSize = 24f;
+                nextTmp.color = FrameGold;
+            }
         }
 
         private static void BuildClassPanel(CharacterCreationController ctrl, Transform parent)
@@ -1174,46 +1335,74 @@ namespace ProjectName.UI
             contentVlg.childControlHeight = true;
             contentVlg.childForceExpandWidth = true;
             contentVlg.childForceExpandHeight = false;
-            contentVlg.spacing = 10f;
-            contentVlg.padding = new RectOffset(20, 20, 40, 40);
+            contentVlg.spacing = 12f;
+            contentVlg.padding = new RectOffset(20, 20, 20, 20);
 
             var contentCsf = content.AddComponent<ContentSizeFitter>();
             contentCsf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-            // Class cards row
-            var classRow = MakeHRow(content.transform, 80f, 620f);
+            // Gothic title
+            var title = MakeLabel(content.transform, "Choose Your Path", 34f);
+            title.color = FrameGold;
+            MakeSpacer(content.transform, 8f);
 
-            ctrl.warriorButton = MakeClassCard(classRow.transform, "Warrior", out var warriorImg, out var warriorLP);
+            // Class cards row
+            var classRow = MakeHRow(content.transform, 60f, 530f);
+
+            ctrl.warriorButton = MakeClassCard(classRow.transform, "Warrior", out var warriorImg, out var warriorLP, out var warriorBorder);
             ctrl.warriorPreviewImage = warriorImg;
             ctrl.warriorLayeredPreview = warriorLP;
+            ctrl.warriorSelectionBorder = warriorBorder;
 
-            ctrl.mageButton = MakeClassCard(classRow.transform, "Mage", out var mageImg, out var mageLP);
+            ctrl.mageButton = MakeClassCard(classRow.transform, "Mage", out var mageImg, out var mageLP, out var mageBorder);
             ctrl.magePreviewImage = mageImg;
             ctrl.mageLayeredPreview = mageLP;
+            ctrl.mageSelectionBorder = mageBorder;
 
-            ctrl.rogueButton = MakeClassCard(classRow.transform, "Rogue", out var rogueImg, out var rogueLP);
+            ctrl.rogueButton = MakeClassCard(classRow.transform, "Rogue", out var rogueImg, out var rogueLP, out var rogueBorder);
             ctrl.roguePreviewImage = rogueImg;
             ctrl.rogueLayeredPreview = rogueLP;
+            ctrl.rogueSelectionBorder = rogueBorder;
 
-            MakeSpacer(content.transform, 30f);
-            ctrl.classNameText = MakeLabel(content.transform, "Which road will you travel?", 38f);
+            // Gold divider
+            var divGo = MakeUIObject("Divider", content.transform);
+            divGo.AddComponent<Image>().color = DividerColor;
+            var divLayout = divGo.AddComponent<LayoutElement>();
+            divLayout.preferredHeight = 1f;
+            divLayout.preferredWidth = 600f;
+
+            // Class name (gold when selected)
+            ctrl.classNameText = MakeLabel(content.transform, "Which road will you travel?", 32f);
+            ctrl.classNameText.color = FrameGold;
             ctrl.classNameText.GetComponent<LayoutElement>().preferredWidth = -1f;
 
-            ctrl.classDescriptionText = MakeLabel(content.transform, "", 26f);
+            // Description
+            ctrl.classDescriptionText = MakeLabel(content.transform, "", 22f);
+            ctrl.classDescriptionText.color = TextSecondary;
             ctrl.classDescriptionText.GetComponent<LayoutElement>().preferredWidth = -1f;
             MakeAutoHeight(ctrl.classDescriptionText.gameObject);
 
-            ctrl.classStatsPreviewText = MakeLabel(content.transform, "", 24f);
-            ctrl.classStatsPreviewText.GetComponent<LayoutElement>().preferredWidth = -1f;
-            MakeAutoHeight(ctrl.classStatsPreviewText.gameObject);
+            MakeSpacer(content.transform, 8f);
 
-            var navRow = MakeHRow(content.transform, 20f, 65f);
-            ctrl.classBackButton = MakeButton(navRow.transform, "Back", 220f, 60f);
+            // Nav buttons
+            var navRow = MakeHRow(content.transform, 20f, 55f);
+            ctrl.classBackButton = MakeButton(navRow.transform, "Back", 200f, 50f);
             var backTmp = ctrl.classBackButton.GetComponentInChildren<TextMeshProUGUI>();
-            if (backTmp != null) backTmp.fontSize = 28f;
-            ctrl.classConfirmButton = MakeButton(navRow.transform, "Start Game", 280f, 60f);
+            if (backTmp != null) backTmp.fontSize = 26f;
+
+            ctrl.classConfirmButton = MakeButton(navRow.transform, "Begin", 240f, 50f);
+            var confirmColors = ctrl.classConfirmButton.colors;
+            confirmColors.normalColor = DeepCrimson;
+            confirmColors.highlightedColor = new Color(0.65f, 0.05f, 0.05f, 1f);
+            confirmColors.pressedColor = new Color(0.40f, 0f, 0f, 1f);
+            confirmColors.selectedColor = new Color(0.65f, 0.05f, 0.05f, 1f);
+            ctrl.classConfirmButton.colors = confirmColors;
             var confirmTmp = ctrl.classConfirmButton.GetComponentInChildren<TextMeshProUGUI>();
-            if (confirmTmp != null) confirmTmp.fontSize = 28f;
+            if (confirmTmp != null)
+            {
+                confirmTmp.fontSize = 26f;
+                confirmTmp.color = FrameGold;
+            }
             ctrl.classConfirmButton.interactable = false;
         }
 
@@ -1227,98 +1416,77 @@ namespace ProjectName.UI
             var contentRt = content.GetComponent<RectTransform>();
             contentRt.sizeDelta = new Vector2(800f, 0f);
 
-            MakeLabel(content.transform, "Customize Appearance", 36f);
-            MakeSpacer(content.transform, 8f);
+            // Gothic title
+            var title = MakeLabel(content.transform, "Forge Your Likeness", 38f);
+            title.color = FrameGold;
+            MakeSpacer(content.transform, 4f);
 
             // Body type toggle
             var bodyTypeRow = MakeHRow(content.transform, 15f, 45f);
-            var btLabel = MakeLabel(bodyTypeRow.transform, "Body Type:", 22f);
-            btLabel.GetComponent<LayoutElement>().preferredWidth = 120f;
-            ctrl.bodyTypeMaleButton = MakeButton(bodyTypeRow.transform, "Male", 100f, 38f);
-            ctrl.bodyTypeFemaleButton = MakeButton(bodyTypeRow.transform, "Female", 100f, 38f);
+            var btLabel = MakeLabel(bodyTypeRow.transform, "Body Type", 22f);
+            btLabel.textWrappingMode = TextWrappingModes.NoWrap;
+            btLabel.GetComponent<LayoutElement>().preferredWidth = 130f;
+            ctrl.bodyTypeMaleButton = MakeButton(bodyTypeRow.transform, "Male", 110f, 40f);
+            ctrl.bodyTypeFemaleButton = MakeButton(bodyTypeRow.transform, "Female", 110f, 40f);
             ctrl.bodyTypeLabel = MakeLabel(bodyTypeRow.transform, "Male", 20f);
             ctrl.bodyTypeLabel.GetComponent<LayoutElement>().preferredWidth = 0f;
             ctrl.bodyTypeLabel.gameObject.SetActive(false);
 
-            MakeSpacer(content.transform, 8f);
+            MakeSpacer(content.transform, 6f);
 
-            // Character preview area
-            var previewGo = MakeUIObject("CharacterPreview", content.transform);
-            var previewLayout = previewGo.AddComponent<LayoutElement>();
-            previewLayout.preferredHeight = 260f;
-            previewLayout.preferredWidth = 200f;
-            var previewBg = previewGo.AddComponent<Image>();
-            previewBg.color = new Color(0.12f, 0.12f, 0.15f, 1f);
-            ctrl.appearancePreview = previewGo.AddComponent<UILayeredSpritePreview>();
+            // Character preview with gothic frame
+            var previewFrame = MakeGothicFrame(content.transform, 280f, 300f);
+            ctrl.appearancePreview = previewFrame.AddComponent<UILayeredSpritePreview>();
 
             MakeSpacer(content.transform, 6f);
 
-            // Hair style row
-            var hairRow = MakeHRow(content.transform, 10f, 40f);
-            var hairLabel = MakeLabel(hairRow.transform, "Hair Style", 20f);
-            hairLabel.GetComponent<LayoutElement>().preferredWidth = 100f;
-            ctrl.hairPrevButton = MakeButton(hairRow.transform, "<", 40f, 35f);
-            ctrl.hairNameText = MakeLabel(hairRow.transform, "None", 18f);
-            ctrl.hairNameText.GetComponent<LayoutElement>().preferredWidth = 160f;
-            ctrl.hairNextButton = MakeButton(hairRow.transform, ">", 40f, 35f);
+            // === BODY section header ===
+            MakeSectionHeader(content.transform, "BODY");
 
-            // Beard row
-            var beardRow = MakeHRow(content.transform, 10f, 40f);
-            var beardLabel = MakeLabel(beardRow.transform, "Beard", 20f);
-            beardLabel.GetComponent<LayoutElement>().preferredWidth = 100f;
-            ctrl.beardPrevButton = MakeButton(beardRow.transform, "<", 40f, 35f);
-            ctrl.beardNameText = MakeLabel(beardRow.transform, "None", 18f);
-            ctrl.beardNameText.GetComponent<LayoutElement>().preferredWidth = 160f;
-            ctrl.beardNextButton = MakeButton(beardRow.transform, ">", 40f, 35f);
+            // Hair style
+            MakeOptionRow(content.transform, "Hair Style", out ctrl.hairPrevButton, out ctrl.hairNextButton, out ctrl.hairNameText);
 
-            // Skin tone row
-            var skinRow = MakeHRow(content.transform, 10f, 40f);
-            var skinLabel = MakeLabel(skinRow.transform, "Skin Tone", 20f);
-            skinLabel.GetComponent<LayoutElement>().preferredWidth = 100f;
-            ctrl.skinPrevButton = MakeButton(skinRow.transform, "<", 40f, 35f);
-            var skinPreviewGo = MakeUIObject("SkinPreview", skinRow.transform);
-            var skinPreviewImg = skinPreviewGo.AddComponent<Image>();
-            skinPreviewImg.color = SkinTonePresets[0];
-            var skinPreviewLE = skinPreviewGo.AddComponent<LayoutElement>();
-            skinPreviewLE.preferredWidth = 50f;
-            skinPreviewLE.preferredHeight = 30f;
-            ctrl.skinColorPreview = skinPreviewImg;
-            ctrl.skinNextButton = MakeButton(skinRow.transform, ">", 40f, 35f);
+            // Beard
+            MakeOptionRow(content.transform, "Beard", out ctrl.beardPrevButton, out ctrl.beardNextButton, out ctrl.beardNameText);
 
-            // Hair color row
-            var hairColorRow = MakeHRow(content.transform, 10f, 40f);
-            var hcLabel = MakeLabel(hairColorRow.transform, "Hair Color", 20f);
-            hcLabel.GetComponent<LayoutElement>().preferredWidth = 100f;
-            ctrl.hairColorPrevButton = MakeButton(hairColorRow.transform, "<", 40f, 35f);
-            var hairColorPreviewGo = MakeUIObject("HairColorPreview", hairColorRow.transform);
-            var hairColorPreviewImg = hairColorPreviewGo.AddComponent<Image>();
-            hairColorPreviewImg.color = HairColorPresets[0];
-            var hairColorPreviewLE = hairColorPreviewGo.AddComponent<LayoutElement>();
-            hairColorPreviewLE.preferredWidth = 50f;
-            hairColorPreviewLE.preferredHeight = 30f;
-            ctrl.hairColorPreview = hairColorPreviewImg;
-            var hairColorNameGo = MakeUIObject("HairColorName", hairColorRow.transform);
-            var hairColorNameTmp = hairColorNameGo.AddComponent<TextMeshProUGUI>();
-            hairColorNameTmp.text = HairColorNames[0];
-            hairColorNameTmp.fontSize = 18f;
-            hairColorNameTmp.alignment = TextAlignmentOptions.Center;
-            hairColorNameTmp.color = Color.white;
-            var hairColorNameLE = hairColorNameGo.AddComponent<LayoutElement>();
-            hairColorNameLE.preferredWidth = 70f;
-            hairColorNameLE.preferredHeight = 30f;
-            ctrl.hairColorNameText = hairColorNameTmp;
-            ctrl.hairColorNextButton = MakeButton(hairColorRow.transform, ">", 40f, 35f);
+            // === FEATURES section header ===
+            MakeSectionHeader(content.transform, "FEATURES");
 
-            MakeSpacer(content.transform, 15f);
+            // Eye style
+            MakeOptionRow(content.transform, "Eye Style", out ctrl.eyesPrevButton, out ctrl.eyesNextButton, out ctrl.eyesNameText);
+
+            // === COLORS section header ===
+            MakeSectionHeader(content.transform, "COLORS");
+
+            // Skin tone
+            MakeColorRow(content.transform, "Skin Tone", SkinTonePresets[0], SkinToneNames[0],
+                out ctrl.skinPrevButton, out ctrl.skinNextButton, out ctrl.skinColorPreview, out ctrl.skinToneNameText);
+
+            // Hair color
+            MakeColorRow(content.transform, "Hair Color", HairColorPresets[0], HairColorNames[0],
+                out ctrl.hairColorPrevButton, out ctrl.hairColorNextButton, out ctrl.hairColorPreview, out ctrl.hairColorNameText);
+
+            MakeSpacer(content.transform, 10f);
 
             // Nav buttons
-            var navRow = MakeHRow(content.transform, 20f, 65f);
-            ctrl.appearanceBackButton = MakeButton(navRow.transform, "Back", 220f, 60f);
+            var navRow = MakeHRow(content.transform, 20f, 55f);
+            ctrl.appearanceBackButton = MakeButton(navRow.transform, "Back", 200f, 50f);
             var backTmp = ctrl.appearanceBackButton.GetComponentInChildren<TextMeshProUGUI>();
-            if (backTmp != null) backTmp.fontSize = 28f;
-            ctrl.appearanceConfirmButton = MakeButton(navRow.transform, "Next", 280f, 60f);
+            if (backTmp != null) backTmp.fontSize = 26f;
+
+            ctrl.appearanceConfirmButton = MakeButton(navRow.transform, "Next", 240f, 50f);
+            var appConfirmColors = ctrl.appearanceConfirmButton.colors;
+            appConfirmColors.normalColor = DeepCrimson;
+            appConfirmColors.highlightedColor = new Color(0.65f, 0.05f, 0.05f, 1f);
+            appConfirmColors.pressedColor = new Color(0.40f, 0f, 0f, 1f);
+            appConfirmColors.selectedColor = new Color(0.65f, 0.05f, 0.05f, 1f);
+            ctrl.appearanceConfirmButton.colors = appConfirmColors;
             var confirmTmp = ctrl.appearanceConfirmButton.GetComponentInChildren<TextMeshProUGUI>();
-            if (confirmTmp != null) confirmTmp.fontSize = 28f;
+            if (confirmTmp != null)
+            {
+                confirmTmp.fontSize = 26f;
+                confirmTmp.color = FrameGold;
+            }
         }
 
         private static void FindBodyPartRegistry(CharacterCreationController ctrl)
@@ -1330,14 +1498,16 @@ namespace ProjectName.UI
 
         /// <summary>
         /// Builds a class card: vertical container with preview image on top and button below.
+        /// Includes a gold selection border that toggles on/off.
         /// </summary>
         private static Button MakeClassCard(Transform parent, string className,
-            out Image previewImage, out UILayeredSpritePreview layeredPreview)
+            out Image previewImage, out UILayeredSpritePreview layeredPreview,
+            out GameObject selectionBorder)
         {
             var cardGo = MakeUIObject(className + "Card", parent);
             var cardLayout = cardGo.AddComponent<LayoutElement>();
-            cardLayout.preferredWidth = 400f;
-            cardLayout.preferredHeight = 620f;
+            cardLayout.preferredWidth = 380f;
+            cardLayout.preferredHeight = 560f;
 
             var vlg = cardGo.AddComponent<VerticalLayoutGroup>();
             vlg.childAlignment = TextAnchor.UpperCenter;
@@ -1345,14 +1515,36 @@ namespace ProjectName.UI
             vlg.childControlHeight = true;
             vlg.childForceExpandWidth = true;
             vlg.childForceExpandHeight = false;
-            vlg.spacing = 12f;
+            vlg.spacing = 8f;
 
-            // Preview image container
+            // Preview image container with midnight blue tint
             var imgContainer = MakeUIObject("PreviewContainer", cardGo.transform);
             var containerImg = imgContainer.AddComponent<Image>();
-            containerImg.color = new Color(0.12f, 0.12f, 0.15f, 1f);
+            containerImg.color = MidnightBlue;
             var containerLayout = imgContainer.AddComponent<LayoutElement>();
-            containerLayout.preferredHeight = 520f;
+            containerLayout.preferredHeight = 440f;
+
+            // Selection border (gold, fills container — hidden by default)
+            var borderGo = MakeUIObject("SelectionBorder", imgContainer.transform);
+            var borderImg = borderGo.AddComponent<Image>();
+            borderImg.color = FrameGold;
+            var borderRect = borderGo.GetComponent<RectTransform>();
+            borderRect.anchorMin = Vector2.zero;
+            borderRect.anchorMax = Vector2.one;
+            borderRect.offsetMin = Vector2.zero;
+            borderRect.offsetMax = Vector2.zero;
+            selectionBorder = borderGo;
+            borderGo.SetActive(false);
+
+            // Inner bg (inset from border to reveal gold edges)
+            var innerBg = MakeUIObject("InnerBg", imgContainer.transform);
+            var innerBgImg = innerBg.AddComponent<Image>();
+            innerBgImg.color = MidnightBlue;
+            var innerBgRect = innerBg.GetComponent<RectTransform>();
+            innerBgRect.anchorMin = Vector2.zero;
+            innerBgRect.anchorMax = Vector2.one;
+            innerBgRect.offsetMin = new Vector2(3f, 3f);
+            innerBgRect.offsetMax = new Vector2(-3f, -3f);
 
             // Preview image (fills container, preserves aspect ratio) — fallback when no layered appearance
             var imgGo = MakeUIObject("Preview", imgContainer.transform);
@@ -1375,10 +1567,27 @@ namespace ProjectName.UI
             layeredRect.offsetMax = Vector2.zero;
             layeredPreview = layeredGo.AddComponent<UILayeredSpritePreview>();
 
-            // Class button
-            var btn = MakeButton(cardGo.transform, className, 400f, 80f);
+            // Gold divider between preview and button
+            var dividerGo = MakeUIObject("Divider", cardGo.transform);
+            var dividerImg = dividerGo.AddComponent<Image>();
+            dividerImg.color = DividerColor;
+            var dividerLayout = dividerGo.AddComponent<LayoutElement>();
+            dividerLayout.preferredHeight = 2f;
+
+            // Class button with deep crimson
+            var btn = MakeButton(cardGo.transform, className, 380f, 70f);
+            var btnColors = btn.colors;
+            btnColors.normalColor = DeepCrimson;
+            btnColors.highlightedColor = new Color(0.65f, 0.05f, 0.05f, 1f);
+            btnColors.pressedColor = new Color(0.40f, 0f, 0f, 1f);
+            btnColors.selectedColor = new Color(0.65f, 0.05f, 0.05f, 1f);
+            btn.colors = btnColors;
             var btnTmp = btn.GetComponentInChildren<TextMeshProUGUI>();
-            if (btnTmp != null) btnTmp.fontSize = 48f;
+            if (btnTmp != null)
+            {
+                btnTmp.fontSize = 42f;
+                btnTmp.color = FrameGold;
+            }
 
             return btn;
         }
@@ -1386,7 +1595,7 @@ namespace ProjectName.UI
         /// <summary>
         /// Attempts to load class preview sprites. Called early from CreateRuntimeUI
         /// and again deferred from ShowClassSelection when more assets are in memory.
-        /// Uses JobClassData visuals when available, falls back to procedural silhouettes.
+        /// Uses JobClassData visuals when available, falls back to class-themed tints.
         /// </summary>
         private static void LoadClassPreviewSprites(CharacterCreationController ctrl)
         {
@@ -1395,33 +1604,10 @@ namespace ProjectName.UI
             EnsureAnimatedSprite(ctrl.magePreviewImage, ref ctrl.mageAnimSprite);
             EnsureAnimatedSprite(ctrl.roguePreviewImage, ref ctrl.rogueAnimSprite);
 
-            // Try JobClassData visuals first, fall back to silhouettes
-            if (!TryApplyJobPreview(ctrl.warriorPreviewImage, ctrl.warriorData))
-            {
-                if (ctrl.warriorPreviewImage != null && ctrl.warriorPreviewImage.sprite == null)
-                {
-                    ctrl.warriorPreviewImage.sprite = MakeCharacterSilhouette(
-                        new Color(0.55f, 0f, 0f), new Color(0.8f, 0.6f, 0.2f));
-                }
-            }
-            if (!TryApplyJobPreview(ctrl.magePreviewImage, ctrl.mageData))
-            {
-                if (ctrl.magePreviewImage != null && ctrl.magePreviewImage.sprite == null)
-                {
-                    ctrl.magePreviewImage.sprite = MakeCharacterSilhouette(
-                        new Color(0.15f, 0.15f, 0.5f), new Color(0.3f, 0.7f, 1f));
-                    ctrl.magePreviewImage.color = Color.white;
-                }
-            }
-            if (!TryApplyJobPreview(ctrl.roguePreviewImage, ctrl.rogueData))
-            {
-                if (ctrl.roguePreviewImage != null && ctrl.roguePreviewImage.sprite == null)
-                {
-                    ctrl.roguePreviewImage.sprite = MakeCharacterSilhouette(
-                        new Color(0.1f, 0.3f, 0.1f), new Color(0.4f, 0.9f, 0.4f));
-                    ctrl.roguePreviewImage.color = Color.white;
-                }
-            }
+            // Try JobClassData visuals; layered preview handles the actual display
+            TryApplyJobPreview(ctrl.warriorPreviewImage, ctrl.warriorData);
+            TryApplyJobPreview(ctrl.magePreviewImage, ctrl.mageData);
+            TryApplyJobPreview(ctrl.roguePreviewImage, ctrl.rogueData);
         }
 
         private static void EnsureAnimatedSprite(Image image, ref UIAnimatedSprite animSprite)
@@ -1469,119 +1655,23 @@ namespace ProjectName.UI
         /// <summary>
         /// Deferred sprite loading. Called when class panel is first shown,
         /// giving Unity more time to load asset references into memory.
-        /// Falls back to HeroKnight sprites or procedural silhouettes if
-        /// JobClassData visual data is not available.
+        /// Sets class-themed background tints when no visual data exists.
+        /// The layered preview system handles the primary display.
         /// </summary>
         private void TryLoadClassSprites()
         {
-            // If all jobs already have valid visual data, nothing to do
-            bool warriorHasVisual = HasJobVisualData(warriorData);
-            bool mageHasVisual = HasJobVisualData(mageData);
-            bool rogueHasVisual = HasJobVisualData(rogueData);
-
-            if (warriorHasVisual && mageHasVisual && rogueHasVisual)
-                return;
-
-            // Try HeroKnight fallback for any class missing visuals
-            Sprite knightSprite = FindSprite("HeroKnight_0");
-
-            if (knightSprite != null)
-            {
-                if (!warriorHasVisual && warriorPreviewImage != null)
-                {
-                    warriorPreviewImage.sprite = knightSprite;
-                    warriorPreviewImage.color = Color.white;
-                }
-
-                if (!mageHasVisual && magePreviewImage != null)
-                {
-                    magePreviewImage.sprite = knightSprite;
-                    magePreviewImage.color = new Color(0.4f, 0.5f, 1f, 1f);
-                }
-
-                if (!rogueHasVisual && roguePreviewImage != null)
-                {
-                    roguePreviewImage.sprite = knightSprite;
-                    roguePreviewImage.color = new Color(0.5f, 1f, 0.5f, 1f);
-                }
-            }
+            ApplyClassTintIfMissing(warriorPreviewImage, warriorData);
+            ApplyClassTintIfMissing(magePreviewImage, mageData);
+            ApplyClassTintIfMissing(roguePreviewImage, rogueData);
         }
 
-        private static Sprite FindSprite(string spriteName)
+        private static void ApplyClassTintIfMissing(Image image, JobClassData jobData)
         {
-            // Search all sprites currently in memory (includes AssetDatabase in editor)
-            var allSprites = Resources.FindObjectsOfTypeAll<Sprite>();
-            foreach (var s in allSprites)
-            {
-                if (s.name == spriteName)
-                    return s;
-            }
+            if (image == null || jobData == null) return;
+            if (HasJobVisualData(jobData)) return;
 
-            // Fallback: search SpriteRenderers on prefabs/objects for the sprite
-            var allRenderers = Resources.FindObjectsOfTypeAll<SpriteRenderer>();
-            foreach (var sr in allRenderers)
-            {
-                if (sr.sprite != null && sr.sprite.name == spriteName)
-                    return sr.sprite;
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// Generates a 32x32 pixel character silhouette with body and accent colors.
-        /// Used as placeholder until real class art is provided.
-        /// </summary>
-        private static Sprite MakeCharacterSilhouette(Color body, Color accent)
-        {
-            int w = 96, h = 96;
-            var tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
-            tex.filterMode = FilterMode.Point;
-            var clear = new Color(0, 0, 0, 0);
-
-            // Fill transparent
-            var pixels = new Color[w * h];
-            for (int i = 0; i < pixels.Length; i++)
-                pixels[i] = clear;
-
-            // Head (rows 78-95, cols 36-59)
-            FillRect(pixels, w, 36, 78, 60, 96, accent);
-            // Neck (rows 72-77, cols 42-53)
-            FillRect(pixels, w, 42, 72, 54, 78, body);
-            // Torso (rows 42-72, cols 30-65)
-            FillRect(pixels, w, 30, 42, 66, 72, body);
-            // Belt/accent stripe (rows 45-50)
-            FillRect(pixels, w, 30, 45, 66, 51, accent);
-            // Left arm (rows 48-72, cols 18-30)
-            FillRect(pixels, w, 18, 48, 30, 72, body);
-            // Right arm (rows 48-72, cols 66-78)
-            FillRect(pixels, w, 66, 48, 78, 72, body);
-            // Left leg (rows 6-42, cols 33-45)
-            FillRect(pixels, w, 33, 6, 45, 42, body);
-            // Right leg (rows 6-42, cols 51-63)
-            FillRect(pixels, w, 51, 6, 63, 42, body);
-            // Boots accent (rows 6-12)
-            FillRect(pixels, w, 33, 6, 45, 12, accent);
-            FillRect(pixels, w, 51, 6, 63, 12, accent);
-            // Shoulder accents
-            FillRect(pixels, w, 24, 66, 33, 72, accent);
-            FillRect(pixels, w, 63, 66, 72, 72, accent);
-
-            tex.SetPixels(pixels);
-            tex.Apply();
-            return Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 96f);
-        }
-
-        private static void FillRect(Color[] pixels, int texWidth, int x0, int y0, int x1, int y1, Color color)
-        {
-            for (int y = y0; y < y1; y++)
-            {
-                for (int x = x0; x < x1; x++)
-                {
-                    if (x >= 0 && x < texWidth && y >= 0 && y < texWidth)
-                        pixels[y * texWidth + x] = color;
-                }
-            }
+            image.sprite = null;
+            image.color = jobData.jobColor;
         }
 
         private static void FindJobData(CharacterCreationController ctrl)
@@ -1839,6 +1929,138 @@ namespace ProjectName.UI
             csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
         }
 
+        /// <summary>
+        /// Creates a gothic frame: a gold-bordered container with dark inner background.
+        /// </summary>
+        private static GameObject MakeGothicFrame(Transform parent, float width, float height)
+        {
+            var outerGo = MakeUIObject("GothicFrame", parent);
+            var outerLayout = outerGo.AddComponent<LayoutElement>();
+            outerLayout.preferredWidth = width + 8f;
+            outerLayout.preferredHeight = height + 8f;
+
+            // Gold border (outer image)
+            var borderImg = outerGo.AddComponent<Image>();
+            borderImg.color = FrameGold;
+
+            // Dark inner background
+            var innerGo = MakeUIObject("Inner", outerGo.transform);
+            var innerImg = innerGo.AddComponent<Image>();
+            innerImg.color = new Color(0.08f, 0.07f, 0.10f, 1f);
+            var innerRect = innerGo.GetComponent<RectTransform>();
+            innerRect.anchorMin = Vector2.zero;
+            innerRect.anchorMax = Vector2.one;
+            innerRect.offsetMin = new Vector2(3f, 3f);
+            innerRect.offsetMax = new Vector2(-3f, -3f);
+
+            return innerGo;
+        }
+
+        /// <summary>
+        /// Creates a section header with gold text and a divider line.
+        /// </summary>
+        private static void MakeSectionHeader(Transform parent, string title)
+        {
+            MakeSpacer(parent, 4f);
+            var row = MakeHRow(parent, 8f, 24f);
+
+            // Left divider
+            var leftDiv = MakeUIObject("DivL", row.transform);
+            leftDiv.AddComponent<Image>().color = DividerColor;
+            var ldLayout = leftDiv.AddComponent<LayoutElement>();
+            ldLayout.preferredWidth = 80f;
+            ldLayout.preferredHeight = 1f;
+
+            // Title text
+            var label = MakeLabel(row.transform, title, 18f);
+            label.color = FrameGold;
+            label.GetComponent<LayoutElement>().preferredWidth = 120f;
+
+            // Right divider
+            var rightDiv = MakeUIObject("DivR", row.transform);
+            rightDiv.AddComponent<Image>().color = DividerColor;
+            var rdLayout = rightDiv.AddComponent<LayoutElement>();
+            rdLayout.preferredWidth = 80f;
+            rdLayout.preferredHeight = 1f;
+        }
+
+        /// <summary>
+        /// Creates an option row with label, left/right arrow buttons, and name text.
+        /// Uses Unicode triangles for arrow buttons.
+        /// </summary>
+        private static void MakeOptionRow(Transform parent, string labelText,
+            out Button prevBtn, out Button nextBtn, out TMP_Text nameText)
+        {
+            var row = MakeHRow(parent, 10f, 42f);
+            var label = MakeLabel(row.transform, labelText, 20f);
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+            label.GetComponent<LayoutElement>().preferredWidth = 130f;
+            label.alignment = TextAlignmentOptions.MidlineRight;
+            label.color = TextSecondary;
+
+            prevBtn = MakeArrowButton(row.transform, "\u25C0"); // filled left triangle
+            nameText = MakeLabel(row.transform, "None", 19f);
+            nameText.GetComponent<LayoutElement>().preferredWidth = 180f;
+            nextBtn = MakeArrowButton(row.transform, "\u25B6"); // filled right triangle
+        }
+
+        /// <summary>
+        /// Creates a color row with label, left/right arrows, a color swatch, and name text.
+        /// </summary>
+        private static void MakeColorRow(Transform parent, string labelText,
+            Color initialColor, string initialName,
+            out Button prevBtn, out Button nextBtn, out Image colorPreview, out TMP_Text nameText)
+        {
+            var row = MakeHRow(parent, 10f, 42f);
+            var label = MakeLabel(row.transform, labelText, 20f);
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+            label.GetComponent<LayoutElement>().preferredWidth = 130f;
+            label.alignment = TextAlignmentOptions.MidlineRight;
+            label.color = TextSecondary;
+
+            prevBtn = MakeArrowButton(row.transform, "\u25C0");
+
+            // Color swatch with gold border
+            var swatchOuter = MakeUIObject("SwatchBorder", row.transform);
+            swatchOuter.AddComponent<Image>().color = FrameGold;
+            var outerLE = swatchOuter.AddComponent<LayoutElement>();
+            outerLE.preferredWidth = 62f;
+            outerLE.preferredHeight = 37f;
+
+            var swatchInner = MakeUIObject("Swatch", swatchOuter.transform);
+            var swatchImg = swatchInner.AddComponent<Image>();
+            swatchImg.color = initialColor;
+            var swatchRect = swatchInner.GetComponent<RectTransform>();
+            swatchRect.anchorMin = Vector2.zero;
+            swatchRect.anchorMax = Vector2.one;
+            swatchRect.offsetMin = new Vector2(1f, 1f);
+            swatchRect.offsetMax = new Vector2(-1f, -1f);
+            colorPreview = swatchImg;
+
+            // Name text
+            var nameTmp = MakeLabel(row.transform, initialName, 18f);
+            nameTmp.GetComponent<LayoutElement>().preferredWidth = 80f;
+            nameText = nameTmp;
+
+            nextBtn = MakeArrowButton(row.transform, "\u25B6");
+        }
+
+        /// <summary>
+        /// Creates a gold-text arrow button on midnight blue background.
+        /// </summary>
+        private static Button MakeArrowButton(Transform parent, string symbol)
+        {
+            var btn = MakeButton(parent, symbol, 44f, 38f);
+            var tmp = btn.GetComponentInChildren<TextMeshProUGUI>();
+            if (tmp != null)
+            {
+                tmp.text = symbol;
+                tmp.fontSize = 20f;
+                tmp.color = FrameGold;
+            }
+            return btn;
+        }
+
         private static void MakeSpacer(Transform parent, float height)
         {
             var go = MakeUIObject("Spacer", parent);
@@ -1847,28 +2069,25 @@ namespace ProjectName.UI
             layout.flexibleWidth = 1f;
         }
 
-        private static TMP_InputField MakeInputField(Transform parent)
+        /// <summary>
+        /// Creates an input field inside an existing container (e.g. a gothic frame inner panel).
+        /// The container is stretched to fill, so the input conforms to the frame.
+        /// </summary>
+        private static TMP_InputField MakeInputFieldInto(GameObject container)
         {
-            var go = MakeUIObject("NameInputField", parent);
-            var bgImg = go.AddComponent<Image>();
-            bgImg.color = InputBg;
-            var layout = go.AddComponent<LayoutElement>();
-            layout.preferredWidth = 400f;
-            layout.preferredHeight = 50f;
-
             // Text area with mask
-            var textArea = MakeUIObject("Text Area", go.transform);
+            var textArea = MakeUIObject("Text Area", container.transform);
             Stretch(textArea);
             var taRt = textArea.GetComponent<RectTransform>();
-            taRt.offsetMin = new Vector2(10f, 5f);
-            taRt.offsetMax = new Vector2(-10f, -5f);
+            taRt.offsetMin = new Vector2(12f, 4f);
+            taRt.offsetMax = new Vector2(-12f, -4f);
             textArea.AddComponent<RectMask2D>();
 
             // Input text
             var textGo = MakeUIObject("Text", textArea.transform);
             Stretch(textGo);
             var textTmp = textGo.AddComponent<TextMeshProUGUI>();
-            textTmp.fontSize = 24f;
+            textTmp.fontSize = 26f;
             textTmp.color = TextCol;
             textTmp.alignment = TextAlignmentOptions.MidlineLeft;
 
@@ -1876,18 +2095,18 @@ namespace ProjectName.UI
             var phGo = MakeUIObject("Placeholder", textArea.transform);
             Stretch(phGo);
             var phTmp = phGo.AddComponent<TextMeshProUGUI>();
-            phTmp.text = "Enter name...";
+            phTmp.text = "What name echoes in the dark?";
             phTmp.fontSize = 24f;
             phTmp.fontStyle = FontStyles.Italic;
-            phTmp.color = new Color(0.5f, 0.5f, 0.55f, 0.6f);
+            phTmp.color = new Color(0.50f, 0.45f, 0.35f, 0.5f);
             phTmp.alignment = TextAlignmentOptions.MidlineLeft;
 
             // Wire TMP_InputField
-            var inputField = go.AddComponent<TMP_InputField>();
+            var inputField = container.AddComponent<TMP_InputField>();
             inputField.textComponent = textTmp;
             inputField.placeholder = phTmp;
             inputField.textViewport = taRt;
-            inputField.pointSize = 24;
+            inputField.pointSize = 26;
             inputField.characterLimit = 16;
             inputField.contentType = TMP_InputField.ContentType.Standard;
             inputField.lineType = TMP_InputField.LineType.SingleLine;
@@ -1916,6 +2135,8 @@ namespace ProjectName.UI
             if (hairColorNextButton != null) hairColorNextButton.onClick.RemoveAllListeners();
             if (beardPrevButton != null) beardPrevButton.onClick.RemoveAllListeners();
             if (beardNextButton != null) beardNextButton.onClick.RemoveAllListeners();
+            if (eyesPrevButton != null) eyesPrevButton.onClick.RemoveAllListeners();
+            if (eyesNextButton != null) eyesNextButton.onClick.RemoveAllListeners();
         }
     }
 }
