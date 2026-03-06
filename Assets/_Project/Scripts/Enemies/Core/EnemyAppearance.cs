@@ -14,10 +14,6 @@ public class EnemyAppearance : MonoBehaviour
     [Header("Configuration")]
     [SerializeField] private AnimationStateFrameMap frameMap;
 
-    [Header("Sorting")]
-    [SerializeField] private string sortingLayerName = "Ground";
-    [SerializeField] private int baseSortingOrder = 10;
-
     private LayeredSpriteController layeredSprite;
     private AnimationFrameDriver frameDriver;
     private CharacterAppearanceConfig activeConfig;
