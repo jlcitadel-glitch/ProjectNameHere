@@ -33,6 +33,7 @@ public class EnemyController : MonoBehaviour, IDamageable
     private EnemyCombat combat;
     private EnemySensors sensors;
     private BossController bossController;
+    private EnemyAppearance appearance;
     private Rigidbody2D rb;
     private SpriteRenderer spriteRenderer;
 
@@ -100,6 +101,20 @@ public class EnemyController : MonoBehaviour, IDamageable
             if (GetComponent<EnemyHitFlash>() == null)
             {
                 gameObject.AddComponent<EnemyHitFlash>();
+            }
+
+            // Initialize layered appearance for humanoid enemies
+            if (enemyData.appearanceConfig != null)
+            {
+                appearance = GetComponent<EnemyAppearance>();
+                if (appearance == null)
+                    appearance = gameObject.AddComponent<EnemyAppearance>();
+                appearance.Initialize(enemyData.appearanceConfig, enemyData.appearanceFrameMap);
+
+                // Wire layered flash to EnemyHitFlash
+                var hitFlash = GetComponent<EnemyHitFlash>();
+                if (hitFlash != null && appearance.LayeredSprite != null)
+                    hitFlash.SetLayeredSprite(appearance.LayeredSprite);
             }
         }
 

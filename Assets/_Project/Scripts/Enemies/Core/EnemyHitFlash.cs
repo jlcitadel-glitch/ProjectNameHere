@@ -12,14 +12,26 @@ public class EnemyHitFlash : MonoBehaviour
 
     private SpriteRenderer spriteRenderer;
     private HealthSystem healthSystem;
+    private LayeredSpriteController layeredSprite;
     private Color originalColor;
     private float flashTimer;
     private bool isFlashing;
+    private bool useLayered;
 
     private void Awake()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
         healthSystem = GetComponent<HealthSystem>();
+    }
+
+    /// <summary>
+    /// Called after EnemyAppearance initializes to switch flash mode
+    /// from single-sprite to multi-layer.
+    /// </summary>
+    public void SetLayeredSprite(LayeredSpriteController controller)
+    {
+        layeredSprite = controller;
+        useLayered = controller != null;
     }
 
     private void OnEnable()
@@ -38,9 +50,12 @@ public class EnemyHitFlash : MonoBehaviour
         }
 
         // Restore original color if disabled mid-flash
-        if (isFlashing && spriteRenderer != null)
+        if (isFlashing)
         {
-            spriteRenderer.color = originalColor;
+            if (useLayered)
+                layeredSprite.RestoreAllTints();
+            else if (spriteRenderer != null)
+                spriteRenderer.color = originalColor;
             isFlashing = false;
         }
     }
@@ -53,13 +68,24 @@ public class EnemyHitFlash : MonoBehaviour
         flashTimer -= Time.deltaTime;
         if (flashTimer <= 0f)
         {
-            spriteRenderer.color = originalColor;
+            if (useLayered)
+                layeredSprite.RestoreAllTints();
+            else if (spriteRenderer != null)
+                spriteRenderer.color = originalColor;
             isFlashing = false;
         }
     }
 
     private void HandleDamageTaken(float damage)
     {
+        if (useLayered)
+        {
+            layeredSprite.FlashAll(flashColor);
+            flashTimer = flashDuration;
+            isFlashing = true;
+            return;
+        }
+
         if (spriteRenderer == null)
             return;
 

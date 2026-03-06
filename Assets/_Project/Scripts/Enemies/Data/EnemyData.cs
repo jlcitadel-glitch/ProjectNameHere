@@ -91,6 +91,12 @@ public class EnemyData : ScriptableObject
     [Tooltip("Exclude from encounter pool (e.g., MiniSlime spawned only on death)")]
     public bool isDeathSpawnOnly;
 
+    [Header("Appearance (Humanoid Enemies)")]
+    [Tooltip("Layered LPC appearance config. Null = legacy single-sprite enemy.")]
+    public CharacterAppearanceConfig appearanceConfig;
+    [Tooltip("Frame map for the layered animation system. Required if appearanceConfig is set.")]
+    public AnimationStateFrameMap appearanceFrameMap;
+
     [Header("Audio")]
     public AudioClip spawnSound;
     public AudioClip idleSound;
