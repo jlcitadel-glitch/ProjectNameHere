@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f70653430746b047a53f475b533d9a9, type: 3}
+  m_Name: ULPC_Default
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterAppearanceConfig
+  configId: ulpc_default
+  displayName: ULPC Default (Light)
+  bodyType: male
+  slotEntries:
+  - slot: 2
+    part: {fileID: 11400000, guid: 85fc0e4f8c2aa8f41851d085f5f61f31, type: 2}
+  - slot: 3
+    part: {fileID: 11400000, guid: 3da71817f58f81c4ea1ae13ce1e96d61, type: 2}
+  skinTint: {r: 1, g: 1, b: 1, a: 1}
+  hairTint: {r: 1, g: 1, b: 1, a: 1}
+  armorPrimaryTint: {r: 1, g: 1, b: 1, a: 1}
+  armorSecondaryTint: {r: 1, g: 1, b: 1, a: 1}
+  eyeTint: {r: 0.45, g: 0.3, b: 0.15, a: 1}
+  _legacyBody: {fileID: 0}
+  _legacyHead: {fileID: 0}
+  _legacyHair: {fileID: 0}
+  _legacyTorso: {fileID: 0}
+  _legacyLegs: {fileID: 0}
+  _legacyWeaponBehind: {fileID: 0}
+  _legacyWeaponFront: {fileID: 0}

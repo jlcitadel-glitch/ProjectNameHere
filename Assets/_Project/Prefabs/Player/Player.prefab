@@ -28,6 +28,7 @@ GameObject:
   - component: {fileID: 4011588737219984215}
   - component: {fileID: 1570853246278437762}
   - component: {fileID: 4892000620061988450}
+  - component: {fileID: 6195613455422841921}
   m_Layer: 6
   m_Name: Player
   m_TagString: Player
@@ -145,7 +146,7 @@ CapsuleCollider2D:
   m_CompositeOperation: 0
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 1.1}
-  m_Size: {x: 1.0, y: 2.2}
+  m_Size: {x: 1, y: 2.2}
   m_Direction: 0
 --- !u!50 &2268985004935060955
 Rigidbody2D:
@@ -375,7 +376,7 @@ Animator:
   m_GameObject: {fileID: 2553238395389881092}
   m_Enabled: 1
   m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: d6685c300ad607f4da1047bfd8bc2675, type: 2}
+  m_Controller: {fileID: 9100000, guid: 2cb6e00fa8915804aa29bff2a8fabf06, type: 2}
   m_CullingMode: 0
   m_UpdateMode: 0
   m_ApplyRootMotion: 0
@@ -578,7 +579,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1837d9075ae22e14c9a99689b0ede20d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AnimationFrameDriver
-  frameMap: {fileID: 11400000, guid: f969c022e71986b4c9e40e616fddc924, type: 2}
+  frameMap: {fileID: 11400000, guid: 776ff347cd29bc241861749e43b535a0, type: 2}
 --- !u!114 &1570853246278437762
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -606,6 +607,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3086202ac899f7b4c988f1f76dcbaa6e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAppearance
+--- !u!114 &6195613455422841921
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2553238395389881092}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d347f6242a314a4082b944bdce4dad9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DamageFlashReaction
+  flashColor: {r: 1, g: 1, b: 1, a: 1}
+  flashDuration: 0.1
+  angryFaceDuration: 1
+  angryFace: {fileID: 11400000, guid: dd88e3a551238f84c8c65fd1d67a8c39, type: 2}
 --- !u!1 &6872185932980887859
 GameObject:
   m_ObjectHideFlags: 0

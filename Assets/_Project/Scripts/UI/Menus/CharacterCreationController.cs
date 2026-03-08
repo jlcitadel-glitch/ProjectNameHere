@@ -135,6 +135,12 @@ namespace ProjectName.UI
             "Light", "Amber", "Olive", "Taupe", "Bronze", "Brown", "Black"
         };
 
+        // Maps skin tone index to body/head partId suffixes (for pre-baked ULPC variants)
+        private static readonly string[] SkinToneSuffixes = new string[]
+        {
+            "light", "amber", "olive", "taupe", "bronze", "brown", "black"
+        };
+
         private static readonly Color[] HairColorPresets = new Color[]
         {
             new Color(0.75f, 0.15f, 0.10f),     // Red
@@ -541,14 +547,27 @@ namespace ProjectName.UI
             if (bodyPartRegistry == null) return;
 
             builtAppearance = ScriptableObject.CreateInstance<CharacterAppearanceConfig>();
-            var bodyParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Body);
-            var headParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Head);
-            var faceHeads = FilterByPrefix(headParts, "head_");
+            builtAppearance.bodyType = selectedBodyType;
+            builtAppearance.skinTint = SkinTonePresets[selectedSkinToneIndex];
+
+            // Use pre-baked skin tone body + head
+            ApplySkinToneSwap();
+
+            // Fallback if swap didn't find assets
+            if (builtAppearance.body == null)
+            {
+                var bodyParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Body);
+                if (bodyParts.Length > 0) builtAppearance.body = bodyParts[0];
+            }
+            if (builtAppearance.head == null)
+            {
+                var headParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Head);
+                var faceHeads = FilterByPrefix(headParts, "head_");
+                builtAppearance.head = FindDefaultHumanHead(faceHeads, headParts, selectedBodyType);
+            }
+
             var hairParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Hair);
-            if (bodyParts.Length > 0) builtAppearance.body = bodyParts[0];
-            builtAppearance.head = FindDefaultHumanHead(faceHeads, headParts, "male");
             if (hairParts.Length > 0) builtAppearance.hair = hairParts[0];
-            builtAppearance.skinTint = SkinTonePresets[0];
             builtAppearance.hairTint = HairColorPresets[0];
 
             var eyeParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Eyes);
@@ -562,12 +581,7 @@ namespace ProjectName.UI
             if (defaultEye != null) builtAppearance.SetPart(BodyPartSlot.Eyes, defaultEye);
             builtAppearance.eyeTint = EyeColorPresets[0];
 
-            var torsoParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Torso);
-            if (torsoParts.Length > 0) builtAppearance.SetPart(BodyPartSlot.Torso, torsoParts[0]);
-            var legsParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Legs);
-            if (legsParts.Length > 0) builtAppearance.SetPart(BodyPartSlot.Legs, legsParts[0]);
-            var feetParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Feet);
-            if (feetParts.Length > 0) builtAppearance.SetPart(BodyPartSlot.Feet, feetParts[0]);
+            AssignDefaultClothing();
         }
 
         private void ApplyAppearanceToCard(UILayeredSpritePreview preview, Image fallbackImage, JobClassData jobData)
@@ -734,7 +748,8 @@ namespace ProjectName.UI
             // Only initialize appearance if not already built (preserve choices when navigating back)
             if (builtAppearance == null)
             {
-                selectedHairIndex = FindPartIndex(availableHairStyles, "hair_messy1");
+                selectedHairIndex = availableHairStyles != null && availableHairStyles.Length > 0
+                    ? FindPartIndex(availableHairStyles, "hair_messy1") : 0;
                 selectedSkinToneIndex = 0;
                 selectedHairColorIndex = 3; // Brown
                 selectedBeardIndex = -1;
@@ -743,25 +758,52 @@ namespace ProjectName.UI
                 builtAppearance = ScriptableObject.CreateInstance<CharacterAppearanceConfig>();
                 builtAppearance.bodyType = selectedBodyType;
 
-                var bodyParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Body, selectedBodyType);
-                if (bodyParts.Length > 0) builtAppearance.body = bodyParts[0];
+                // Start with first skin tone's pre-baked body + head
+                builtAppearance.skinTint = SkinTonePresets[0];
+                ApplySkinToneSwap();
 
-                // Pick the default human head matching body type
-                builtAppearance.head = FindDefaultHumanHead(filteredHeadParts, allHeadParts, selectedBodyType);
+                // Fallback if skin tone swap didn't find assets
+                if (builtAppearance.body == null)
+                {
+                    var bodyParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Body, selectedBodyType);
+                    if (bodyParts.Length > 0) builtAppearance.body = bodyParts[0];
+                }
+                if (builtAppearance.head == null)
+                    builtAppearance.head = FindDefaultHumanHead(filteredHeadParts, allHeadParts, selectedBodyType);
 
-                if (availableHairStyles.Length > 0)
+                if (availableHairStyles != null && availableHairStyles.Length > 0)
                     builtAppearance.hair = availableHairStyles[selectedHairIndex];
 
-                builtAppearance.skinTint = SkinTonePresets[0];
                 builtAppearance.hairTint = HairColorPresets[selectedHairColorIndex];
                 builtAppearance.eyeTint = EyeColorPresets[0];
 
                 AssignDefaultClothing();
             }
 
+            // Show/hide option rows based on available data
+            ShowRowIfHasData(hairPrevButton, availableHairStyles);
+            ShowRowIfHasData(beardPrevButton, availableBeardStyles);
+            ShowRowIfHasData(eyeColorPrevButton, bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Eyes, selectedBodyType));
+            // Hair color row visible only if hair styles exist
+            if (hairColorPrevButton != null)
+                hairColorPrevButton.transform.parent.gameObject.SetActive(
+                    availableHairStyles != null && availableHairStyles.Length > 0);
+            // Body type toggle visible only if female body parts exist
+            if (bodyTypeMaleButton != null)
+            {
+                var femaleParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Body, "female");
+                bodyTypeMaleButton.transform.parent.gameObject.SetActive(femaleParts.Length > 0);
+            }
+
             UpdateBodyTypeUI();
             RefreshAppearancePreview();
             UpdateAppearanceUI();
+        }
+
+        private static void ShowRowIfHasData(Button rowButton, BodyPartData[] parts)
+        {
+            if (rowButton == null) return;
+            rowButton.transform.parent.gameObject.SetActive(parts != null && parts.Length > 0);
         }
 
         private void CycleHair(int direction)
@@ -779,9 +821,31 @@ namespace ProjectName.UI
         {
             selectedSkinToneIndex = (selectedSkinToneIndex + direction + SkinTonePresets.Length) % SkinTonePresets.Length;
             builtAppearance.skinTint = SkinTonePresets[selectedSkinToneIndex];
+            ApplySkinToneSwap();
             UIManager.Instance?.PlayNavigateSound();
             RefreshAppearancePreview();
             UpdateAppearanceUI();
+        }
+
+        /// <summary>
+        /// Swaps body and head to pre-baked ULPC skin-tone variants.
+        /// Falls back to tint-only if matching assets aren't found.
+        /// </summary>
+        private void ApplySkinToneSwap()
+        {
+            if (builtAppearance == null || bodyPartRegistry == null) return;
+
+            string suffix = SkinToneSuffixes[selectedSkinToneIndex];
+            string bodyId = $"body_{selectedBodyType}_{suffix}";
+            string headId = $"head_human_{selectedBodyType}_{suffix}";
+
+            var body = bodyPartRegistry.GetPartById(bodyId);
+            if (body != null)
+                builtAppearance.body = body;
+
+            var head = bodyPartRegistry.GetPartById(headId);
+            if (head != null)
+                builtAppearance.head = head;
         }
 
         private void CycleHairColor(int direction)
@@ -1379,6 +1443,8 @@ namespace ProjectName.UI
             ctrl.bodyTypeLabel = MakeLabel(bodyTypeRow.transform, "A", 20f);
             ctrl.bodyTypeLabel.GetComponent<LayoutElement>().preferredWidth = 0f;
             ctrl.bodyTypeLabel.gameObject.SetActive(false);
+            // Hide body type until female variants exist
+            bodyTypeRow.SetActive(false);
 
             // --- Right column: options in scroll view ---
             var rightCol = MakeUIObject("RightColumn", columnsRow.transform);
@@ -1427,29 +1493,30 @@ namespace ProjectName.UI
             scrollCsf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
             scrollRect.content = scrollContentRt;
 
-            // === FEATURES section header ===
-            MakeSectionHeader(scrollContent.transform, "FEATURES");
+            // === APPEARANCE section header ===
+            MakeSectionHeader(scrollContent.transform, "APPEARANCE");
 
-            // Hair style
-            MakeOptionRow(scrollContent.transform, "Hair Style", out ctrl.hairPrevButton, out ctrl.hairNextButton, out ctrl.hairNameText);
-
-            // Beard
-            MakeOptionRow(scrollContent.transform, "Beard", out ctrl.beardPrevButton, out ctrl.beardNextButton, out ctrl.beardNameText);
-
-            // === COLORS section header ===
-            MakeSectionHeader(scrollContent.transform, "COLORS");
-
-            // Eye color
-            MakeColorRow(scrollContent.transform, "Eye Color", EyeColorPresets[0], EyeColorNames[0],
-                out ctrl.eyeColorPrevButton, out ctrl.eyeColorNextButton, out ctrl.eyeColorPreview, out ctrl.eyeColorNameText);
-
-            // Skin tone
+            // Skin tone (always available — uses pre-baked ULPC variants)
             MakeColorRow(scrollContent.transform, "Skin Tone", SkinTonePresets[0], SkinToneNames[0],
                 out ctrl.skinPrevButton, out ctrl.skinNextButton, out ctrl.skinColorPreview, out ctrl.skinToneNameText);
 
-            // Hair color
+            // Hair style (hidden until hair assets exist)
+            MakeOptionRow(scrollContent.transform, "Hair Style", out ctrl.hairPrevButton, out ctrl.hairNextButton, out ctrl.hairNameText);
+            ctrl.hairPrevButton.transform.parent.gameObject.SetActive(false);
+
+            // Beard (hidden until beard assets exist)
+            MakeOptionRow(scrollContent.transform, "Beard", out ctrl.beardPrevButton, out ctrl.beardNextButton, out ctrl.beardNameText);
+            ctrl.beardPrevButton.transform.parent.gameObject.SetActive(false);
+
+            // Eye color (hidden until eye assets exist)
+            MakeColorRow(scrollContent.transform, "Eye Color", EyeColorPresets[0], EyeColorNames[0],
+                out ctrl.eyeColorPrevButton, out ctrl.eyeColorNextButton, out ctrl.eyeColorPreview, out ctrl.eyeColorNameText);
+            ctrl.eyeColorPrevButton.transform.parent.gameObject.SetActive(false);
+
+            // Hair color (hidden until hair assets exist)
             MakeColorRow(scrollContent.transform, "Hair Color", HairColorPresets[0], HairColorNames[0],
                 out ctrl.hairColorPrevButton, out ctrl.hairColorNextButton, out ctrl.hairColorPreview, out ctrl.hairColorNameText);
+            ctrl.hairColorPrevButton.transform.parent.gameObject.SetActive(false);
 
             MakeSpacer(content.transform, 10f);
 

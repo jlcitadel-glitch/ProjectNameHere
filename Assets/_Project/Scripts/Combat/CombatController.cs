@@ -23,7 +23,7 @@ public class CombatController : MonoBehaviour
 
     [Header("Animation")]
     [SerializeField] private Animator animator;
-    [SerializeField] private string defaultAttackTrigger = "Attack1";
+    [SerializeField] private string defaultAttackTrigger = "Slash";
 
     [Header("Debug")]
     [SerializeField] private bool showDebugGizmos = true;

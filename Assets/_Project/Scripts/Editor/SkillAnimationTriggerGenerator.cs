@@ -4,8 +4,8 @@ using UnityEngine;
 
 /// <summary>
 /// Editor utility to populate animationTrigger fields on all SkillData assets.
-/// Maps each skill to the appropriate LPC animator state (Attack1/slash,
-/// Attack2/thrust, Attack3/spellcast) based on skill combat style.
+/// Maps each skill to the appropriate ULPC animator trigger (Slash,
+/// Thrust, Spellcast, Shoot) based on skill combat style.
 /// Run from Tools menu.
 /// </summary>
 public static class SkillAnimationTriggerGenerator
@@ -40,24 +40,25 @@ public static class SkillAnimationTriggerGenerator
 
     private static string GetTriggerForSkill(string skillId)
     {
-        // Attack1 = slash animation (melee swings, battle cries)
-        // Attack2 = thrust animation (stabs, poison application)
-        // Attack3 = spellcast animation (magic, buffs, healing)
+        // Slash   = melee swings, battle stance
+        // Thrust  = stabs, piercing attacks
+        // Spellcast = magic, buffs, healing
+        // Shoot   = ranged projectiles
         return skillId switch
         {
-            // Melee / physical skills -> slash
+            // Melee / physical skills -> Slash
             "power_strike" or "triple_slash" or "quick_strike"
-                or "ground_slam" or "shadow_strike" => "Attack1",
+                or "ground_slam" or "shadow_strike" => "Slash",
 
-            // Warrior buff shouts -> slash (battle stance)
-            "berserk" or "war_cry" => "Attack1",
+            // Warrior buff shouts -> Slash (battle stance)
+            "berserk" or "war_cry" => "Slash",
 
             // Thrust / stab skills
-            "poison_blade" => "Attack2",
+            "poison_blade" => "Thrust",
 
-            // Magic / casting skills -> spellcast
+            // Magic / casting skills -> Spellcast
             "fireball" or "ice_bolt" or "meteor"
-                or "recovery" or "guard" or "magic_shield" => "Attack3",
+                or "recovery" or "guard" or "magic_shield" => "Spellcast",
 
             // Evasion is instant (no animation needed)
             "evasion" => null,

@@ -1,0 +1,101 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 753b122d3d1032140b98c612fbf64705, type: 3}
+  m_Name: ULPCFrameMap
+  m_EditorClassIdentifier: Assembly-CSharp::AnimationStateFrameMap
+  entries:
+  - stateName: Spellcast
+    startFrameIndex: 0
+    frameCount: 7
+    frameRate: 10
+    loop: 0
+  - stateName: Thrust
+    startFrameIndex: 7
+    frameCount: 8
+    frameRate: 12
+    loop: 0
+  - stateName: Walk
+    startFrameIndex: 15
+    frameCount: 9
+    frameRate: 9
+    loop: 1
+  - stateName: Slash
+    startFrameIndex: 24
+    frameCount: 6
+    frameRate: 12
+    loop: 0
+  - stateName: Shoot
+    startFrameIndex: 30
+    frameCount: 13
+    frameRate: 12
+    loop: 0
+  - stateName: Hurt
+    startFrameIndex: 43
+    frameCount: 6
+    frameRate: 8
+    loop: 0
+  - stateName: Climb
+    startFrameIndex: 49
+    frameCount: 6
+    frameRate: 8
+    loop: 1
+  - stateName: Idle
+    startFrameIndex: 55
+    frameCount: 2
+    frameRate: 4
+    loop: 1
+  - stateName: Jump
+    startFrameIndex: 57
+    frameCount: 5
+    frameRate: 10
+    loop: 0
+  - stateName: Sit
+    startFrameIndex: 62
+    frameCount: 3
+    frameRate: 6
+    loop: 0
+  - stateName: Emote
+    startFrameIndex: 65
+    frameCount: 3
+    frameRate: 6
+    loop: 0
+  - stateName: Run
+    startFrameIndex: 68
+    frameCount: 8
+    frameRate: 10
+    loop: 1
+  - stateName: CombatIdle
+    startFrameIndex: 76
+    frameCount: 2
+    frameRate: 4
+    loop: 1
+  - stateName: Backslash
+    startFrameIndex: 78
+    frameCount: 13
+    frameRate: 12
+    loop: 0
+  - stateName: Halfslash
+    startFrameIndex: 91
+    frameCount: 6
+    frameRate: 12
+    loop: 0
+  - stateName: Death
+    startFrameIndex: 43
+    frameCount: 6
+    frameRate: 8
+    loop: 0
+  fallback:
+    stateName: Idle
+    startFrameIndex: 55
+    frameCount: 2
+    frameRate: 4
+    loop: 1

@@ -16,7 +16,6 @@ public class HealthSystem : MonoBehaviour
     private float defenseMultiplier = 1f;
     private Animator animator;
     private bool animationTriggersEnabled = true;
-    private static readonly int AnimHurt = Animator.StringToHash("Hurt");
     private static readonly int AnimDie = Animator.StringToHash("Die");
 
     public float CurrentHealth => currentHealth;
@@ -88,11 +87,8 @@ public class HealthSystem : MonoBehaviour
 
         invulnerabilityTimer = invulnerabilityDuration;
 
-        // Trigger hurt animation (disabled for enemies — EnemyController handles it)
-        if (animationTriggersEnabled && animator != null && currentHealth > 0f)
-        {
-            animator.SetTrigger(AnimHurt);
-        }
+        // Hit feedback (white flash + angry face) is handled by DamageFlashReaction
+        // via the OnDamageTaken event — no Hurt animation trigger on regular hits.
 
         OnDamageTaken?.Invoke(actualDamage);
         OnHealthChanged?.Invoke(currentHealth, maxHealth);

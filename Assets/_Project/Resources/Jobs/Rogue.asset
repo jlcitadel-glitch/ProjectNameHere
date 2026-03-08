@@ -18,7 +18,10 @@ MonoBehaviour:
   jobIcon: {fileID: 0}
   jobColor: {r: 0.6, g: 0.2, b: 0.8, a: 1}
   tier: 1
+  archetypes: 
+  jobLine: 0
   parentJob: {fileID: 11400000, guid: bc2173f2e0402ae4584cc0b3f74625e8, type: 2}
+  parentJobs: []
   childJobs: []
   requiredLevel: 10
   requiredSkills: []
@@ -43,8 +46,8 @@ MonoBehaviour:
   intPerLevel: 1
   agiPerLevel: 1
   parryData: {fileID: 11400000, guid: e5c6541c6a9a476ab5ce20bcd59a098b, type: 2}
-  defaultAppearance: {fileID: 11400000, guid: 75a027e6367a66a4688a727235676456, type: 2}
-  characterAnimator: {fileID: 0}
+  defaultAppearance: {fileID: 11400000, guid: dc520d1e6af0b2d408b3ef2d582cdb88, type: 2}
+  characterAnimator: {fileID: 9100000, guid: 2cb6e00fa8915804aa29bff2a8fabf06, type: 2}
   idlePreviewFrames: []
   idlePreviewFrameRate: 8
   defaultSprite: {fileID: 0}

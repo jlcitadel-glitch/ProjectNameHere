@@ -8,8 +8,6 @@ public class DashAbility : MonoBehaviour
     [SerializeField] private float dashCooldown = 1f;
 
     private Rigidbody2D rb;
-    private Animator animator;
-    private static readonly int AnimRoll = Animator.StringToHash("Roll");
 
     private bool isDashing = false;
     private float dashTimeRemaining;
@@ -21,8 +19,6 @@ public class DashAbility : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         if (rb == null)
             Debug.LogError($"[{gameObject.name}] DashAbility: Missing Rigidbody2D");
-
-        animator = GetComponent<Animator>();
     }
 
     private void Update()
@@ -61,11 +57,7 @@ public class DashAbility : MonoBehaviour
             // Disable gravity during dash
             rb.gravityScale = 0f;
 
-            // Trigger roll animation
-            if (animator != null)
-            {
-                animator.SetTrigger(AnimRoll);
-            }
+            // TODO: ULPC has no roll/dash animation — add VFX or custom anim later
         }
     }
 
