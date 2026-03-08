@@ -206,17 +206,17 @@ namespace ProjectName.UI
             else
             {
                 float targetRatio = GetAspectRatioValue(currentAspectRatio);
-                float tolerance = 0.1f;
+                float tolerance = 0.15f;
 
                 filteredResolutions = availableResolutions
                     .Where(r => Mathf.Abs((float)r.width / r.height - targetRatio) < tolerance)
                     .ToList();
 
-                // If no resolutions match, fall back to all
+                // If no resolutions match, fall back to all and reset to Auto
                 if (filteredResolutions.Count == 0)
                 {
                     filteredResolutions = availableResolutions.ToList();
-                    Debug.LogWarning($"[DisplaySettings] No resolutions found for aspect ratio {currentAspectRatio}. Showing all.");
+                    currentAspectRatio = AspectRatioPreset.Auto;
                 }
             }
 

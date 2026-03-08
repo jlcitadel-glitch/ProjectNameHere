@@ -146,9 +146,8 @@ public class SkillProjectile : MonoBehaviour
         // Enemies with custom AI will need their own slow handler in the future
         Rigidbody2D targetRb = target.GetComponent<Rigidbody2D>()
             ?? target.GetComponentInParent<Rigidbody2D>();
-        if (targetRb == null) return;
+        if (targetRb == null || targetRb.bodyType == RigidbodyType2D.Static) return;
 
-        float originalGravity = targetRb.gravityScale;
         float slowFactor = 1f - slowPercent;
 
         // Reduce current velocity

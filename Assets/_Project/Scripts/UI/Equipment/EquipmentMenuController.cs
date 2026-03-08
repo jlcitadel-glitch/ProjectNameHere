@@ -28,9 +28,12 @@ namespace ProjectName.UI
         [SerializeField] private Image armorIcon;
         [SerializeField] private TMP_Text armorNameText;
         [SerializeField] private TMP_Text armorStatsText;
-        [SerializeField] private Image bootsIcon;
-        [SerializeField] private TMP_Text bootsNameText;
-        [SerializeField] private TMP_Text bootsStatsText;
+        [SerializeField] private Image legsIcon;
+        [SerializeField] private TMP_Text legsNameText;
+        [SerializeField] private TMP_Text legsStatsText;
+        [SerializeField] private Image feetIcon;
+        [SerializeField] private TMP_Text feetNameText;
+        [SerializeField] private TMP_Text feetStatsText;
         [SerializeField] private Image accessoryIcon;
         [SerializeField] private TMP_Text accessoryNameText;
         [SerializeField] private TMP_Text accessoryStatsText;
@@ -277,7 +280,8 @@ namespace ProjectName.UI
         {
             RefreshSlot(EquipmentSlotType.Weapon, weaponIcon, weaponNameText, weaponStatsText);
             RefreshSlot(EquipmentSlotType.Armor, armorIcon, armorNameText, armorStatsText);
-            RefreshSlot(EquipmentSlotType.Boots, bootsIcon, bootsNameText, bootsStatsText);
+            RefreshSlot(EquipmentSlotType.Legs, legsIcon, legsNameText, legsStatsText);
+            RefreshSlot(EquipmentSlotType.Feet, feetIcon, feetNameText, feetStatsText);
             RefreshSlot(EquipmentSlotType.Accessory, accessoryIcon, accessoryNameText, accessoryStatsText);
             RefreshCharacterPreview();
         }
@@ -773,7 +777,9 @@ namespace ProjectName.UI
             slotY -= slotHeight + slotSpacing;
             var (aRow, aIcon, aName, aStats) = BuildEquipmentSlotRow(slotsContainer.transform, "Armor", slotY);
             slotY -= slotHeight + slotSpacing;
-            var (bRow, bIcon, bName, bStats) = BuildEquipmentSlotRow(slotsContainer.transform, "Boots", slotY);
+            var (lRow, lIcon, lName, lStats) = BuildEquipmentSlotRow(slotsContainer.transform, "Legs", slotY);
+            slotY -= slotHeight + slotSpacing;
+            var (fRow, fIcon, fName, fStats) = BuildEquipmentSlotRow(slotsContainer.transform, "Feet", slotY);
             slotY -= slotHeight + slotSpacing;
             var (accRow, accIcon, accName, accStats) = BuildEquipmentSlotRow(slotsContainer.transform, "Accessory", slotY);
 
@@ -796,9 +802,12 @@ namespace ProjectName.UI
             controller.armorIcon = aIcon;
             controller.armorNameText = aName;
             controller.armorStatsText = aStats;
-            controller.bootsIcon = bIcon;
-            controller.bootsNameText = bName;
-            controller.bootsStatsText = bStats;
+            controller.legsIcon = lIcon;
+            controller.legsNameText = lName;
+            controller.legsStatsText = lStats;
+            controller.feetIcon = fIcon;
+            controller.feetNameText = fName;
+            controller.feetStatsText = fStats;
             controller.accessoryIcon = accIcon;
             controller.accessoryNameText = accName;
             controller.accessoryStatsText = accStats;
@@ -810,7 +819,8 @@ namespace ProjectName.UI
             // Wire slot click handlers
             wRow.onClick.AddListener(() => controller.OnSlotClicked(EquipmentSlotType.Weapon));
             aRow.onClick.AddListener(() => controller.OnSlotClicked(EquipmentSlotType.Armor));
-            bRow.onClick.AddListener(() => controller.OnSlotClicked(EquipmentSlotType.Boots));
+            lRow.onClick.AddListener(() => controller.OnSlotClicked(EquipmentSlotType.Legs));
+            fRow.onClick.AddListener(() => controller.OnSlotClicked(EquipmentSlotType.Feet));
             accRow.onClick.AddListener(() => controller.OnSlotClicked(EquipmentSlotType.Accessory));
 
             controller.WireButtonListeners();

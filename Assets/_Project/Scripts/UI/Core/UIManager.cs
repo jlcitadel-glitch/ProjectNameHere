@@ -671,8 +671,11 @@ namespace ProjectName.UI
 
             activeTransitions[canvas] = StartCoroutine(FadeCanvasGroup(group, group.alpha, 0f, duration, () =>
             {
-                canvas.gameObject.SetActive(false);
-                activeTransitions.Remove(canvas);
+                if (canvas != null)
+                {
+                    canvas.gameObject.SetActive(false);
+                    activeTransitions.Remove(canvas);
+                }
                 onComplete?.Invoke();
             }));
         }

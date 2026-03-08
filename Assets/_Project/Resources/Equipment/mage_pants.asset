@@ -10,15 +10,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 374e144ba8f96b14887b6bc0512a087f, type: 3}
-  m_Name: warrior_chainmail
+  m_Name: mage_pants
   m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
-  equipmentId: warrior_chainmail
-  displayName: Chainmail
-  description: Heavy chain armor.
+  equipmentId: mage_pants
+  displayName: Cloth Pants
+  description: Simple cloth trousers.
   icon: {fileID: 0}
-  slotType: 1
-  bonusSTR: 1
-  bonusINT: 0
-  bonusAGI: 1
-  visualPart: {fileID: 11400000, guid: 7a78980f4b7b2e440889248f1bc36c66, type: 2}
+  slotType: 2
+  bonusSTR: 0
+  bonusINT: 1
+  bonusAGI: 0
+  visualPart: {fileID: 11400000, guid: 3c3eeb8ec781fb149a0d8f630ff30065, type: 2}
   weaponData: {fileID: 0}

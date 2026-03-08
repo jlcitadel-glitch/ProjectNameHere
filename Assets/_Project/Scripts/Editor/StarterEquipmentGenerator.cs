@@ -23,23 +23,29 @@ public static class StarterEquipmentGenerator
         CreateEquipment("warrior_chainmail", "Chainmail", "Heavy chain armor.",
             EquipmentSlotType.Armor, bonusSTR: 1, bonusAGI: 1, visualPartId: "torso_chainmail");
         CreateEquipment("warrior_greaves", "Iron Greaves", "Iron leg armor.",
-            EquipmentSlotType.Boots, bonusSTR: 1, visualPartId: "legs_armour");
+            EquipmentSlotType.Legs, bonusSTR: 1, visualPartId: "legs_armour");
+        CreateEquipment("warrior_sabatons", "Iron Sabatons", "Heavy iron boots.",
+            EquipmentSlotType.Feet, bonusSTR: 1, visualPartId: "shoes_armour_male");
 
         // Mage gear
         CreateEquipment("mage_staff", "Apprentice Staff", "A staff crackling with arcane energy.",
             EquipmentSlotType.Weapon, bonusINT: 2, visualPartId: "weapon_staff");
-        CreateEquipment("mage_robe", "Cloth Robe", "Enchanted cloth robes.",
-            EquipmentSlotType.Armor, bonusINT: 2, visualPartId: "torso_longsleeve");
-        CreateEquipment("mage_shoes", "Cloth Shoes", "Light mage footwear.",
-            EquipmentSlotType.Boots, bonusAGI: 1, visualPartId: "legs_pants_teal");
+        CreateEquipment("mage_robe", "Arcane Frock Coat", "A long coat crackling with arcane energy.",
+            EquipmentSlotType.Armor, bonusINT: 2, visualPartId: "jacket_trim_frock_coat_lace_male");
+        CreateEquipment("mage_pants", "Cloth Pants", "Simple cloth trousers.",
+            EquipmentSlotType.Legs, bonusINT: 1, visualPartId: "legs_pants");
+        CreateEquipment("mage_sandals", "Cloth Sandals", "Light mage footwear.",
+            EquipmentSlotType.Feet, bonusAGI: 1, visualPartId: "shoes_basic_shoes_male");
 
         // Rogue gear
         CreateEquipment("rogue_dagger", "Iron Dagger", "A quick and deadly blade.",
             EquipmentSlotType.Weapon, bonusSTR: 1, bonusAGI: 1, visualPartId: "weapon_dagger");
         CreateEquipment("rogue_vest", "Leather Vest", "Lightweight leather armor.",
             EquipmentSlotType.Armor, bonusSTR: 1, bonusAGI: 1, visualPartId: "torso_leather");
+        CreateEquipment("rogue_pants", "Leather Pants", "Flexible leather trousers.",
+            EquipmentSlotType.Legs, bonusAGI: 1, visualPartId: "legs_pants");
         CreateEquipment("rogue_boots", "Leather Boots", "Swift leather boots.",
-            EquipmentSlotType.Boots, bonusAGI: 2, visualPartId: "legs_boots");
+            EquipmentSlotType.Feet, bonusAGI: 2, visualPartId: "shoes_basic_boots_male");
 
         // Wire to JobClassData assets
         WireStarterGear();
@@ -118,7 +124,8 @@ public static class StarterEquipmentGenerator
                 {
                     LoadEquipment("warrior_sword"),
                     LoadEquipment("warrior_chainmail"),
-                    LoadEquipment("warrior_greaves")
+                    LoadEquipment("warrior_greaves"),
+                    LoadEquipment("warrior_sabatons")
                 };
             }
             else if (id == "mage")
@@ -127,7 +134,8 @@ public static class StarterEquipmentGenerator
                 {
                     LoadEquipment("mage_staff"),
                     LoadEquipment("mage_robe"),
-                    LoadEquipment("mage_shoes")
+                    LoadEquipment("mage_pants"),
+                    LoadEquipment("mage_sandals")
                 };
             }
             else if (id == "rogue")
@@ -136,6 +144,7 @@ public static class StarterEquipmentGenerator
                 {
                     LoadEquipment("rogue_dagger"),
                     LoadEquipment("rogue_vest"),
+                    LoadEquipment("rogue_pants"),
                     LoadEquipment("rogue_boots")
                 };
             }

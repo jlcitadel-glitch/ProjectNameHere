@@ -29,19 +29,16 @@ namespace ProjectName.UI
 
         [Header("Class Selection")]
         [SerializeField] private GameObject classSelectionPanel;
-        [SerializeField] private Button warriorButton;
-        [SerializeField] private Button mageButton;
-        [SerializeField] private Button rogueButton;
+        [SerializeField] private Button classPrevButton;
+        [SerializeField] private Button classNextButton;
         [SerializeField] private Button classBackButton;
         [SerializeField] private Button classConfirmButton;
+        [SerializeField] private TMP_Text classNameText;
         [SerializeField] private TMP_Text classDescriptionText;
         [SerializeField] private TMP_Text classStatsPreviewText;
-        [SerializeField] private TMP_Text classNameText;
-
-        [Header("Class Preview Images")]
-        [SerializeField] private Image warriorPreviewImage;
-        [SerializeField] private Image magePreviewImage;
-        [SerializeField] private Image roguePreviewImage;
+        [SerializeField] private TMP_Text classEquipmentText;
+        [SerializeField] private TMP_Text classPerLevelText;
+        [SerializeField] private Image classPreviewImage;
 
         [Header("Job Data References")]
         [SerializeField] private JobClassData warriorData;
@@ -83,27 +80,17 @@ namespace ProjectName.UI
 
         private UILayeredSpritePreview appearancePreview;
 
-        // Animated preview components (added at runtime)
-        private UIAnimatedSprite warriorAnimSprite;
-        private UIAnimatedSprite mageAnimSprite;
-        private UIAnimatedSprite rogueAnimSprite;
-
-        // Layered character previews for class cards
-        private UILayeredSpritePreview warriorLayeredPreview;
-        private UILayeredSpritePreview mageLayeredPreview;
-        private UILayeredSpritePreview rogueLayeredPreview;
-
-        // Selection highlight borders for class cards
-        private GameObject warriorSelectionBorder;
-        private GameObject mageSelectionBorder;
-        private GameObject rogueSelectionBorder;
+        // Class cycling state
+        private JobClassData[] availableClasses;
+        private int selectedClassIndex;
+        private UILayeredSpritePreview classLayeredPreview;
+        private UIAnimatedSprite classAnimSprite;
 
         // Creation data
         private string characterName = "";
         private JobClassData selectedClass;
         private int targetSlotIndex = -1;
         private CreationStep currentStep;
-        private bool classSpritesLoaded;
 
         // Appearance selection state
         private BodyPartData[] availableHairStyles;
@@ -114,10 +101,6 @@ namespace ProjectName.UI
         // Beard cycling state
         private BodyPartData[] availableBeardStyles;
         private int selectedBeardIndex = -1; // -1 = None
-
-        // Ears cycling state
-        private BodyPartData[] availableEarStyles;
-        private int selectedEarsIndex = -1; // -1 = None (human ears from head base)
 
         // Eye color cycling state
         private int selectedEyeColorIndex;
@@ -205,21 +188,16 @@ namespace ProjectName.UI
                 nameInputField.onSubmit.AddListener(_ => OnNameConfirm());
             }
 
-            // Class selection
-            if (warriorButton != null)
+            // Class selection — cycling arrows
+            if (classPrevButton != null)
             {
-                warriorButton.onClick.RemoveAllListeners();
-                warriorButton.onClick.AddListener(() => SelectClass(warriorData));
+                classPrevButton.onClick.RemoveAllListeners();
+                classPrevButton.onClick.AddListener(() => CycleClass(-1));
             }
-            if (mageButton != null)
+            if (classNextButton != null)
             {
-                mageButton.onClick.RemoveAllListeners();
-                mageButton.onClick.AddListener(() => SelectClass(mageData));
-            }
-            if (rogueButton != null)
-            {
-                rogueButton.onClick.RemoveAllListeners();
-                rogueButton.onClick.AddListener(() => SelectClass(rogueData));
+                classNextButton.onClick.RemoveAllListeners();
+                classNextButton.onClick.AddListener(() => CycleClass(1));
             }
             if (classBackButton != null)
             {
@@ -322,34 +300,25 @@ namespace ProjectName.UI
             selectedClass = null;
             targetSlotIndex = -1;
             currentStep = CreationStep.NameEntry;
-            classSpritesLoaded = false;
+            selectedClassIndex = 0;
+            availableClasses = null;
             selectedHairIndex = 0;
             selectedSkinToneIndex = 0;
             selectedHairColorIndex = 0;
             selectedBeardIndex = -1;
-            selectedEarsIndex = -1;
             selectedEyeColorIndex = 0;
             builtAppearance = null;
             selectedBodyType = "male";
 
             if (appearancePreview != null)
                 appearancePreview.Clear();
-            if (warriorLayeredPreview != null)
-                warriorLayeredPreview.Clear();
-            if (mageLayeredPreview != null)
-                mageLayeredPreview.Clear();
-            if (rogueLayeredPreview != null)
-                rogueLayeredPreview.Clear();
-
-            // Re-enable fallback images that ApplyAppearanceToCard disabled
-            if (warriorPreviewImage != null) warriorPreviewImage.enabled = true;
-            if (magePreviewImage != null) magePreviewImage.enabled = true;
-            if (roguePreviewImage != null) roguePreviewImage.enabled = true;
-
-            // Hide selection borders
-            if (warriorSelectionBorder != null) warriorSelectionBorder.SetActive(false);
-            if (mageSelectionBorder != null) mageSelectionBorder.SetActive(false);
-            if (rogueSelectionBorder != null) rogueSelectionBorder.SetActive(false);
+            if (classLayeredPreview != null)
+                classLayeredPreview.Clear();
+            if (classPreviewImage != null)
+            {
+                classPreviewImage.enabled = true;
+                classPreviewImage.color = Color.clear;
+            }
 
             HideAllPanels();
         }
@@ -432,251 +401,170 @@ namespace ProjectName.UI
             SetPanelActive(nameEntryPanel, false);
             SetPanelActive(classSelectionPanel, true);
 
-            // Load class preview sprites on first show (deferred so assets are in memory)
-            if (!classSpritesLoaded)
+            // Build the class list on first show
+            if (availableClasses == null)
             {
-                classSpritesLoaded = true;
-                TryLoadClassSprites();
+                var classes = new List<JobClassData>();
+                if (warriorData != null) classes.Add(warriorData);
+                if (mageData != null) classes.Add(mageData);
+                if (rogueData != null) classes.Add(rogueData);
+                availableClasses = classes.ToArray();
             }
 
-            // Set initial static previews from JobClassData
-            SetInitialPreviews();
+            // Ensure animated sprite component exists
+            if (classAnimSprite == null && classPreviewImage != null)
+                classAnimSprite = classPreviewImage.gameObject.GetComponent<UIAnimatedSprite>()
+                    ?? classPreviewImage.gameObject.AddComponent<UIAnimatedSprite>();
 
-            // Apply customized character appearance to class card previews
-            ApplyAppearanceToClassCards();
+            // Show the current selection (or first class)
+            if (availableClasses.Length > 0)
+                ApplyClassSelection(selectedClassIndex);
 
-            // Disable confirm until a class is selected
             if (classConfirmButton != null)
                 classConfirmButton.interactable = selectedClass != null;
-
-            // Clear preview text when no class is selected
-            if (selectedClass == null)
-            {
-                if (classNameText != null)
-                    classNameText.text = "Which road will you travel?";
-                if (classDescriptionText != null)
-                    classDescriptionText.text = "";
-                if (classStatsPreviewText != null)
-                    classStatsPreviewText.text = "";
-            }
         }
 
-        private void SelectClass(JobClassData classData)
+        private void CycleClass(int direction)
         {
-            if (classData == null)
-                return;
-
-            selectedClass = classData;
-            UpdateClassPreview(classData);
+            if (availableClasses == null || availableClasses.Length == 0) return;
+            selectedClassIndex = (selectedClassIndex + direction + availableClasses.Length) % availableClasses.Length;
+            ApplyClassSelection(selectedClassIndex);
             UIManager.Instance?.PlaySelectSound();
+        }
 
-            // Toggle selection borders
-            if (warriorSelectionBorder != null)
-                warriorSelectionBorder.SetActive(classData == warriorData);
-            if (mageSelectionBorder != null)
-                mageSelectionBorder.SetActive(classData == mageData);
-            if (rogueSelectionBorder != null)
-                rogueSelectionBorder.SetActive(classData == rogueData);
+        private void ApplyClassSelection(int index)
+        {
+            if (availableClasses == null || index < 0 || index >= availableClasses.Length) return;
+
+            var classData = availableClasses[index];
+            selectedClass = classData;
 
             if (classConfirmButton != null)
                 classConfirmButton.interactable = true;
-        }
 
-        private void UpdateClassPreview(JobClassData classData)
-        {
+            // Name
             if (classNameText != null)
                 classNameText.text = classData.jobName;
 
+            // Description
             if (classDescriptionText != null)
                 classDescriptionText.text = classData.description;
 
-            // Animate selected class, show static first frame on others
-            UpdatePreviewAnimation(warriorAnimSprite, warriorData, classData == warriorData);
-            UpdatePreviewAnimation(mageAnimSprite, mageData, classData == mageData);
-            UpdatePreviewAnimation(rogueAnimSprite, rogueData, classData == rogueData);
-        }
+            // Stats (left column: base modifiers)
+            if (classStatsPreviewText != null)
+                classStatsPreviewText.text = FormatClassStats(classData);
 
-        /// <summary>
-        /// Plays or stops the animated preview for a class card.
-        /// </summary>
-        private void UpdatePreviewAnimation(UIAnimatedSprite animSprite, JobClassData jobData, bool isSelected)
-        {
-            if (animSprite == null || jobData == null)
-                return;
+            // Stats (right column: per-level growth)
+            if (classPerLevelText != null)
+                classPerLevelText.text = FormatPerLevelStats(classData);
 
-            if (!HasJobVisualData(jobData))
-                return;
+            // Equipment list
+            if (classEquipmentText != null)
+                classEquipmentText.text = FormatStarterEquipment(classData);
 
-            // Filter out null frames before playing animation
-            if (isSelected && jobData.idlePreviewFrames != null)
+            // Layered character preview with class gear
+            ApplyAppearanceToCard(classLayeredPreview, classPreviewImage, classData);
+
+            // Animated preview fallback
+            if (classAnimSprite != null && HasJobVisualData(classData))
             {
-                var validFrames = new System.Collections.Generic.List<Sprite>();
-                foreach (var frame in jobData.idlePreviewFrames)
+                if (classData.idlePreviewFrames != null && classData.idlePreviewFrames.Length > 1)
                 {
-                    if (frame != null)
-                        validFrames.Add(frame);
+                    classAnimSprite.Play(classData.idlePreviewFrames, classData.idlePreviewFrameRate);
                 }
-
-                if (validFrames.Count > 1)
+                else
                 {
-                    animSprite.Play(validFrames.ToArray(), jobData.idlePreviewFrameRate);
-                    return;
+                    classAnimSprite.Stop();
                 }
             }
-
-            // Show static sprite: prefer defaultSprite, then first valid frame
-            Sprite staticSprite = jobData.defaultSprite;
-            if (staticSprite == null && jobData.idlePreviewFrames != null)
-            {
-                foreach (var frame in jobData.idlePreviewFrames)
-                {
-                    if (frame != null)
-                    {
-                        staticSprite = frame;
-                        break;
-                    }
-                }
-            }
-
-            if (staticSprite != null)
-                animSprite.SetStaticSprite(staticSprite);
-            else
-                animSprite.Stop();
         }
 
         private static string FormatClassStats(JobClassData classData)
         {
-            if (classData == null) return "";
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine($"HP   +{classData.baseHPBonus}");
+            sb.AppendLine($"MP   +{classData.baseMPBonus}");
+            sb.AppendLine($"ATK  x{classData.attackModifier:F1}");
+            sb.AppendLine($"MAG  x{classData.magicModifier:F1}");
+            sb.Append($"DEF  x{classData.defenseModifier:F1}");
+            return sb.ToString();
+        }
 
-            string FormatMod(string label, float value)
+        private static string FormatPerLevelStats(JobClassData classData)
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("<color=#CFB53B>Per Level</color>");
+            sb.AppendLine($"STR  +{classData.strPerLevel}");
+            sb.AppendLine($"INT  +{classData.intPerLevel}");
+            sb.Append($"AGI  +{classData.agiPerLevel}");
+            return sb.ToString();
+        }
+
+        private static string FormatStarterEquipment(JobClassData classData)
+        {
+            if (classData.starterEquipment == null || classData.starterEquipment.Length == 0)
+                return "None";
+
+            var sb = new System.Text.StringBuilder();
+            foreach (var equip in classData.starterEquipment)
             {
-                string color = value > 1f ? "#7FFF7F" : value < 1f ? "#FF7F7F" : "#CFCFCF";
-                string sign = value > 1f ? "+" : "";
-                int pct = Mathf.RoundToInt((value - 1f) * 100f);
-                return $"<color={color}>{label} {sign}{pct}%</color>";
+                if (equip == null) continue;
+                string name = !string.IsNullOrEmpty(equip.displayName) ? equip.displayName : equip.equipmentId;
+                string stats = equip.GetStatSummary();
+                if (!string.IsNullOrEmpty(stats))
+                    sb.AppendLine($"{name}  ({stats})");
+                else
+                    sb.AppendLine(name);
             }
-
-            var parts = new List<string>();
-            parts.Add(FormatMod("ATK", classData.attackModifier));
-            parts.Add(FormatMod("MAG", classData.magicModifier));
-            parts.Add(FormatMod("DEF", classData.defenseModifier));
-
-            if (classData.baseHPBonus != 0)
-            {
-                string hpColor = classData.baseHPBonus > 0 ? "#7FFF7F" : "#FF7F7F";
-                string hpSign = classData.baseHPBonus > 0 ? "+" : "";
-                parts.Add($"<color={hpColor}>HP {hpSign}{classData.baseHPBonus}</color>");
-            }
-            if (classData.baseMPBonus != 0)
-            {
-                string mpColor = classData.baseMPBonus > 0 ? "#7FFF7F" : "#FF7F7F";
-                string mpSign = classData.baseMPBonus > 0 ? "+" : "";
-                parts.Add($"<color={mpColor}>MP {mpSign}{classData.baseMPBonus}</color>");
-            }
-
-            return string.Join("   ", parts);
+            return sb.ToString().TrimEnd();
         }
 
         /// <summary>
-        /// Sets initial static previews from JobClassData visual fields.
+        /// Ensures a default appearance exists for class preview rendering.
+        /// Called before applying class gear to the layered preview.
         /// </summary>
-        private void SetInitialPreviews()
+        private void EnsureDefaultAppearance()
         {
-            SetInitialPreview(warriorAnimSprite, warriorData, warriorPreviewImage);
-            SetInitialPreview(mageAnimSprite, mageData, magePreviewImage);
-            SetInitialPreview(rogueAnimSprite, rogueData, roguePreviewImage);
-        }
+            if (builtAppearance != null) return;
 
-        private void SetInitialPreview(UIAnimatedSprite animSprite, JobClassData jobData, Image previewImage)
-        {
-            if (jobData == null || previewImage == null)
-                return;
+            if (bodyPartRegistry == null)
+                bodyPartRegistry = Resources.Load<BodyPartRegistry>("BodyPartRegistry");
 
-            // Find the first valid sprite: prefer defaultSprite, then search idle frames
-            Sprite preview = jobData.defaultSprite;
-            if (preview == null && jobData.idlePreviewFrames != null)
+            if (bodyPartRegistry == null) return;
+
+            builtAppearance = ScriptableObject.CreateInstance<CharacterAppearanceConfig>();
+            var bodyParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Body);
+            var headParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Head);
+            var faceHeads = FilterByPrefix(headParts, "head_");
+            var hairParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Hair);
+            if (bodyParts.Length > 0) builtAppearance.body = bodyParts[0];
+            builtAppearance.head = FindDefaultHumanHead(faceHeads, headParts, "male");
+            if (hairParts.Length > 0) builtAppearance.hair = hairParts[0];
+            builtAppearance.skinTint = SkinTonePresets[0];
+            builtAppearance.hairTint = HairColorPresets[0];
+
+            var eyeParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Eyes);
+            BodyPartData defaultEye = null;
+            foreach (var ep in eyeParts)
             {
-                foreach (var frame in jobData.idlePreviewFrames)
-                {
-                    if (frame != null)
-                    {
-                        preview = frame;
-                        break;
-                    }
-                }
+                if (ep.partId != null && ep.partId.StartsWith("eye_color_"))
+                { defaultEye = ep; break; }
             }
+            if (defaultEye == null && eyeParts.Length > 0) defaultEye = eyeParts[0];
+            if (defaultEye != null) builtAppearance.SetPart(BodyPartSlot.Eyes, defaultEye);
+            builtAppearance.eyeTint = EyeColorPresets[0];
 
-            if (preview != null)
-            {
-                previewImage.sprite = preview;
-                previewImage.color = Color.white;
-            }
-            else
-            {
-                // No sprite data — apply a class-themed background tint.
-                // The layered preview (ApplyAppearanceToCard) will render over this.
-                previewImage.sprite = null;
-                previewImage.color = jobData.jobColor;
-            }
-        }
-
-        /// <summary>
-        /// Applies the player's customized appearance to each class card's layered preview.
-        /// Merges the player's base appearance (body/head/hair/tints) with each class's
-        /// gear (torso/legs/weapons) when available.
-        /// </summary>
-        private void ApplyAppearanceToClassCards()
-        {
-            // Build a default appearance from the registry if the user skipped customization
-            if (builtAppearance == null)
-            {
-                if (bodyPartRegistry == null)
-                    bodyPartRegistry = Resources.Load<BodyPartRegistry>("BodyPartRegistry");
-
-                if (bodyPartRegistry != null)
-                {
-                    builtAppearance = ScriptableObject.CreateInstance<CharacterAppearanceConfig>();
-                    var bodyParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Body);
-                    var headParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Head);
-                    var faceHeads = FilterByPrefix(headParts, "head_");
-                    var hairParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Hair);
-                    if (bodyParts.Length > 0) builtAppearance.body = bodyParts[0];
-                    builtAppearance.head = FindDefaultHumanHead(faceHeads, headParts, "male");
-                    if (hairParts.Length > 0) builtAppearance.hair = hairParts[0];
-                    builtAppearance.skinTint = SkinTonePresets[0];
-                    builtAppearance.hairTint = HairColorPresets[0];
-
-                    // Add eye color overlay so eye tinting works
-                    var eyeParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Eyes);
-                    BodyPartData defaultEye = null;
-                    foreach (var ep in eyeParts)
-                    {
-                        if (ep.partId != null && ep.partId.StartsWith("eye_color_"))
-                        { defaultEye = ep; break; }
-                    }
-                    if (defaultEye == null && eyeParts.Length > 0) defaultEye = eyeParts[0];
-                    if (defaultEye != null) builtAppearance.SetPart(BodyPartSlot.Eyes, defaultEye);
-                    builtAppearance.eyeTint = EyeColorPresets[0];
-
-                    // Add default clothing so character isn't naked
-                    var torsoParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Torso);
-                    if (torsoParts.Length > 0) builtAppearance.SetPart(BodyPartSlot.Torso, torsoParts[0]);
-                    var legsParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Legs);
-                    if (legsParts.Length > 0) builtAppearance.SetPart(BodyPartSlot.Legs, legsParts[0]);
-                    var feetParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Feet);
-                    if (feetParts.Length > 0) builtAppearance.SetPart(BodyPartSlot.Feet, feetParts[0]);
-                }
-            }
-
-            if (builtAppearance == null) return;
-
-            ApplyAppearanceToCard(warriorLayeredPreview, warriorPreviewImage, warriorData);
-            ApplyAppearanceToCard(mageLayeredPreview, magePreviewImage, mageData);
-            ApplyAppearanceToCard(rogueLayeredPreview, roguePreviewImage, rogueData);
+            var torsoParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Torso);
+            if (torsoParts.Length > 0) builtAppearance.SetPart(BodyPartSlot.Torso, torsoParts[0]);
+            var legsParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Legs);
+            if (legsParts.Length > 0) builtAppearance.SetPart(BodyPartSlot.Legs, legsParts[0]);
+            var feetParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Feet);
+            if (feetParts.Length > 0) builtAppearance.SetPart(BodyPartSlot.Feet, feetParts[0]);
         }
 
         private void ApplyAppearanceToCard(UILayeredSpritePreview preview, Image fallbackImage, JobClassData jobData)
         {
+            EnsureDefaultAppearance();
             if (preview == null || builtAppearance == null) return;
 
             // Create a merged config: player's base appearance + class gear
@@ -705,16 +593,24 @@ namespace ProjectName.UI
             {
                 foreach (var equip in jobData.starterEquipment)
                 {
-                    if (equip == null || equip.visualPart == null) continue;
+                    if (equip == null) continue;
+                    if (equip.visualPart == null)
+                    {
+                        Debug.LogWarning($"[CharCreator] '{equip.equipmentId}' has null visualPart");
+                        continue;
+                    }
                     switch (equip.slotType)
                     {
                         case EquipmentSlotType.Armor:
                             merged.torso = equip.visualPart;
                             hasEquipment = true;
                             break;
-                        case EquipmentSlotType.Boots:
+                        case EquipmentSlotType.Legs:
                             merged.legs = equip.visualPart;
-                            merged.SetPart(BodyPartSlot.Feet, null); // Equipment boots cover feet
+                            hasEquipment = true;
+                            break;
+                        case EquipmentSlotType.Feet:
+                            merged.SetPart(BodyPartSlot.Feet, equip.visualPart);
                             hasEquipment = true;
                             break;
                         case EquipmentSlotType.Weapon:
@@ -826,7 +722,6 @@ namespace ProjectName.UI
             // Filter head parts: only "head_" prefixed parts are actual face bases
             var allHeadParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Head, selectedBodyType);
             var filteredHeadParts = FilterByPrefix(allHeadParts, "head_");
-            availableEarStyles = FilterByPrefix(allHeadParts, "ears_");
 
             // Only initialize appearance if not already built (preserve choices when navigating back)
             if (builtAppearance == null)
@@ -835,7 +730,6 @@ namespace ProjectName.UI
                 selectedSkinToneIndex = 0;
                 selectedHairColorIndex = 3; // Brown
                 selectedBeardIndex = -1;
-                selectedEarsIndex = -1;
                 selectedEyeColorIndex = 0;
 
                 builtAppearance = ScriptableObject.CreateInstance<CharacterAppearanceConfig>();
@@ -849,8 +743,6 @@ namespace ProjectName.UI
 
                 if (availableHairStyles.Length > 0)
                     builtAppearance.hair = availableHairStyles[selectedHairIndex];
-
-                // Ears default to None — human ears come from the head base.
 
                 builtAppearance.skinTint = SkinTonePresets[0];
                 builtAppearance.hairTint = HairColorPresets[selectedHairColorIndex];
@@ -1250,6 +1142,7 @@ namespace ProjectName.UI
             FindJobData(ctrl);
             WireStarterEquipmentIfMissing(ctrl);
             FindBodyPartRegistry(ctrl);
+            WireEquipmentVisualParts(ctrl);
             LoadClassPreviewSprites(ctrl);
 
             // Awake already ran with null refs (no-op), so bind listeners now
@@ -1310,68 +1203,122 @@ namespace ProjectName.UI
             panel.SetActive(false);
             ctrl.classSelectionPanel = panel;
 
-            // Centered content column, wide enough for 3 large cards
-            var content = MakeUIObject("Content", panel.transform);
+            var content = MakeContentColumn(panel.transform);
             var contentRt = content.GetComponent<RectTransform>();
-            contentRt.anchorMin = new Vector2(0.5f, 0.5f);
-            contentRt.anchorMax = new Vector2(0.5f, 0.5f);
-            contentRt.pivot = new Vector2(0.5f, 0.5f);
-            contentRt.sizeDelta = new Vector2(2000f, 0f);
-
-            var contentVlg = content.AddComponent<VerticalLayoutGroup>();
-            contentVlg.childAlignment = TextAnchor.UpperCenter;
-            contentVlg.childControlWidth = true;
-            contentVlg.childControlHeight = true;
-            contentVlg.childForceExpandWidth = true;
-            contentVlg.childForceExpandHeight = false;
-            contentVlg.spacing = 12f;
-            contentVlg.padding = new RectOffset(20, 20, 20, 20);
-
-            var contentCsf = content.AddComponent<ContentSizeFitter>();
-            contentCsf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            contentRt.sizeDelta = new Vector2(900f, 0f);
 
             // Gothic title
             var title = MakeLabel(content.transform, "Choose Your Path", 34f);
             title.color = FrameGold;
-            MakeSpacer(content.transform, 8f);
+            MakeSpacer(content.transform, 4f);
 
-            // Class cards row
-            var classRow = MakeHRow(content.transform, 60f, 530f);
+            // === Two-column layout: preview left, info right ===
+            var columnsRow = MakeUIObject("ColumnsRow", content.transform);
+            var columnsHlg = columnsRow.AddComponent<HorizontalLayoutGroup>();
+            columnsHlg.childAlignment = TextAnchor.UpperCenter;
+            columnsHlg.childControlWidth = true;
+            columnsHlg.childControlHeight = true;
+            columnsHlg.childForceExpandWidth = false;
+            columnsHlg.childForceExpandHeight = true;
+            columnsHlg.spacing = 20f;
+            var columnsLayout = columnsRow.AddComponent<LayoutElement>();
+            columnsLayout.flexibleWidth = 1f;
 
-            ctrl.warriorButton = MakeClassCard(classRow.transform, "Warrior", out var warriorImg, out var warriorLP, out var warriorBorder);
-            ctrl.warriorPreviewImage = warriorImg;
-            ctrl.warriorLayeredPreview = warriorLP;
-            ctrl.warriorSelectionBorder = warriorBorder;
+            // --- Left column: character preview with cycling arrows ---
+            var leftCol = MakeUIObject("LeftColumn", columnsRow.transform);
+            var leftVlg = leftCol.AddComponent<VerticalLayoutGroup>();
+            leftVlg.childAlignment = TextAnchor.UpperCenter;
+            leftVlg.childControlWidth = true;
+            leftVlg.childControlHeight = true;
+            leftVlg.childForceExpandWidth = false;
+            leftVlg.childForceExpandHeight = false;
+            leftVlg.spacing = 6f;
+            var leftLayout = leftCol.AddComponent<LayoutElement>();
+            leftLayout.preferredWidth = 340f;
 
-            ctrl.mageButton = MakeClassCard(classRow.transform, "Mage", out var mageImg, out var mageLP, out var mageBorder);
-            ctrl.magePreviewImage = mageImg;
-            ctrl.mageLayeredPreview = mageLP;
-            ctrl.mageSelectionBorder = mageBorder;
+            // Preview frame with gothic border
+            var previewFrame = MakeGothicFrame(leftCol.transform, 280f, 360f);
+            ctrl.classLayeredPreview = previewFrame.AddComponent<UILayeredSpritePreview>();
 
-            ctrl.rogueButton = MakeClassCard(classRow.transform, "Rogue", out var rogueImg, out var rogueLP, out var rogueBorder);
-            ctrl.roguePreviewImage = rogueImg;
-            ctrl.rogueLayeredPreview = rogueLP;
-            ctrl.rogueSelectionBorder = rogueBorder;
+            // Fallback static preview image (behind layered preview)
+            var imgGo = MakeUIObject("Preview", previewFrame.transform);
+            var img = imgGo.AddComponent<Image>();
+            img.preserveAspect = true;
+            img.color = Color.clear; // Start transparent; layered preview renders on top
+            var imgRect = imgGo.GetComponent<RectTransform>();
+            imgRect.anchorMin = Vector2.zero;
+            imgRect.anchorMax = Vector2.one;
+            imgRect.offsetMin = Vector2.zero;
+            imgRect.offsetMax = Vector2.zero;
+            ctrl.classPreviewImage = img;
 
-            // Gold divider
-            var divGo = MakeUIObject("Divider", content.transform);
-            divGo.AddComponent<Image>().color = DividerColor;
-            var divLayout = divGo.AddComponent<LayoutElement>();
-            divLayout.preferredHeight = 1f;
-            divLayout.preferredWidth = 600f;
-
-            // Class name (gold when selected)
-            ctrl.classNameText = MakeLabel(content.transform, "Which road will you travel?", 32f);
+            // Cycling row: < ClassName >
+            var cycleRow = MakeHRow(leftCol.transform, 10f, 50f);
+            ctrl.classPrevButton = MakeArrowButton(cycleRow.transform, "<");
+            ctrl.classNameText = MakeLabel(cycleRow.transform, "Warrior", 28f);
             ctrl.classNameText.color = FrameGold;
-            ctrl.classNameText.GetComponent<LayoutElement>().preferredWidth = -1f;
+            ctrl.classNameText.fontStyle = FontStyles.Bold;
+            ctrl.classNameText.GetComponent<LayoutElement>().preferredWidth = 200f;
+            ctrl.classNextButton = MakeArrowButton(cycleRow.transform, ">");
+
+            // --- Right column: description, stats, equipment ---
+            var rightCol = MakeUIObject("RightColumn", columnsRow.transform);
+            var rightVlg = rightCol.AddComponent<VerticalLayoutGroup>();
+            rightVlg.childAlignment = TextAnchor.UpperCenter;
+            rightVlg.childControlWidth = true;
+            rightVlg.childControlHeight = true;
+            rightVlg.childForceExpandWidth = true;
+            rightVlg.childForceExpandHeight = false;
+            rightVlg.spacing = 5f;
+            rightVlg.padding = new RectOffset(5, 5, 0, 5);
+            var rightLayout = rightCol.AddComponent<LayoutElement>();
+            rightLayout.flexibleWidth = 1f;
 
             // Description
-            ctrl.classDescriptionText = MakeLabel(content.transform, "", 22f);
+            ctrl.classDescriptionText = MakeLabel(rightCol.transform, "", 19f);
             ctrl.classDescriptionText.color = TextSecondary;
-            ctrl.classDescriptionText.GetComponent<LayoutElement>().preferredWidth = -1f;
+            ctrl.classDescriptionText.alignment = TextAlignmentOptions.TopLeft;
+            ctrl.classDescriptionText.textWrappingMode = TextWrappingModes.Normal;
             MakeAutoHeight(ctrl.classDescriptionText.gameObject);
 
-            MakeSpacer(content.transform, 8f);
+            // Stats section
+            MakeSectionHeader(rightCol.transform, "STATS");
+
+            // Two-column stats row: base modifiers left, per-level right
+            var statsRow = MakeUIObject("StatsRow", rightCol.transform);
+            var statsHlg = statsRow.AddComponent<HorizontalLayoutGroup>();
+            statsHlg.childAlignment = TextAnchor.UpperLeft;
+            statsHlg.childControlWidth = true;
+            statsHlg.childControlHeight = true;
+            statsHlg.childForceExpandWidth = true;
+            statsHlg.childForceExpandHeight = false;
+            statsHlg.spacing = 12f;
+
+            ctrl.classStatsPreviewText = MakeLabel(statsRow.transform, "", 17f);
+            ctrl.classStatsPreviewText.color = TextCol;
+            ctrl.classStatsPreviewText.alignment = TextAlignmentOptions.TopLeft;
+            ctrl.classStatsPreviewText.richText = true;
+            ctrl.classStatsPreviewText.textWrappingMode = TextWrappingModes.Normal;
+            ctrl.classStatsPreviewText.GetComponent<LayoutElement>().preferredWidth = -1f;
+            MakeAutoHeight(ctrl.classStatsPreviewText.gameObject);
+
+            ctrl.classPerLevelText = MakeLabel(statsRow.transform, "", 17f);
+            ctrl.classPerLevelText.color = TextCol;
+            ctrl.classPerLevelText.alignment = TextAlignmentOptions.TopLeft;
+            ctrl.classPerLevelText.richText = true;
+            ctrl.classPerLevelText.textWrappingMode = TextWrappingModes.Normal;
+            ctrl.classPerLevelText.GetComponent<LayoutElement>().preferredWidth = -1f;
+            MakeAutoHeight(ctrl.classPerLevelText.gameObject);
+
+            // Equipment section
+            MakeSectionHeader(rightCol.transform, "EQUIPMENT");
+            ctrl.classEquipmentText = MakeLabel(rightCol.transform, "", 17f);
+            ctrl.classEquipmentText.color = TextCol;
+            ctrl.classEquipmentText.alignment = TextAlignmentOptions.TopLeft;
+            ctrl.classEquipmentText.textWrappingMode = TextWrappingModes.Normal;
+            MakeAutoHeight(ctrl.classEquipmentText.gameObject);
+
+            MakeSpacer(content.transform, 10f);
 
             // Nav buttons
             var navRow = MakeHRow(content.transform, 20f, 55f);
@@ -1549,181 +1496,12 @@ namespace ProjectName.UI
         }
 
         /// <summary>
-        /// Builds a class card: vertical container with preview image on top and button below.
-        /// Includes a gold selection border that toggles on/off.
-        /// </summary>
-        private static Button MakeClassCard(Transform parent, string className,
-            out Image previewImage, out UILayeredSpritePreview layeredPreview,
-            out GameObject selectionBorder)
-        {
-            var cardGo = MakeUIObject(className + "Card", parent);
-            var cardLayout = cardGo.AddComponent<LayoutElement>();
-            cardLayout.preferredWidth = 380f;
-            cardLayout.preferredHeight = 560f;
-
-            var vlg = cardGo.AddComponent<VerticalLayoutGroup>();
-            vlg.childAlignment = TextAnchor.UpperCenter;
-            vlg.childControlWidth = true;
-            vlg.childControlHeight = true;
-            vlg.childForceExpandWidth = true;
-            vlg.childForceExpandHeight = false;
-            vlg.spacing = 8f;
-
-            // Preview image container with midnight blue tint
-            var imgContainer = MakeUIObject("PreviewContainer", cardGo.transform);
-            var containerImg = imgContainer.AddComponent<Image>();
-            containerImg.color = MidnightBlue;
-            var containerLayout = imgContainer.AddComponent<LayoutElement>();
-            containerLayout.preferredHeight = 440f;
-
-            // Selection border (gold, fills container — hidden by default)
-            var borderGo = MakeUIObject("SelectionBorder", imgContainer.transform);
-            var borderImg = borderGo.AddComponent<Image>();
-            borderImg.color = FrameGold;
-            var borderRect = borderGo.GetComponent<RectTransform>();
-            borderRect.anchorMin = Vector2.zero;
-            borderRect.anchorMax = Vector2.one;
-            borderRect.offsetMin = Vector2.zero;
-            borderRect.offsetMax = Vector2.zero;
-            selectionBorder = borderGo;
-            borderGo.SetActive(false);
-
-            // Inner bg (inset from border to reveal gold edges)
-            var innerBg = MakeUIObject("InnerBg", imgContainer.transform);
-            var innerBgImg = innerBg.AddComponent<Image>();
-            innerBgImg.color = MidnightBlue;
-            var innerBgRect = innerBg.GetComponent<RectTransform>();
-            innerBgRect.anchorMin = Vector2.zero;
-            innerBgRect.anchorMax = Vector2.one;
-            innerBgRect.offsetMin = new Vector2(3f, 3f);
-            innerBgRect.offsetMax = new Vector2(-3f, -3f);
-
-            // Preview image (fills container, preserves aspect ratio) — fallback when no layered appearance
-            var imgGo = MakeUIObject("Preview", imgContainer.transform);
-            var img = imgGo.AddComponent<Image>();
-            img.preserveAspect = true;
-            img.color = Color.white;
-            var imgRect = imgGo.GetComponent<RectTransform>();
-            imgRect.anchorMin = Vector2.zero;
-            imgRect.anchorMax = Vector2.one;
-            imgRect.offsetMin = Vector2.zero;
-            imgRect.offsetMax = Vector2.zero;
-            previewImage = img;
-
-            // Layered character preview (on top of fallback image, stretched to fill)
-            var layeredGo = MakeUIObject("LayeredPreview", imgContainer.transform);
-            var layeredRect = layeredGo.GetComponent<RectTransform>();
-            layeredRect.anchorMin = Vector2.zero;
-            layeredRect.anchorMax = Vector2.one;
-            layeredRect.offsetMin = Vector2.zero;
-            layeredRect.offsetMax = Vector2.zero;
-            layeredPreview = layeredGo.AddComponent<UILayeredSpritePreview>();
-
-            // Gold divider between preview and button
-            var dividerGo = MakeUIObject("Divider", cardGo.transform);
-            var dividerImg = dividerGo.AddComponent<Image>();
-            dividerImg.color = DividerColor;
-            var dividerLayout = dividerGo.AddComponent<LayoutElement>();
-            dividerLayout.preferredHeight = 2f;
-
-            // Class button with deep crimson
-            var btn = MakeButton(cardGo.transform, className, 380f, 70f);
-            var btnColors = btn.colors;
-            btnColors.normalColor = DeepCrimson;
-            btnColors.highlightedColor = new Color(0.65f, 0.05f, 0.05f, 1f);
-            btnColors.pressedColor = new Color(0.40f, 0f, 0f, 1f);
-            btnColors.selectedColor = new Color(0.65f, 0.05f, 0.05f, 1f);
-            btn.colors = btnColors;
-            var btnTmp = btn.GetComponentInChildren<TextMeshProUGUI>();
-            if (btnTmp != null)
-            {
-                btnTmp.fontSize = 42f;
-                btnTmp.color = FrameGold;
-            }
-
-            return btn;
-        }
-
-        /// <summary>
-        /// Attempts to load class preview sprites. Called early from CreateRuntimeUI
-        /// and again deferred from ShowClassSelection when more assets are in memory.
-        /// Uses JobClassData visuals when available, falls back to class-themed tints.
+        /// Deferred sprite loading — no longer needed with cycling design,
+        /// but kept as stub for CreateRuntimeUI compatibility.
         /// </summary>
         private static void LoadClassPreviewSprites(CharacterCreationController ctrl)
         {
-            // Ensure UIAnimatedSprite components exist on preview images
-            EnsureAnimatedSprite(ctrl.warriorPreviewImage, ref ctrl.warriorAnimSprite);
-            EnsureAnimatedSprite(ctrl.magePreviewImage, ref ctrl.mageAnimSprite);
-            EnsureAnimatedSprite(ctrl.roguePreviewImage, ref ctrl.rogueAnimSprite);
-
-            // Try JobClassData visuals; layered preview handles the actual display
-            TryApplyJobPreview(ctrl.warriorPreviewImage, ctrl.warriorData);
-            TryApplyJobPreview(ctrl.magePreviewImage, ctrl.mageData);
-            TryApplyJobPreview(ctrl.roguePreviewImage, ctrl.rogueData);
-        }
-
-        private static void EnsureAnimatedSprite(Image image, ref UIAnimatedSprite animSprite)
-        {
-            if (image == null) return;
-            if (animSprite == null)
-                animSprite = image.gameObject.GetComponent<UIAnimatedSprite>();
-            if (animSprite == null)
-                animSprite = image.gameObject.AddComponent<UIAnimatedSprite>();
-        }
-
-        /// <summary>
-        /// Tries to apply a preview from JobClassData visual fields.
-        /// Returns true if a valid (non-null) sprite was found and applied.
-        /// Searches defaultSprite first, then all idlePreviewFrames entries.
-        /// </summary>
-        private static bool TryApplyJobPreview(Image image, JobClassData jobData)
-        {
-            if (image == null || jobData == null)
-                return false;
-
-            Sprite preview = jobData.defaultSprite;
-            if (preview == null && jobData.idlePreviewFrames != null)
-            {
-                foreach (var frame in jobData.idlePreviewFrames)
-                {
-                    if (frame != null)
-                    {
-                        preview = frame;
-                        break;
-                    }
-                }
-            }
-
-            if (preview != null)
-            {
-                image.sprite = preview;
-                image.color = Color.white;
-                return true;
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// Deferred sprite loading. Called when class panel is first shown,
-        /// giving Unity more time to load asset references into memory.
-        /// Sets class-themed background tints when no visual data exists.
-        /// The layered preview system handles the primary display.
-        /// </summary>
-        private void TryLoadClassSprites()
-        {
-            ApplyClassTintIfMissing(warriorPreviewImage, warriorData);
-            ApplyClassTintIfMissing(magePreviewImage, mageData);
-            ApplyClassTintIfMissing(roguePreviewImage, rogueData);
-        }
-
-        private static void ApplyClassTintIfMissing(Image image, JobClassData jobData)
-        {
-            if (image == null || jobData == null) return;
-            if (HasJobVisualData(jobData)) return;
-
-            image.sprite = null;
-            image.color = jobData.jobColor;
+            // Class preview is now loaded on-demand via ApplyClassSelection
         }
 
         private static void FindJobData(CharacterCreationController ctrl)
@@ -1831,15 +1609,14 @@ namespace ProjectName.UI
         /// </summary>
         private static void WireStarterEquipmentIfMissing(CharacterCreationController ctrl)
         {
-            WireJobEquipment(ctrl.warriorData, "warrior_sword", "warrior_chainmail", "warrior_greaves");
-            WireJobEquipment(ctrl.mageData, "mage_staff", "mage_robe", "mage_shoes");
-            WireJobEquipment(ctrl.rogueData, "rogue_dagger", "rogue_vest", "rogue_boots");
+            WireJobEquipment(ctrl.warriorData, "warrior_sword", "warrior_chainmail", "warrior_greaves", "warrior_sabatons");
+            WireJobEquipment(ctrl.mageData, "mage_staff", "mage_robe", "mage_pants", "mage_sandals");
+            WireJobEquipment(ctrl.rogueData, "rogue_dagger", "rogue_vest", "rogue_pants", "rogue_boots");
         }
 
         private static void WireJobEquipment(JobClassData job, params string[] equipmentIds)
         {
             if (job == null) return;
-            if (job.starterEquipment != null && job.starterEquipment.Length > 0) return;
 
             var equipment = new System.Collections.Generic.List<EquipmentData>();
             foreach (var id in equipmentIds)
@@ -1850,6 +1627,51 @@ namespace ProjectName.UI
 
             if (equipment.Count > 0)
                 job.starterEquipment = equipment.ToArray();
+        }
+
+        /// <summary>
+        /// Ensures every starter equipment item has a valid visualPart reference.
+        /// Serialized GUID references in .asset files can go stale when BodyPartData
+        /// assets are reimported. This force-resolves them at runtime via the
+        /// BodyPartRegistry using known universal (body-type-agnostic) partIds.
+        /// </summary>
+        private static void WireEquipmentVisualParts(CharacterCreationController ctrl)
+        {
+            if (ctrl.bodyPartRegistry == null) return;
+
+            // Map equipmentId → BodyPartData partId for runtime visual resolution
+            var visualMap = new Dictionary<string, string>
+            {
+                { "warrior_sword",      "weapon_longsword_male" },
+                { "warrior_chainmail",  "torso_chainmail" },
+                { "warrior_greaves",    "legs_armour" },
+                { "warrior_sabatons",   "shoes_armour_male" },
+                { "mage_staff",         "weapon_simple_staff_male" },
+                { "mage_robe",          "jacket_trim_frock_coat_lace_male" },
+                { "mage_pants",         "legs_pants" },
+                { "mage_sandals",       "shoes_basic_shoes_male" },
+                { "rogue_dagger",       "weapon_dagger_male" },
+                { "rogue_vest",         "torso_leather" },
+                { "rogue_pants",        "legs_pants" },
+                { "rogue_boots",        "shoes_basic_boots_male" },
+            };
+
+            var jobs = new[] { ctrl.warriorData, ctrl.mageData, ctrl.rogueData };
+            foreach (var job in jobs)
+            {
+                if (job == null || job.starterEquipment == null) continue;
+                foreach (var equip in job.starterEquipment)
+                {
+                    if (equip == null) continue;
+
+                    if (visualMap.TryGetValue(equip.equipmentId, out var partId))
+                    {
+                        var resolved = ctrl.bodyPartRegistry.GetPartById(partId);
+                        if (resolved != null)
+                            equip.visualPart = resolved;
+                    }
+                }
+            }
         }
 
         // --- UI element helpers ---
@@ -1886,6 +1708,7 @@ namespace ProjectName.UI
             rt.anchorMin = new Vector2(0.5f, 0.5f);
             rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = Vector2.zero;
             rt.sizeDelta = new Vector2(600f, 0f);
 
             var vlg = go.AddComponent<VerticalLayoutGroup>();
@@ -2031,22 +1854,28 @@ namespace ProjectName.UI
 
             // Left divider — flexible width to fill available space
             var leftDiv = MakeUIObject("DivL", go.transform);
-            leftDiv.AddComponent<Image>().color = DividerColor;
+            leftDiv.AddComponent<Image>().color = FrameGold;
             var ldLayout = leftDiv.AddComponent<LayoutElement>();
             ldLayout.flexibleWidth = 1f;
             ldLayout.preferredHeight = 1f;
+            ldLayout.minWidth = 20f;
 
-            // Title text — fixed width
-            var label = MakeLabel(go.transform, title, 18f);
+            // Title text — fits content
+            var label = MakeLabel(go.transform, title, 16f);
             label.color = FrameGold;
-            label.GetComponent<LayoutElement>().preferredWidth = 120f;
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+            label.fontStyle = FontStyles.SmallCaps;
+            var labelLayout = label.GetComponent<LayoutElement>();
+            labelLayout.preferredWidth = -1f;
+            labelLayout.flexibleWidth = 0f;
 
             // Right divider — flexible width to fill available space
             var rightDiv = MakeUIObject("DivR", go.transform);
-            rightDiv.AddComponent<Image>().color = DividerColor;
+            rightDiv.AddComponent<Image>().color = FrameGold;
             var rdLayout = rightDiv.AddComponent<LayoutElement>();
             rdLayout.flexibleWidth = 1f;
             rdLayout.preferredHeight = 1f;
+            rdLayout.minWidth = 20f;
         }
 
         /// <summary>
@@ -2063,10 +1892,10 @@ namespace ProjectName.UI
             label.alignment = TextAlignmentOptions.MidlineRight;
             label.color = TextSecondary;
 
-            prevBtn = MakeArrowButton(row.transform, "\u25C0"); // filled left triangle
+            prevBtn = MakeArrowButton(row.transform, "<");
             nameText = MakeLabel(row.transform, "None", 19f);
             nameText.GetComponent<LayoutElement>().preferredWidth = 180f;
-            nextBtn = MakeArrowButton(row.transform, "\u25B6"); // filled right triangle
+            nextBtn = MakeArrowButton(row.transform, ">");
         }
 
         /// <summary>
@@ -2083,7 +1912,7 @@ namespace ProjectName.UI
             label.alignment = TextAlignmentOptions.MidlineRight;
             label.color = TextSecondary;
 
-            prevBtn = MakeArrowButton(row.transform, "\u25C0");
+            prevBtn = MakeArrowButton(row.transform, "<");
 
             // Color swatch with gold border
             var swatchOuter = MakeUIObject("SwatchBorder", row.transform);
@@ -2107,7 +1936,7 @@ namespace ProjectName.UI
             nameTmp.GetComponent<LayoutElement>().preferredWidth = 80f;
             nameText = nameTmp;
 
-            nextBtn = MakeArrowButton(row.transform, "\u25B6");
+            nextBtn = MakeArrowButton(row.transform, ">");
         }
 
         /// <summary>
@@ -2185,9 +2014,8 @@ namespace ProjectName.UI
         {
             if (nameConfirmButton != null) nameConfirmButton.onClick.RemoveAllListeners();
             if (nameBackButton != null) nameBackButton.onClick.RemoveAllListeners();
-            if (warriorButton != null) warriorButton.onClick.RemoveAllListeners();
-            if (mageButton != null) mageButton.onClick.RemoveAllListeners();
-            if (rogueButton != null) rogueButton.onClick.RemoveAllListeners();
+            if (classPrevButton != null) classPrevButton.onClick.RemoveAllListeners();
+            if (classNextButton != null) classNextButton.onClick.RemoveAllListeners();
             if (classBackButton != null) classBackButton.onClick.RemoveAllListeners();
             if (classConfirmButton != null) classConfirmButton.onClick.RemoveAllListeners();
             if (appearanceBackButton != null) appearanceBackButton.onClick.RemoveAllListeners();

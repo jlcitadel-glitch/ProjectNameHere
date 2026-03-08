@@ -778,7 +778,7 @@ namespace ProjectName.UI
             // Lock icon text
             var lockTextGo = MakeChildRect("LockText", lockGo.transform, Vector2.zero, Vector2.one);
             var lockTmp = lockTextGo.AddComponent<TextMeshProUGUI>();
-            lockTmp.text = "\u2716"; // X mark
+            lockTmp.text = "X";
             lockTmp.fontSize = 24;
             lockTmp.color = new Color(0.5f, 0.5f, 0.5f, 0.8f);
             lockTmp.alignment = TextAlignmentOptions.Center;

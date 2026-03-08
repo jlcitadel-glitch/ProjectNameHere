@@ -77,16 +77,38 @@ namespace ProjectName.UI
         img.enabled = true;
         img.color = part.supportsTinting ? part.defaultTint : Color.white;
 
-        // Weapon/shield layers use frames[0] (neutral stance) to align with the idle body.
-        // previewSprite on weapons is a combat frame meant for standalone icons,
-        // which misaligns with the idle body pose in layered previews.
+        // Pick the best idle sprite for preview display.
+        // LPC layout: frames[0-3] = south idle, frames[4-7] = walk-south.
+        // Weapons often have frames[0-3] empty; body-type-specific armor may also
+        // start with nulls. Always fall back to the first non-null frame.
         bool isWeapon = slot == BodyPartSlot.WeaponFront || slot == BodyPartSlot.WeaponBehind || slot == BodyPartSlot.Shield;
-        if (isWeapon && part.frames.Length > 0 && part.frames[0] != null)
-            img.sprite = part.frames[0];
-        else if (part.previewSprite != null)
-            img.sprite = part.previewSprite;
-        else if (part.frames.Length > 0 && part.frames[0] != null)
-            img.sprite = part.frames[0];
+
+        Sprite chosen = null;
+
+        if (isWeapon)
+        {
+            // Weapons: prefer walk-south idle (frame 4) for body-type-specific assets,
+            // then first non-null. Avoid previewSprite (thrust/combat pose).
+            if (part.frames.Length > 4 && part.frames[4] != null)
+                chosen = part.frames[4];
+        }
+        else
+        {
+            // Non-weapon: prefer previewSprite, then frames[0]
+            if (part.previewSprite != null)
+                chosen = part.previewSprite;
+            else if (part.frames.Length > 0 && part.frames[0] != null)
+                chosen = part.frames[0];
+        }
+
+        // Universal fallback: first non-null frame
+        if (chosen == null)
+        {
+            foreach (var f in part.frames) { if (f != null) { chosen = f; break; } }
+        }
+
+        if (chosen != null)
+            img.sprite = chosen;
     }
 
     /// <summary>

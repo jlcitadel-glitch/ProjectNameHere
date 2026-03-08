@@ -225,9 +225,9 @@ public class SkillManager : MonoBehaviour
         rogue.parentJob = beginner;
 
         // --- Wire starter equipment from Resources ---
-        WireRuntimeStarterEquipment(warrior, "warrior_sword", "warrior_chainmail", "warrior_greaves");
-        WireRuntimeStarterEquipment(mage, "mage_staff", "mage_robe", "mage_shoes");
-        WireRuntimeStarterEquipment(rogue, "rogue_dagger", "rogue_vest", "rogue_boots");
+        WireRuntimeStarterEquipment(warrior, "warrior_sword", "warrior_chainmail", "warrior_greaves", "warrior_sabatons");
+        WireRuntimeStarterEquipment(mage, "mage_staff", "mage_robe", "mage_pants", "mage_sandals");
+        WireRuntimeStarterEquipment(rogue, "rogue_dagger", "rogue_vest", "rogue_pants", "rogue_boots");
 
         // --- Assign to serialized fields ---
         allSkillData = new SkillData[] { cleave, ironWill, warCry, fireball, frostNova, arcaneShield, quickStrike, shadowStep, poisonBlade };
