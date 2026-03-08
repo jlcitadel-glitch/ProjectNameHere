@@ -1,31 +1,26 @@
 using UnityEngine;
-using UnityEngine.Rendering;
-using UnityEngine.Rendering.Universal;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 namespace ProjectName.UI
 {
+    /// <summary>
+    /// Simple brightness control via screen overlay, matching Dark Souls / Hollow Knight style.
+    /// Darkening uses a black overlay, brightening uses a white overlay with tuned alpha curves.
+    /// </summary>
     public class GraphicsSettings : MonoBehaviour
     {
         public static GraphicsSettings Instance { get; private set; }
 
         private const string PREF_BRIGHTNESS = "Graphics_Brightness";
-        private const string PREF_CONTRAST = "Graphics_Contrast";
-        private const string PREF_SATURATION = "Graphics_Saturation";
-
         private const float DEFAULT_BRIGHTNESS = 0f;
-        private const float DEFAULT_CONTRAST = 0f;
-        private const float DEFAULT_SATURATION = 0f;
 
-        private Volume volume;
-        private ColorAdjustments colorAdjustments;
+        private Canvas overlayCanvas;
+        private Image darkenImage;
+        private Image brightenImage;
 
         private float brightness;
-        private float contrast;
-        private float saturation;
-
         public float Brightness => brightness;
-        public float Contrast => contrast;
-        public float Saturation => saturation;
 
         private void Awake()
         {
@@ -38,9 +33,9 @@ namespace ProjectName.UI
             Instance = this;
             DontDestroyOnLoad(gameObject);
 
-            CreateRuntimeVolume();
+            CreateOverlay();
             LoadSettings();
-            ApplySettings();
+            ApplyBrightness();
         }
 
         private void OnDestroy()
@@ -49,66 +44,92 @@ namespace ProjectName.UI
                 Instance = null;
         }
 
-        private void CreateRuntimeVolume()
+        private void CreateOverlay()
         {
-            volume = gameObject.AddComponent<Volume>();
-            volume.isGlobal = true;
-            volume.priority = 1f;
+            var overlayGO = new GameObject("BrightnessOverlay");
+            overlayGO.transform.SetParent(transform, false);
 
-            var profile = ScriptableObject.CreateInstance<VolumeProfile>();
-            colorAdjustments = profile.Add<ColorAdjustments>(overrides: true);
-            colorAdjustments.postExposure.overrideState = true;
-            colorAdjustments.contrast.overrideState = true;
-            colorAdjustments.saturation.overrideState = true;
+            overlayCanvas = overlayGO.AddComponent<Canvas>();
+            overlayCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            overlayCanvas.sortingOrder = 30000;
 
-            volume.profile = profile;
+            var scaler = overlayGO.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+
+            // Darken layer (black overlay for negative brightness)
+            darkenImage = CreateFullscreenImage(overlayGO.transform, "Darken");
+            darkenImage.color = Color.clear;
+
+            // Brighten layer (white overlay for positive brightness)
+            brightenImage = CreateFullscreenImage(overlayGO.transform, "Brighten");
+            brightenImage.color = Color.clear;
         }
 
+        private Image CreateFullscreenImage(Transform parent, string name)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+
+            var img = go.AddComponent<Image>();
+            img.raycastTarget = false;
+
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+
+            return img;
+        }
+
+        /// <summary>
+        /// Set brightness. Range [-1, 1]. 0 = default, -1 = very dark, +1 = very bright.
+        /// </summary>
         public void SetBrightness(float value)
         {
-            brightness = Mathf.Clamp(value, -2f, 2f);
-            if (colorAdjustments != null)
-                colorAdjustments.postExposure.value = brightness;
+            brightness = Mathf.Clamp(value, -1f, 1f);
+            ApplyBrightness();
             PlayerPrefs.SetFloat(PREF_BRIGHTNESS, brightness);
-        }
-
-        public void SetContrast(float value)
-        {
-            contrast = Mathf.Clamp(value, -100f, 100f);
-            if (colorAdjustments != null)
-                colorAdjustments.contrast.value = contrast;
-            PlayerPrefs.SetFloat(PREF_CONTRAST, contrast);
-        }
-
-        public void SetSaturation(float value)
-        {
-            saturation = Mathf.Clamp(value, -100f, 100f);
-            if (colorAdjustments != null)
-                colorAdjustments.saturation.value = saturation;
-            PlayerPrefs.SetFloat(PREF_SATURATION, saturation);
         }
 
         public void ResetToDefaults()
         {
             SetBrightness(DEFAULT_BRIGHTNESS);
-            SetContrast(DEFAULT_CONTRAST);
-            SetSaturation(DEFAULT_SATURATION);
             PlayerPrefs.Save();
         }
 
         private void LoadSettings()
         {
             brightness = PlayerPrefs.GetFloat(PREF_BRIGHTNESS, DEFAULT_BRIGHTNESS);
-            contrast = PlayerPrefs.GetFloat(PREF_CONTRAST, DEFAULT_CONTRAST);
-            saturation = PlayerPrefs.GetFloat(PREF_SATURATION, DEFAULT_SATURATION);
         }
 
-        private void ApplySettings()
+        private void ApplyBrightness()
         {
-            if (colorAdjustments == null) return;
-            colorAdjustments.postExposure.value = brightness;
-            colorAdjustments.contrast.value = contrast;
-            colorAdjustments.saturation.value = saturation;
+            if (darkenImage == null || brightenImage == null) return;
+
+            if (brightness < -0.01f)
+            {
+                // Darkening: black overlay. Quadratic curve for natural feel.
+                // -1.0 maps to alpha ~0.7 (very dark but not black)
+                float t = Mathf.Abs(brightness);
+                float alpha = t * t * 0.7f;
+                darkenImage.color = new Color(0f, 0f, 0f, alpha);
+                brightenImage.color = Color.clear;
+            }
+            else if (brightness > 0.01f)
+            {
+                // Brightening: white overlay with low alpha.
+                // +1.0 maps to alpha ~0.35 (brighter but not washed out)
+                float t = brightness;
+                float alpha = t * t * 0.35f;
+                darkenImage.color = Color.clear;
+                brightenImage.color = new Color(1f, 1f, 1f, alpha);
+            }
+            else
+            {
+                darkenImage.color = Color.clear;
+                brightenImage.color = Color.clear;
+            }
         }
     }
 }
