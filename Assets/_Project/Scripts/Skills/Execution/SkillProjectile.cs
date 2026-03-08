@@ -88,6 +88,7 @@ public class SkillProjectile : MonoBehaviour
                 {
                     // Hit a wall or obstacle — impact + destroy
                     SkillVFXFactory.SpawnImpactBurst(transform.position, damageType);
+                    SpawnSpriteHitVFX(transform.position);
                     Destroy(gameObject);
                     return;
                 }
@@ -96,7 +97,9 @@ public class SkillProjectile : MonoBehaviour
 
         // Apply damage + impact VFX
         ApplyDamage(other);
-        SkillVFXFactory.SpawnImpactBurst(other.bounds.center, damageType);
+        Vector3 hitPos = other.bounds.center;
+        SkillVFXFactory.SpawnImpactBurst(hitPos, damageType);
+        SpawnSpriteHitVFX(hitPos);
         Destroy(gameObject);
     }
 
@@ -138,6 +141,12 @@ public class SkillProjectile : MonoBehaviour
 
         Vector3 spawnPos = target.bounds.center + Vector3.up * target.bounds.extents.y;
         spawner.SpawnDamageWithType(spawnPos, damage, damageType, isCrit);
+    }
+
+    private void SpawnSpriteHitVFX(Vector3 position)
+    {
+        if (damageType == DamageType.Fire)
+            MageSkillVFX.SpawnFireballHit(position);
     }
 
     private void ApplySlow(Collider2D target)

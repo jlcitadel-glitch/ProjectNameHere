@@ -551,10 +551,14 @@ public class SaveManager : MonoBehaviour
             playerController.RefreshAbilities();
         }
 
-        // Restore health — refill after stat scaling has set the correct maxHealth
+        // Restore health and mana — refill after stat scaling has set the correct max values
         var healthSystem = player.GetComponent<HealthSystem>();
         if (healthSystem != null)
             healthSystem.RefillHealth();
+
+        var manaSystem = player.GetComponent<ManaSystem>();
+        if (manaSystem != null)
+            manaSystem.RefillMana();
 
         // Apply skill system data
         if (SkillManager.Instance != null && currentSaveData.skillData != null)
@@ -662,10 +666,14 @@ public class SaveManager : MonoBehaviour
         if (SkillManager.Instance?.CurrentJob != null)
             equipmentManager.EquipStarterGear(SkillManager.Instance.CurrentJob);
 
-        // New games always start at full health
+        // New games always start at full health and mana
         var healthSystem = player.GetComponent<HealthSystem>();
         if (healthSystem != null)
             healthSystem.RefillHealth();
+
+        var manaSystem = player.GetComponent<ManaSystem>();
+        if (manaSystem != null)
+            manaSystem.RefillMana();
 
         Debug.Log($"[SaveManager] New game data applied - Class: {currentSaveData.startingClass}, Name: {currentSaveData.characterName}");
     }

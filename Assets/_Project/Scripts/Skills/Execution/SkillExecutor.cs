@@ -70,9 +70,12 @@ public class SkillExecutor : MonoBehaviour
             case "guard":
             case "berserk":
             case "war_cry":
-            case "magic_shield":
             case "evasion":
                 ExecuteBuff(skillInstance);
+                break;
+            case "magic_shield":
+                ExecuteBuff(skillInstance);
+                MageSkillVFX.SpawnMagicShieldActivate(transform.position);
                 break;
             case "critical_eye":
             case "iron_skin":
@@ -92,13 +95,13 @@ public class SkillExecutor : MonoBehaviour
 
             // --- Mage ---
             case "fireball":
-                ExecuteProjectile(skillInstance, 15f, 5f);
+                ExecuteFireball(skillInstance);
                 break;
             case "ice_bolt":
-                ExecuteProjectile(skillInstance, 12f, 5f, slowPercent: 0.5f, slowDuration: 2f);
+                ExecuteIceBolt(skillInstance);
                 break;
             case "meteor":
-                ExecuteMeteor(skillInstance);
+                StartCoroutine(ExecuteMeteorSequence(skillInstance));
                 break;
 
             // --- Rogue ---
@@ -203,35 +206,6 @@ public class SkillExecutor : MonoBehaviour
     }
 
     // ===========================
-    // Projectile (fireball, ice_bolt)
-    // ===========================
-
-    private void ExecuteProjectile(SkillInstance skill, float speed, float lifetime,
-        float slowPercent = 0f, float slowDuration = 0f)
-    {
-        float facing = GetFacingDirection();
-        Vector2 direction = new Vector2(facing, 0f);
-        Vector3 spawnPos = transform.position + new Vector3(facing * 1f, 0.2f, 0f);
-
-        float baseDamage = skill.GetDamage();
-        float statMult = GetStatMultiplier(skill);
-        float buffMult = buffTracker != null ? buffTracker.TotalAttackMultiplier : 1f;
-        float finalDamage = baseDamage * statMult * buffMult;
-
-        bool isCrit = RollCrit();
-        float critDamageMult = 1f + (passiveTracker != null ? passiveTracker.PassiveCritDamageBonus : 0f);
-        float baseCritMult = statSystem != null ? statSystem.CritDamageMultiplier : 2f;
-        if (isCrit)
-            finalDamage *= (baseCritMult * critDamageMult);
-
-        var projectile = SkillProjectile.Create(spawnPos, direction, attackLayerName);
-        projectile.Initialize(finalDamage, skill.skillData.damageType, isCrit,
-            speed, lifetime, direction, gameObject, enemyLayers,
-            slowPercent, slowDuration);
-        SkillVFXFactory.AttachProjectileTrail(projectile.gameObject, skill.skillData.damageType);
-    }
-
-    // ===========================
     // AoE (ground_slam, meteor)
     // ===========================
 
@@ -289,17 +263,6 @@ public class SkillExecutor : MonoBehaviour
                 SpawnDamageNumber(hit, finalDamage, dmgType, isCrit);
             }
         }
-    }
-
-    // ===========================
-    // Meteor (mage) — AoE ahead of player
-    // ===========================
-
-    private void ExecuteMeteor(SkillInstance skill)
-    {
-        float facing = GetFacingDirection();
-        Vector3 center = transform.position + new Vector3(facing * 6f, 0f, 0f);
-        ExecuteAoE(skill, center, 4f);
     }
 
     // ===========================
@@ -505,6 +468,95 @@ public class SkillExecutor : MonoBehaviour
 
             SpawnDamageNumber(target, damagePerTick, dmgType, false);
         }
+    }
+
+    // ===========================
+    // Fireball (mage) — projectile with sprite VFX
+    // ===========================
+
+    private void ExecuteFireball(SkillInstance skill)
+    {
+        float facing = GetFacingDirection();
+        Vector3 spawnPos = transform.position + new Vector3(facing * 1f, 0.2f, 0f);
+
+        // Cast effect at player
+        MageSkillVFX.SpawnFireballCast(transform.position + new Vector3(facing * 0.5f, 0.2f, 0f), facing > 0);
+
+        // Create projectile with animated fireball sprite
+        var projectile = CreateSkillProjectile(skill, 15f, 5f);
+        MageSkillVFX.AttachFireballSprite(projectile.gameObject);
+        SkillVFXFactory.AttachProjectileTrail(projectile.gameObject, skill.skillData.damageType);
+    }
+
+    // ===========================
+    // Ice Bolt (mage) — projectile with sprite VFX
+    // ===========================
+
+    private void ExecuteIceBolt(SkillInstance skill)
+    {
+        float facing = GetFacingDirection();
+
+        // Cast effect at player
+        MageSkillVFX.SpawnIceBoltCast(transform.position + new Vector3(facing * 0.5f, 0.2f, 0f), facing > 0);
+
+        // Create projectile with animated ice bolt sprite
+        var projectile = CreateSkillProjectile(skill, 12f, 5f, slowPercent: 0.5f, slowDuration: 2f);
+        MageSkillVFX.AttachIceBoltSprite(projectile.gameObject);
+        SkillVFXFactory.AttachProjectileTrail(projectile.gameObject, skill.skillData.damageType);
+    }
+
+    // ===========================
+    // Meteor (mage) — prepare → explosion → hit
+    // ===========================
+
+    private IEnumerator ExecuteMeteorSequence(SkillInstance skill)
+    {
+        float facing = GetFacingDirection();
+        Vector3 center = transform.position + new Vector3(facing * 6f, 0f, 0f);
+
+        // Charge-up effect at target location
+        MageSkillVFX.SpawnMeteorPrepare(center + Vector3.up * 2f);
+
+        // Wait for the prepare animation (10 frames at 8fps ≈ 1.25s, matches 1.5s cast time)
+        yield return new WaitForSeconds(1.25f);
+
+        // Explosion effect
+        MageSkillVFX.SpawnMeteorExplosion(center);
+
+        // Execute damage AoE (also spawns particle VFX)
+        ExecuteAoE(skill, center, 4f);
+
+        // Hit effects on each damaged target position
+        MageSkillVFX.SpawnMeteorHit(center);
+    }
+
+    /// <summary>
+    /// Creates a projectile with damage calculation (shared by mage projectile skills).
+    /// </summary>
+    private SkillProjectile CreateSkillProjectile(SkillInstance skill, float speed, float lifetime,
+        float slowPercent = 0f, float slowDuration = 0f)
+    {
+        float facing = GetFacingDirection();
+        Vector2 direction = new Vector2(facing, 0f);
+        Vector3 spawnPos = transform.position + new Vector3(facing * 1f, 0.2f, 0f);
+
+        float baseDamage = skill.GetDamage();
+        float statMult = GetStatMultiplier(skill);
+        float buffMult = buffTracker != null ? buffTracker.TotalAttackMultiplier : 1f;
+        float finalDamage = baseDamage * statMult * buffMult;
+
+        bool isCrit = RollCrit();
+        float critDamageMult = 1f + (passiveTracker != null ? passiveTracker.PassiveCritDamageBonus : 0f);
+        float baseCritMult = statSystem != null ? statSystem.CritDamageMultiplier : 2f;
+        if (isCrit)
+            finalDamage *= (baseCritMult * critDamageMult);
+
+        var projectile = SkillProjectile.Create(spawnPos, direction, attackLayerName);
+        projectile.Initialize(finalDamage, skill.skillData.damageType, isCrit,
+            speed, lifetime, direction, gameObject, enemyLayers,
+            slowPercent, slowDuration);
+
+        return projectile;
     }
 
     // ===========================

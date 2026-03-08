@@ -21,6 +21,7 @@ namespace ProjectName.UI
             public TMP_Text keyBindText;
             public Image frameImage;
             public CanvasGroup canvasGroup;
+            public TMP_Text placeholderText;
         }
 
         [Header("Slots")]
@@ -181,6 +182,10 @@ namespace ProjectName.UI
                     slot.iconImage.enabled = false;
                 }
             }
+
+            // Hide "?" placeholder when a skill is assigned
+            if (slot.placeholderText != null)
+                slot.placeholderText.gameObject.SetActive(skillData == null);
 
             // Update state
             UpdateSlotState(index);

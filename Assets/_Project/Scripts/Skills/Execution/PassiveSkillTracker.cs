@@ -55,6 +55,7 @@ public class PassiveSkillTracker : MonoBehaviour
         if (skill.SkillType == SkillType.Passive)
         {
             RecalculateAllPassives();
+            SpawnPassiveVFX(skill);
         }
     }
 
@@ -63,7 +64,14 @@ public class PassiveSkillTracker : MonoBehaviour
         if (skill.SkillType == SkillType.Passive)
         {
             RecalculateAllPassives();
+            SpawnPassiveVFX(skill);
         }
+    }
+
+    private void SpawnPassiveVFX(SkillInstance skill)
+    {
+        if (skill.SkillId == "mana_mastery")
+            MageSkillVFX.SpawnManaMasteryEffect(transform.position);
     }
 
     /// <summary>

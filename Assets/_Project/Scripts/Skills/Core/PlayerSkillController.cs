@@ -47,6 +47,19 @@ public class PlayerSkillController : MonoBehaviour
     public int HotbarSlots => hotbarSlots;
     public bool IsCasting => isCasting;
 
+    /// <summary>
+    /// Returns the InputAction bound to the given hotbar slot, respecting rebinds.
+    /// </summary>
+    public InputAction GetHotbarAction(int index)
+    {
+        var refs = new[] { skill1Action, skill2Action, skill3Action, skill4Action, skill5Action, skill6Action };
+        if (index >= 0 && index < refs.Length && refs[index]?.action != null)
+            return refs[index].action;
+        if (fallbackSkillActions != null && index >= 0 && index < fallbackSkillActions.Length)
+            return fallbackSkillActions[index];
+        return null;
+    }
+
     // Events
     public event Action<int, string> OnHotbarChanged;
     public event Action<string, SkillInstance> OnSkillUsed;

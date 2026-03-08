@@ -752,6 +752,7 @@ namespace ProjectName.UI
             placeholderTmp.alignment = TextAlignmentOptions.Center;
             placeholderTmp.color = new Color(1f, 1f, 1f, 0.2f);
             FontManager.EnsureFont(placeholderTmp);
+            slot.placeholderText = placeholderTmp;
 
             // Cooldown overlay (Radial360, hidden initially)
             var cooldownGo = MakeRect("CooldownOverlay", faceGo.transform);

@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
 using UnityEngine.UI;
 using TMPro;
 
@@ -59,9 +60,45 @@ namespace ProjectName.UI
 
         private void Update()
         {
-            if (isVisible && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+            if (!isVisible) return;
+
+            var kb = Keyboard.current;
+            if (kb == null) return;
+
+            if (kb.escapeKey.wasPressedThisFrame)
             {
                 Hide();
+                return;
+            }
+
+            // Check hotbar keybinds — read actual bindings from PlayerSkillController's input actions
+            var controller = FindAnyObjectByType<PlayerSkillController>();
+            if (controller != null)
+            {
+                int slotCount = Mathf.Min(controller.HotbarSlots, slotButtons != null ? slotButtons.Length : 6);
+                for (int i = 0; i < slotCount; i++)
+                {
+                    var action = controller.GetHotbarAction(i);
+                    if (action != null && action.WasPressedThisFrame())
+                    {
+                        OnSlotClicked(i);
+                        return;
+                    }
+                }
+            }
+            else
+            {
+                // Fallback: check default 1-6 keys
+                KeyControl[] keys = { kb.digit1Key, kb.digit2Key, kb.digit3Key, kb.digit4Key, kb.digit5Key, kb.digit6Key };
+                int count = slotButtons != null ? Mathf.Min(keys.Length, slotButtons.Length) : keys.Length;
+                for (int i = 0; i < count; i++)
+                {
+                    if (keys[i].wasPressedThisFrame)
+                    {
+                        OnSlotClicked(i);
+                        return;
+                    }
+                }
             }
         }
 
@@ -135,6 +172,16 @@ namespace ProjectName.UI
                 {
                     slotLabels[i].text = label;
                     slotLabels[i].color = string.IsNullOrEmpty(skillId) ? SubtleText : BoneWhite;
+                }
+
+                // Update key label to reflect actual binding
+                if (slotKeyLabels != null && i < slotKeyLabels.Length && slotKeyLabels[i] != null)
+                {
+                    var action = controller.GetHotbarAction(i);
+                    if (action != null)
+                        slotKeyLabels[i].text = action.GetBindingDisplayString(0);
+                    else
+                        slotKeyLabels[i].text = (i + 1).ToString();
                 }
             }
         }
