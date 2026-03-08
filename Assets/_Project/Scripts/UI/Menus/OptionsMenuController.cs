@@ -55,10 +55,19 @@ namespace ProjectName.UI
         [SerializeField] private TMP_Text sfxVolumeText;
 
         [Header("Tab Colors")]
-        [SerializeField] private Color normalTabColor = new Color(0.2f, 0.2f, 0.2f, 0.8f);
-        [SerializeField] private Color selectedTabColor = new Color(0.545f, 0f, 0f, 1f);
-        [SerializeField] private Color normalTextColor = new Color(0.6f, 0.6f, 0.6f, 1f);
-        [SerializeField] private Color selectedTextColor = new Color(0.961f, 0.961f, 0.863f, 1f);
+        [SerializeField] private Color normalTabColor = new Color(0.10f, 0.10f, 0.18f, 1f);
+        [SerializeField] private Color selectedTabColor = new Color(0.55f, 0f, 0f, 1f);
+        [SerializeField] private Color normalTextColor = new Color(0.93f, 0.89f, 0.82f, 1f);
+        [SerializeField] private Color selectedTextColor = new Color(0.81f, 0.71f, 0.23f, 1f);
+
+        // Shared palette
+        private static readonly Color BtnNormal = new Color(0.10f, 0.10f, 0.18f, 1f);
+        private static readonly Color BtnSelected = new Color(0.55f, 0f, 0f, 1f);
+        private static readonly Color BtnPress = new Color(0.08f, 0.08f, 0.14f, 1f);
+        private static readonly Color PanelBg = new Color(0.05f, 0.04f, 0.07f, 0.95f);
+        private static readonly Color AgedGold = new Color(0.81f, 0.71f, 0.23f, 1f);
+        private static readonly Color BoneWhite = new Color(0.93f, 0.89f, 0.82f, 1f);
+        private static readonly Color RowBg = new Color(0.08f, 0.08f, 0.14f, 0.6f);
 
         private int currentTabIndex = 0;
         private Button[] tabButtons;
@@ -86,6 +95,7 @@ namespace ProjectName.UI
             SetupDisplaySettings();
             SetupAudioSettings();
             SetupGraphicsSettings();
+            StyleOptionsChrome();
         }
 
         private void AutoFindReferences()
@@ -525,7 +535,7 @@ namespace ProjectName.UI
             placeholderText.text = "Control remapping coming soon...";
             placeholderText.fontSize = 24;
             placeholderText.alignment = TextAlignmentOptions.Center;
-            placeholderText.color = new Color(0.6f, 0.6f, 0.6f, 1f);
+            placeholderText.color = new Color(0.93f, 0.89f, 0.82f, 0.5f);
             var placeholderRect = placeholder.GetComponent<RectTransform>();
             placeholderRect.anchorMin = Vector2.zero;
             placeholderRect.anchorMax = Vector2.one;
@@ -552,7 +562,7 @@ namespace ProjectName.UI
             labelText.text = label;
             labelText.fontSize = 24;
             labelText.alignment = TextAlignmentOptions.MidlineLeft;
-            labelText.color = new Color(0.961f, 0.961f, 0.863f, 1f);
+            labelText.color = BoneWhite;
             var labelRect = labelGO.GetComponent<RectTransform>();
             labelRect.anchorMin = new Vector2(0, 0);
             labelRect.anchorMax = new Vector2(0.4f, 1);
@@ -577,7 +587,7 @@ namespace ProjectName.UI
             dropdownGO.transform.SetParent(parent, false);
 
             var dropdownImage = dropdownGO.AddComponent<Image>();
-            dropdownImage.color = new Color(0.2f, 0.2f, 0.2f, 1f);
+            dropdownImage.color = BtnNormal;
 
             var dropdown = dropdownGO.AddComponent<TMP_Dropdown>();
 
@@ -595,7 +605,7 @@ namespace ProjectName.UI
             ddLabelText.text = "Select...";
             ddLabelText.fontSize = 20;
             ddLabelText.alignment = TextAlignmentOptions.MidlineLeft;
-            ddLabelText.color = new Color(0.961f, 0.961f, 0.863f, 1f);
+            ddLabelText.color = BoneWhite;
             var ddLabelRect = ddLabel.GetComponent<RectTransform>();
             ddLabelRect.anchorMin = Vector2.zero;
             ddLabelRect.anchorMax = Vector2.one;
@@ -628,7 +638,7 @@ namespace ProjectName.UI
             var bg = new GameObject("Background");
             bg.transform.SetParent(sliderGO.transform, false);
             var bgImage = bg.AddComponent<Image>();
-            bgImage.color = new Color(0.2f, 0.2f, 0.2f, 1f);
+            bgImage.color = BtnNormal;
             var bgRect = bg.GetComponent<RectTransform>();
             bgRect.anchorMin = Vector2.zero;
             bgRect.anchorMax = Vector2.one;
@@ -647,7 +657,7 @@ namespace ProjectName.UI
             var fill = new GameObject("Fill");
             fill.transform.SetParent(fillArea.transform, false);
             var fillImage = fill.AddComponent<Image>();
-            fillImage.color = new Color(0.545f, 0f, 0f, 1f);
+            fillImage.color = BtnSelected;
             var fillRect = fill.GetComponent<RectTransform>();
             fillRect.anchorMin = Vector2.zero;
             fillRect.anchorMax = Vector2.one;
@@ -668,7 +678,7 @@ namespace ProjectName.UI
             var handle = new GameObject("Handle");
             handle.transform.SetParent(handleArea.transform, false);
             var handleImage = handle.AddComponent<Image>();
-            handleImage.color = new Color(0.812f, 0.710f, 0.231f, 1f);
+            handleImage.color = AgedGold;
             var handleRect = handle.GetComponent<RectTransform>();
             handleRect.sizeDelta = new Vector2(20, 0);
 
@@ -683,7 +693,7 @@ namespace ProjectName.UI
             valueTmp.text = "100%";
             valueTmp.fontSize = 20;
             valueTmp.alignment = TextAlignmentOptions.MidlineRight;
-            valueTmp.color = new Color(0.961f, 0.961f, 0.863f, 1f);
+            valueTmp.color = BoneWhite;
             var valueRect = valueText.GetComponent<RectTransform>();
             valueRect.anchorMin = new Vector2(0.87f, 0);
             valueRect.anchorMax = new Vector2(1f, 1);
@@ -699,14 +709,16 @@ namespace ProjectName.UI
             buttonGO.transform.SetParent(displayPanel.transform, false);
 
             var buttonImage = buttonGO.AddComponent<Image>();
-            buttonImage.color = new Color(0.545f, 0f, 0f, 0.8f);
+            buttonImage.color = Color.white;
 
             var button = buttonGO.AddComponent<Button>();
+            button.targetGraphic = buttonImage;
             var colors = button.colors;
-            colors.normalColor = new Color(0.545f, 0f, 0f, 0.8f);
-            colors.highlightedColor = new Color(0.812f, 0.710f, 0.231f, 1f);
-            colors.pressedColor = new Color(0.4f, 0f, 0f, 1f);
-            colors.selectedColor = new Color(0.812f, 0.710f, 0.231f, 1f);
+            colors.normalColor = BtnNormal;
+            colors.highlightedColor = BtnSelected;
+            colors.pressedColor = BtnPress;
+            colors.selectedColor = BtnSelected;
+            colors.fadeDuration = 0.1f;
             button.colors = colors;
 
             var buttonRect = buttonGO.GetComponent<RectTransform>();
@@ -723,7 +735,7 @@ namespace ProjectName.UI
             tmp.text = "Apply";
             tmp.fontSize = 24;
             tmp.alignment = TextAlignmentOptions.Center;
-            tmp.color = new Color(0.961f, 0.961f, 0.863f, 1f);
+            tmp.color = BoneWhite;
             var textRect = textGO.GetComponent<RectTransform>();
             textRect.anchorMin = Vector2.zero;
             textRect.anchorMax = Vector2.one;
@@ -741,14 +753,16 @@ namespace ProjectName.UI
             buttonGO.transform.SetParent(displayPanel.transform, false);
 
             var buttonImage = buttonGO.AddComponent<Image>();
-            buttonImage.color = new Color(0.3f, 0.3f, 0.3f, 0.8f);
+            buttonImage.color = Color.white;
 
             var button = buttonGO.AddComponent<Button>();
+            button.targetGraphic = buttonImage;
             var colors = button.colors;
-            colors.normalColor = new Color(0.3f, 0.3f, 0.3f, 0.8f);
-            colors.highlightedColor = new Color(0.812f, 0.710f, 0.231f, 1f);
-            colors.pressedColor = new Color(0.2f, 0.2f, 0.2f, 1f);
-            colors.selectedColor = new Color(0.812f, 0.710f, 0.231f, 1f);
+            colors.normalColor = BtnNormal;
+            colors.highlightedColor = BtnSelected;
+            colors.pressedColor = BtnPress;
+            colors.selectedColor = BtnSelected;
+            colors.fadeDuration = 0.1f;
             button.colors = colors;
 
             var buttonRect = buttonGO.GetComponent<RectTransform>();
@@ -765,7 +779,7 @@ namespace ProjectName.UI
             tmp.text = "Reset Graphics";
             tmp.fontSize = 22;
             tmp.alignment = TextAlignmentOptions.Center;
-            tmp.color = new Color(0.961f, 0.961f, 0.863f, 1f);
+            tmp.color = BoneWhite;
             var textRect = textGO.GetComponent<RectTransform>();
             textRect.anchorMin = Vector2.zero;
             textRect.anchorMax = Vector2.one;
@@ -991,6 +1005,152 @@ namespace ProjectName.UI
         }
 
         #region Tab Navigation
+
+        private void StyleOptionsChrome()
+        {
+            // Full-screen dark background
+            var rt = GetComponent<RectTransform>();
+            if (rt != null)
+            {
+                rt.anchorMin = Vector2.zero;
+                rt.anchorMax = Vector2.one;
+                rt.offsetMin = Vector2.zero;
+                rt.offsetMax = Vector2.zero;
+            }
+
+            var panelImg = GetComponent<Image>();
+            if (panelImg == null)
+                panelImg = gameObject.AddComponent<Image>();
+            panelImg.color = PanelBg;
+
+            // Style header — find title text and set gold
+            var header = transform.Find("Header");
+            if (header != null)
+            {
+                // Remove header background
+                var headerImg = header.GetComponent<Image>();
+                if (headerImg != null) headerImg.color = Color.clear;
+
+                var headerTitle = header.GetComponentInChildren<TMP_Text>();
+                if (headerTitle != null)
+                {
+                    headerTitle.color = AgedGold;
+                    headerTitle.fontSize = 34f;
+                    headerTitle.text = "Options";
+                }
+
+                // Style back button
+                var backBtn = header.GetComponentInChildren<Button>();
+                if (backBtn != null)
+                {
+                    var backImg = backBtn.GetComponent<Image>();
+                    if (backImg != null)
+                    {
+                        backImg.color = Color.white;
+                        backBtn.targetGraphic = backImg;
+                    }
+                    var colors = backBtn.colors;
+                    colors.normalColor = BtnNormal;
+                    colors.highlightedColor = BtnSelected;
+                    colors.pressedColor = BtnPress;
+                    colors.selectedColor = BtnSelected;
+                    colors.fadeDuration = 0.1f;
+                    backBtn.colors = colors;
+
+                    var backTmp = backBtn.GetComponentInChildren<TMP_Text>();
+                    if (backTmp != null) backTmp.color = BoneWhite;
+                }
+            }
+
+            // Style tab buttons
+            foreach (var tabBtn in new[] { displayTabButton, audioTabButton, controlsTabButton })
+            {
+                if (tabBtn == null) continue;
+
+                var tabImg = tabBtn.GetComponent<Image>();
+                if (tabImg != null)
+                {
+                    tabImg.color = Color.white;
+                    tabBtn.targetGraphic = tabImg;
+                }
+
+                var colors = tabBtn.colors;
+                colors.normalColor = BtnNormal;
+                colors.highlightedColor = BtnSelected;
+                colors.pressedColor = BtnPress;
+                colors.selectedColor = BtnSelected;
+                colors.fadeDuration = 0.1f;
+                tabBtn.colors = colors;
+            }
+
+            // Style tab bar background
+            var tabBar = transform.Find("TabBar");
+            if (tabBar != null)
+            {
+                var tabBarImg = tabBar.GetComponent<Image>();
+                if (tabBarImg != null) tabBarImg.color = new Color(0.06f, 0.06f, 0.10f, 0.8f);
+            }
+
+            // Style settings rows and their controls
+            StyleSettingsControls();
+        }
+
+        private void StyleSettingsControls()
+        {
+            // Style all dropdown backgrounds
+            var dropdowns = GetComponentsInChildren<TMP_Dropdown>(true);
+            foreach (var dd in dropdowns)
+            {
+                var ddImg = dd.GetComponent<Image>();
+                if (ddImg != null)
+                    ddImg.color = BtnNormal;
+            }
+
+            // Style all slider backgrounds
+            var sliders = GetComponentsInChildren<Slider>(true);
+            foreach (var s in sliders)
+            {
+                // Slider background
+                var bgTransform = s.transform.Find("Background");
+                if (bgTransform != null)
+                {
+                    var bgImg = bgTransform.GetComponent<Image>();
+                    if (bgImg != null) bgImg.color = BtnNormal;
+                }
+            }
+
+            // Style Apply and Reset buttons
+            StyleActionButton(displayPanel, "ApplyButton");
+            StyleActionButton(displayPanel, "ResetGraphicsButton");
+        }
+
+        private void StyleActionButton(GameObject panel, string buttonName)
+        {
+            if (panel == null) return;
+            var btnTransform = panel.transform.Find(buttonName);
+            if (btnTransform == null) return;
+
+            var btn = btnTransform.GetComponent<Button>();
+            if (btn == null) return;
+
+            var img = btn.GetComponent<Image>();
+            if (img != null)
+            {
+                img.color = Color.white;
+                btn.targetGraphic = img;
+            }
+
+            var colors = btn.colors;
+            colors.normalColor = BtnNormal;
+            colors.highlightedColor = BtnSelected;
+            colors.pressedColor = BtnPress;
+            colors.selectedColor = BtnSelected;
+            colors.fadeDuration = 0.1f;
+            btn.colors = colors;
+
+            var tmp = btn.GetComponentInChildren<TMP_Text>();
+            if (tmp != null) tmp.color = BoneWhite;
+        }
 
         private void SetupTabButtons()
         {

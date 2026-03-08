@@ -13,7 +13,7 @@ namespace ProjectName.UI
     public class SoulsButtonTextHighlight : MonoBehaviour,
         IPointerEnterHandler, IPointerExitHandler, ISelectHandler, IDeselectHandler
     {
-        private static readonly Color NormalColor = new Color(0.93f, 0.89f, 0.82f, 0.5f);
+        private static readonly Color NormalColor = new Color(0.93f, 0.89f, 0.82f, 1f);
         private static readonly Color HighlightColor = new Color(0.81f, 0.71f, 0.23f, 1f);
 
         private TMP_Text label;

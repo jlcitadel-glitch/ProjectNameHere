@@ -422,6 +422,14 @@ namespace ProjectName.UI
 
             if (classConfirmButton != null)
                 classConfirmButton.interactable = selectedClass != null;
+
+            // Set initial focus for keyboard/controller navigation
+            if (classNextButton != null)
+            {
+                var es = UnityEngine.EventSystems.EventSystem.current;
+                if (es != null)
+                    es.SetSelectedGameObject(classNextButton.gameObject);
+            }
         }
 
         private void CycleClass(int direction)
@@ -1161,9 +1169,7 @@ namespace ProjectName.UI
             // Gothic title
             var title = MakeLabel(content.transform, "Speak Thy Name", 42f);
             title.color = FrameGold;
-            MakeSpacer(content.transform, 6f);
-
-            MakeSpacer(content.transform, 20f);
+            MakeSpacer(content.transform, 12f);
 
             // Input field with gold border
             var inputFrame = MakeGothicFrame(content.transform, 440f, 54f);
@@ -1183,18 +1189,8 @@ namespace ProjectName.UI
             if (backTmp != null) backTmp.fontSize = 24f;
 
             ctrl.nameConfirmButton = MakeButton(row.transform, "Next", 200f, 50f);
-            var nextColors = ctrl.nameConfirmButton.colors;
-            nextColors.normalColor = DeepCrimson;
-            nextColors.highlightedColor = new Color(0.65f, 0.05f, 0.05f, 1f);
-            nextColors.pressedColor = new Color(0.40f, 0f, 0f, 1f);
-            nextColors.selectedColor = new Color(0.65f, 0.05f, 0.05f, 1f);
-            ctrl.nameConfirmButton.colors = nextColors;
             var nextTmp = ctrl.nameConfirmButton.GetComponentInChildren<TextMeshProUGUI>();
-            if (nextTmp != null)
-            {
-                nextTmp.fontSize = 24f;
-                nextTmp.color = FrameGold;
-            }
+            if (nextTmp != null) nextTmp.fontSize = 24f;
         }
 
         private static void BuildClassPanel(CharacterCreationController ctrl, Transform parent)
@@ -1327,18 +1323,8 @@ namespace ProjectName.UI
             if (backTmp != null) backTmp.fontSize = 26f;
 
             ctrl.classConfirmButton = MakeButton(navRow.transform, "Begin", 240f, 50f);
-            var confirmColors = ctrl.classConfirmButton.colors;
-            confirmColors.normalColor = DeepCrimson;
-            confirmColors.highlightedColor = new Color(0.65f, 0.05f, 0.05f, 1f);
-            confirmColors.pressedColor = new Color(0.40f, 0f, 0f, 1f);
-            confirmColors.selectedColor = new Color(0.65f, 0.05f, 0.05f, 1f);
-            ctrl.classConfirmButton.colors = confirmColors;
             var confirmTmp = ctrl.classConfirmButton.GetComponentInChildren<TextMeshProUGUI>();
-            if (confirmTmp != null)
-            {
-                confirmTmp.fontSize = 26f;
-                confirmTmp.color = FrameGold;
-            }
+            if (confirmTmp != null) confirmTmp.fontSize = 26f;
             ctrl.classConfirmButton.interactable = false;
         }
 
@@ -1474,18 +1460,8 @@ namespace ProjectName.UI
             if (backTmp != null) backTmp.fontSize = 26f;
 
             ctrl.appearanceConfirmButton = MakeButton(navRow.transform, "Next", 240f, 50f);
-            var appConfirmColors = ctrl.appearanceConfirmButton.colors;
-            appConfirmColors.normalColor = DeepCrimson;
-            appConfirmColors.highlightedColor = new Color(0.65f, 0.05f, 0.05f, 1f);
-            appConfirmColors.pressedColor = new Color(0.40f, 0f, 0f, 1f);
-            appConfirmColors.selectedColor = new Color(0.65f, 0.05f, 0.05f, 1f);
-            ctrl.appearanceConfirmButton.colors = appConfirmColors;
-            var confirmTmp = ctrl.appearanceConfirmButton.GetComponentInChildren<TextMeshProUGUI>();
-            if (confirmTmp != null)
-            {
-                confirmTmp.fontSize = 26f;
-                confirmTmp.color = FrameGold;
-            }
+            var appConfirmTmp = ctrl.appearanceConfirmButton.GetComponentInChildren<TextMeshProUGUI>();
+            if (appConfirmTmp != null) appConfirmTmp.fontSize = 26f;
         }
 
         private static void FindBodyPartRegistry(CharacterCreationController ctrl)
@@ -1753,9 +1729,9 @@ namespace ProjectName.UI
             btn.targetGraphic = img;
             var colors = btn.colors;
             colors.normalColor = BtnNormal;
-            colors.highlightedColor = BtnHover;
+            colors.highlightedColor = BtnSelected;
             colors.pressedColor = BtnPress;
-            colors.selectedColor = BtnHover;
+            colors.selectedColor = BtnSelected;
             colors.fadeDuration = 0.1f;
             btn.colors = colors;
 

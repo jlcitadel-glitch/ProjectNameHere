@@ -548,7 +548,15 @@ namespace ProjectName.UI
             if (characterCreation != null) characterCreation.gameObject.SetActive(false);
             if (titleGroup != null) titleGroup.gameObject.SetActive(true);
 
-            SetSelected(mainMenuFirstSelected);
+            // Hide Load Game if no saves exist; select appropriate first button
+            bool hasSaves = HasAnySavedGame();
+            if (startGameButton != null)
+                startGameButton.gameObject.SetActive(hasSaves);
+
+            if (hasSaves)
+                SetSelected(startGameButton?.gameObject);
+            else
+                SetSelected(newGameMainButton?.gameObject);
         }
 
         /// <summary>
@@ -571,7 +579,14 @@ namespace ProjectName.UI
 
             RefreshSaveSlots();
 
-            SetSelected(saveSelectionFirstSelected ?? (saveSlots?.Length > 0 ? saveSlots[0]?.gameObject : null));
+            // Focus first slot's button for keyboard/controller navigation
+            GameObject firstSlotBtn = null;
+            if (saveSlots?.Length > 0 && saveSlots[0] != null)
+            {
+                var btn = saveSlots[0].GetComponentInChildren<Button>();
+                if (btn != null) firstSlotBtn = btn.gameObject;
+            }
+            SetSelected(saveSelectionFirstSelected ?? firstSlotBtn);
         }
 
         /// <summary>
@@ -692,6 +707,17 @@ namespace ProjectName.UI
         }
 
         #endregion
+
+        private bool HasAnySavedGame()
+        {
+            if (SaveManager.Instance == null) return false;
+            for (int i = 0; i < SAVE_SLOT_COUNT; i++)
+            {
+                if (SaveManager.Instance.HasSaveInSlot(i))
+                    return true;
+            }
+            return false;
+        }
 
         #region Save Slot Management
 
@@ -991,6 +1017,9 @@ namespace ProjectName.UI
         private static readonly Color BoneWhite = new Color(0.93f, 0.89f, 0.82f, 1f);
         private static readonly Color DimWhite = new Color(0.93f, 0.89f, 0.82f, 0.5f);
         private static readonly Color DividerGold = new Color(0.81f, 0.71f, 0.23f, 0.3f);
+        private static readonly Color BtnNormal = new Color(0.10f, 0.10f, 0.18f, 1f);
+        private static readonly Color BtnSelected = new Color(0.55f, 0f, 0f, 1f);
+        private static readonly Color BtnPress = new Color(0.08f, 0.08f, 0.14f, 1f);
 
         /// <summary>
         /// Applies Souls-like styling to the title screen and submenus.
@@ -1113,8 +1142,6 @@ namespace ProjectName.UI
             if (saveSelectionPanel != null)
             {
                 SetupSaveSelectionPanelChrome();
-                StyleGothicButton(backFromSaveButton, 160, 42, 18, false);
-                StyleGothicButton(newGameButton, 180, 42, 18, true);
             }
 
             // Gothic confirmation dialogs
@@ -1143,20 +1170,20 @@ namespace ProjectName.UI
                 le = btn.gameObject.AddComponent<LayoutElement>();
             le.preferredHeight = 50;
 
-            // Transparent button background
+            // Dark base background, crimson on highlight/select
             var btnImg = btn.GetComponent<Image>();
             if (btnImg != null)
             {
-                btnImg.color = Color.clear;
+                btnImg.color = Color.white;
                 btn.targetGraphic = btnImg;
             }
 
-            // Button color states: invisible bg, slight gold tint on hover
             var colors = btn.colors;
-            colors.normalColor = Color.white;
-            colors.highlightedColor = new Color(1f, 1f, 1f, 1f);
-            colors.pressedColor = new Color(0.9f, 0.9f, 0.9f, 1f);
-            colors.selectedColor = new Color(1f, 1f, 1f, 1f);
+            colors.normalColor = BtnNormal;
+            colors.highlightedColor = BtnSelected;
+            colors.pressedColor = BtnPress;
+            colors.selectedColor = BtnSelected;
+            colors.fadeDuration = 0.1f;
             btn.colors = colors;
 
             // Style the text
@@ -1166,7 +1193,7 @@ namespace ProjectName.UI
                 ResetRectForLayout(tmp.GetComponent<RectTransform>());
                 tmp.text = label;
                 tmp.fontSize = 26;
-                tmp.color = DimWhite;
+                tmp.color = BoneWhite;
                 tmp.alignment = TextAlignmentOptions.Center;
                 tmp.fontStyle = FontStyles.Normal;
             }
@@ -1258,41 +1285,215 @@ namespace ProjectName.UI
         /// </summary>
         private void SetupSaveSelectionPanelChrome()
         {
+            // Full-screen stretch
             var panelRect = saveSelectionPanel.GetComponent<RectTransform>();
             if (panelRect != null)
-                panelRect.sizeDelta = new Vector2(850, 660);
+            {
+                panelRect.anchorMin = Vector2.zero;
+                panelRect.anchorMax = Vector2.one;
+                panelRect.offsetMin = Vector2.zero;
+                panelRect.offsetMax = Vector2.zero;
+            }
 
-            // Obsidian panel background
+            // Dark background matching other panels
             var panelImg = saveSelectionPanel.GetComponent<Image>();
-            if (panelImg != null)
-                panelImg.color = new Color(0.06f, 0.05f, 0.08f, 0.97f);
+            if (panelImg == null)
+                panelImg = saveSelectionPanel.AddComponent<Image>();
+            panelImg.color = new Color(0.05f, 0.04f, 0.07f, 0.95f);
 
-            // Hide legacy "Select Save Slot" title baked in the scene prefab
-            // The text lives in a child named "Header" (direct child of SaveSelectionPanel)
-            var legacyHeader = saveSelectionPanel.transform.Find("Header");
-            if (legacyHeader != null)
-                legacyHeader.gameObject.SetActive(false);
-            var legacyTitle = saveSelectionPanel.transform.Find("TitleText");
-            if (legacyTitle != null)
-                legacyTitle.gameObject.SetActive(false);
+            // Hide legacy scene-baked headers
+            foreach (var name in new[] { "Header", "TitleText", "GothicTitle", "TitleDivider" })
+            {
+                var legacy = saveSelectionPanel.transform.Find(name);
+                if (legacy != null)
+                    legacy.gameObject.SetActive(false);
+            }
 
-            // Remove any previously created runtime titles (from old code)
-            var oldGothicTitle = saveSelectionPanel.transform.Find("GothicTitle");
-            if (oldGothicTitle != null)
-                Destroy(oldGothicTitle.gameObject);
-            var oldDivider = saveSelectionPanel.transform.Find("TitleDivider");
-            if (oldDivider != null)
-                Destroy(oldDivider.gameObject);
+            // Remove old VLG on the panel itself (we'll add our own content column)
+            var oldVlg = saveSelectionPanel.GetComponent<VerticalLayoutGroup>();
+            if (oldVlg != null) Destroy(oldVlg);
+            var oldCsf = saveSelectionPanel.GetComponent<ContentSizeFitter>();
+            if (oldCsf != null) Destroy(oldCsf);
 
-            // Slot container spacing
+            // Create centered content column (matches CharacterCreation style)
+            var contentGo = saveSelectionPanel.transform.Find("SaveContent");
+            if (contentGo == null)
+            {
+                var go = new GameObject("SaveContent", typeof(RectTransform));
+                go.transform.SetParent(saveSelectionPanel.transform, false);
+                go.transform.SetAsFirstSibling();
+                contentGo = go.transform;
+
+                var rt = go.GetComponent<RectTransform>();
+                rt.anchorMin = new Vector2(0.5f, 0.5f);
+                rt.anchorMax = new Vector2(0.5f, 0.5f);
+                rt.pivot = new Vector2(0.5f, 0.5f);
+                rt.anchoredPosition = Vector2.zero;
+                rt.sizeDelta = new Vector2(600f, 0f);
+
+                var vlg = go.AddComponent<VerticalLayoutGroup>();
+                vlg.childAlignment = TextAnchor.UpperCenter;
+                vlg.childControlWidth = true;
+                vlg.childControlHeight = true;
+                vlg.childForceExpandWidth = true;
+                vlg.childForceExpandHeight = false;
+                vlg.spacing = 8f;
+                vlg.padding = new RectOffset(20, 20, 20, 20);
+
+                var csf = go.AddComponent<ContentSizeFitter>();
+                csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+                // Gold title
+                var titleGo = new GameObject("Title", typeof(RectTransform));
+                titleGo.transform.SetParent(go.transform, false);
+                var titleTmp = titleGo.AddComponent<TextMeshProUGUI>();
+                titleTmp.text = "Choose Thy Chronicle";
+                titleTmp.fontSize = 34f;
+                titleTmp.color = AgedGold;
+                titleTmp.alignment = TextAlignmentOptions.Center;
+                var titleLe = titleGo.AddComponent<LayoutElement>();
+                titleLe.preferredHeight = 50f;
+
+                // Spacer
+                var spacerGo = new GameObject("Spacer", typeof(RectTransform));
+                spacerGo.transform.SetParent(go.transform, false);
+                var spacerLe = spacerGo.AddComponent<LayoutElement>();
+                spacerLe.preferredHeight = 10f;
+                spacerLe.flexibleWidth = 1f;
+            }
+
+            // Reparent slot container into content column
             if (saveSlotContainer != null)
             {
-                var vlg = saveSlotContainer.GetComponent<VerticalLayoutGroup>();
-                if (vlg != null)
+                saveSlotContainer.SetParent(contentGo, false);
+                ResetRectForLayout(saveSlotContainer.GetComponent<RectTransform>());
+
+                var slotVlg = saveSlotContainer.GetComponent<VerticalLayoutGroup>();
+                if (slotVlg == null)
+                    slotVlg = saveSlotContainer.gameObject.AddComponent<VerticalLayoutGroup>();
+                slotVlg.spacing = 6f;
+                slotVlg.padding = new RectOffset(0, 0, 0, 0);
+                slotVlg.childAlignment = TextAnchor.UpperCenter;
+                slotVlg.childControlWidth = true;
+                slotVlg.childControlHeight = true;
+                slotVlg.childForceExpandWidth = true;
+                slotVlg.childForceExpandHeight = false;
+
+                var slotCsf = saveSlotContainer.GetComponent<ContentSizeFitter>();
+                if (slotCsf == null)
+                    slotCsf = saveSlotContainer.gameObject.AddComponent<ContentSizeFitter>();
+                slotCsf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            }
+
+            // Reparent and style nav buttons into content column (guard against double-init)
+            if (contentGo.Find("NavRow") != null) return;
+
+            var navSpacer = new GameObject("NavSpacer", typeof(RectTransform));
+            navSpacer.transform.SetParent(contentGo, false);
+            var navSpacerLe = navSpacer.AddComponent<LayoutElement>();
+            navSpacerLe.preferredHeight = 16f;
+            navSpacerLe.flexibleWidth = 1f;
+
+            var navRow = new GameObject("NavRow", typeof(RectTransform));
+            navRow.transform.SetParent(contentGo, false);
+            var hlg = navRow.AddComponent<HorizontalLayoutGroup>();
+            hlg.childAlignment = TextAnchor.MiddleCenter;
+            hlg.childControlWidth = true;
+            hlg.childControlHeight = true;
+            hlg.childForceExpandWidth = false;
+            hlg.childForceExpandHeight = false;
+            hlg.spacing = 20f;
+            var navLe = navRow.AddComponent<LayoutElement>();
+            navLe.preferredHeight = 50f;
+
+            if (backFromSaveButton != null)
+            {
+                backFromSaveButton.transform.SetParent(navRow.transform, false);
+                StyleSaveNavButton(backFromSaveButton, "Back", 180f);
+            }
+            if (newGameButton != null)
+            {
+                newGameButton.transform.SetParent(navRow.transform, false);
+                StyleSaveNavButton(newGameButton, "New Game", 200f);
+            }
+
+            // Style each save slot's button to match the dark/red scheme
+            if (saveSlots != null)
+            {
+                foreach (var slot in saveSlots)
+                    StyleSaveSlotButton(slot);
+            }
+        }
+
+        private static void StyleSaveNavButton(Button btn, string label, float width)
+        {
+            if (btn == null) return;
+
+            var le = btn.GetComponent<LayoutElement>();
+            if (le == null) le = btn.gameObject.AddComponent<LayoutElement>();
+            le.preferredWidth = width;
+            le.preferredHeight = 50f;
+
+            var img = btn.GetComponent<Image>();
+            if (img != null)
+            {
+                img.color = Color.white;
+                btn.targetGraphic = img;
+            }
+
+            var colors = btn.colors;
+            colors.normalColor = BtnNormal;
+            colors.highlightedColor = BtnSelected;
+            colors.pressedColor = BtnPress;
+            colors.selectedColor = BtnSelected;
+            colors.fadeDuration = 0.1f;
+            btn.colors = colors;
+
+            var tmp = btn.GetComponentInChildren<TMP_Text>();
+            if (tmp != null)
+            {
+                tmp.text = label;
+                tmp.fontSize = 22f;
+                tmp.color = BoneWhite;
+                tmp.alignment = TextAlignmentOptions.Center;
+            }
+        }
+
+        private static void StyleSaveSlotButton(SaveSlotUI slot)
+        {
+            if (slot == null) return;
+
+            // Set height via LayoutElement
+            var le = slot.GetComponent<LayoutElement>();
+            if (le == null) le = slot.gameObject.AddComponent<LayoutElement>();
+            le.preferredHeight = 70f;
+
+            // Style the main slot button with dark/red scheme
+            var btn = slot.GetComponentInChildren<Button>();
+            if (btn != null)
+            {
+                var img = btn.GetComponent<Image>();
+                if (img != null)
                 {
-                    vlg.spacing = 10f;
-                    vlg.padding = new RectOffset(16, 16, 16, 16);
+                    img.color = Color.white;
+                    btn.targetGraphic = img;
                 }
+
+                var colors = btn.colors;
+                colors.normalColor = BtnNormal;
+                colors.highlightedColor = BtnSelected;
+                colors.pressedColor = BtnPress;
+                colors.selectedColor = BtnSelected;
+                colors.fadeDuration = 0.1f;
+                btn.colors = colors;
+            }
+
+            // Brighten text for readability against dark bg
+            var texts = slot.GetComponentsInChildren<TMP_Text>(true);
+            foreach (var tmp in texts)
+            {
+                if (tmp.color.a < 0.6f)
+                    tmp.color = new Color(tmp.color.r, tmp.color.g, tmp.color.b, 1f);
             }
         }
 

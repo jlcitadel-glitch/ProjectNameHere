@@ -28,13 +28,12 @@ namespace ProjectName.UI
         [SerializeField] private Image borderImage;
         [SerializeField] private Image accentImage;
 
-        // Gothic palette
-        private static readonly Color GothicBgEmpty = new Color(0.06f, 0.05f, 0.08f, 0.5f);
-        private static readonly Color GothicBgFilled = new Color(0.08f, 0.07f, 0.10f, 0.95f);
+        // Palette — matches main menu dark/red scheme
+        private static readonly Color SlotBgEmpty = new Color(0.10f, 0.10f, 0.18f, 0.6f);
+        private static readonly Color SlotBgFilled = new Color(0.10f, 0.10f, 0.18f, 1f);
         private static readonly Color FrameGold = new Color(0.81f, 0.71f, 0.23f, 1f);
-        private static readonly Color GoldBorder = new Color(0.81f, 0.71f, 0.23f, 1f);
-        private static readonly Color FilledBorderCol = new Color(0.25f, 0.22f, 0.18f, 0.6f);
-        private static readonly Color EmptyBorderCol = new Color(0.20f, 0.18f, 0.15f, 0.3f);
+        private static readonly Color SubtleGold = new Color(0.81f, 0.71f, 0.23f, 0.4f);
+        private static readonly Color EmptyBorderCol = new Color(0.15f, 0.15f, 0.22f, 0.3f);
 
         private int slotIndex;
         private bool isEmpty = true;
@@ -111,10 +110,10 @@ namespace ProjectName.UI
                 deleteButton.gameObject.SetActive(true);
 
             if (backgroundImage != null)
-                backgroundImage.color = GothicBgFilled;
+                backgroundImage.color = SlotBgFilled;
 
             if (borderImage != null && !isSelected)
-                borderImage.color = FilledBorderCol;
+                borderImage.color = SubtleGold;
         }
 
         public void SetEmpty()
@@ -134,7 +133,7 @@ namespace ProjectName.UI
                 deleteButton.gameObject.SetActive(false);
 
             if (backgroundImage != null)
-                backgroundImage.color = GothicBgEmpty;
+                backgroundImage.color = SlotBgEmpty;
 
             if (borderImage != null && !isSelected)
                 borderImage.color = EmptyBorderCol;
@@ -145,7 +144,7 @@ namespace ProjectName.UI
             isSelected = selected;
 
             if (borderImage != null)
-                borderImage.color = selected ? GoldBorder : (isEmpty ? EmptyBorderCol : FilledBorderCol);
+                borderImage.color = selected ? FrameGold : (isEmpty ? EmptyBorderCol : SubtleGold);
         }
 
         public void SetInteractable(bool interactable)
