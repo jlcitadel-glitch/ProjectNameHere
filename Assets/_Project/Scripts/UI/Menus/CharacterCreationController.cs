@@ -71,11 +71,6 @@ namespace ProjectName.UI
         [SerializeField] private Button beardNextButton;
         [SerializeField] private TMP_Text beardNameText;
 
-        [Header("Eyes")]
-        [SerializeField] private Button eyeColorPrevButton;
-        [SerializeField] private Button eyeColorNextButton;
-        [SerializeField] private Image eyeColorPreview;
-        [SerializeField] private TMP_Text eyeColorNameText;
         [SerializeField] private TMP_Text skinToneNameText;
 
         private UILayeredSpritePreview appearancePreview;
@@ -101,23 +96,6 @@ namespace ProjectName.UI
         // Beard cycling state
         private BodyPartData[] availableBeardStyles;
         private int selectedBeardIndex = -1; // -1 = None
-
-        // Eye color cycling state
-        private int selectedEyeColorIndex;
-
-        private static readonly Color[] EyeColorPresets = new Color[]
-        {
-            new Color(0.45f, 0.30f, 0.15f),     // Brown
-            new Color(0.30f, 0.50f, 0.80f),     // Blue
-            new Color(0.30f, 0.60f, 0.30f),     // Green
-            new Color(0.55f, 0.45f, 0.25f),     // Hazel
-            new Color(0.55f, 0.55f, 0.55f),     // Gray
-            new Color(0.75f, 0.50f, 0.10f),     // Amber
-        };
-        private static readonly string[] EyeColorNames = new string[]
-        {
-            "Brown", "Blue", "Green", "Hazel", "Gray", "Amber"
-        };
 
         private static readonly Color[] SkinTonePresets = new Color[]
         {
@@ -282,17 +260,6 @@ namespace ProjectName.UI
                 beardNextButton.onClick.AddListener(() => CycleBeard(1));
             }
 
-            // Eye color cycling
-            if (eyeColorPrevButton != null)
-            {
-                eyeColorPrevButton.onClick.RemoveAllListeners();
-                eyeColorPrevButton.onClick.AddListener(() => CycleEyeColor(-1));
-            }
-            if (eyeColorNextButton != null)
-            {
-                eyeColorNextButton.onClick.RemoveAllListeners();
-                eyeColorNextButton.onClick.AddListener(() => CycleEyeColor(1));
-            }
 
         }
 
@@ -312,7 +279,6 @@ namespace ProjectName.UI
             selectedSkinToneIndex = 0;
             selectedHairColorIndex = 0;
             selectedBeardIndex = -1;
-            selectedEyeColorIndex = 0;
             builtAppearance = null;
             selectedBodyType = "male";
 
@@ -541,10 +507,18 @@ namespace ProjectName.UI
         {
             if (builtAppearance != null) return;
 
-            if (bodyPartRegistry == null)
+            if (bodyPartRegistry == null || bodyPartRegistry.allParts == null || bodyPartRegistry.allParts.Length == 0)
                 bodyPartRegistry = Resources.Load<BodyPartRegistry>("BodyPartRegistry");
 
             if (bodyPartRegistry == null) return;
+
+            // Detect stale references (entries are non-null C# objects but Unity-destroyed)
+            if (bodyPartRegistry.allParts != null && bodyPartRegistry.allParts.Length > 0 && bodyPartRegistry.allParts[0] == null)
+            {
+                Debug.LogWarning("[CharCreator] BodyPartRegistry has stale references — reloading");
+                bodyPartRegistry = Resources.Load<BodyPartRegistry>("BodyPartRegistry");
+                if (bodyPartRegistry == null) return;
+            }
 
             builtAppearance = ScriptableObject.CreateInstance<CharacterAppearanceConfig>();
             builtAppearance.bodyType = selectedBodyType;
@@ -570,17 +544,6 @@ namespace ProjectName.UI
             if (hairParts.Length > 0) builtAppearance.hair = hairParts[0];
             builtAppearance.hairTint = HairColorPresets[0];
 
-            var eyeParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Eyes);
-            BodyPartData defaultEye = null;
-            foreach (var ep in eyeParts)
-            {
-                if (ep.partId != null && ep.partId.StartsWith("eye_color_"))
-                { defaultEye = ep; break; }
-            }
-            if (defaultEye == null && eyeParts.Length > 0) defaultEye = eyeParts[0];
-            if (defaultEye != null) builtAppearance.SetPart(BodyPartSlot.Eyes, defaultEye);
-            builtAppearance.eyeTint = EyeColorPresets[0];
-
             AssignDefaultClothing();
         }
 
@@ -596,7 +559,6 @@ namespace ProjectName.UI
             merged.hair = builtAppearance.hair;
             merged.skinTint = builtAppearance.skinTint;
             merged.hairTint = builtAppearance.hairTint;
-            merged.eyeTint = builtAppearance.eyeTint;
             var baseEyes = builtAppearance.GetPart(BodyPartSlot.Eyes);
             if (baseEyes != null) merged.SetPart(BodyPartSlot.Eyes, baseEyes);
 
@@ -725,11 +687,11 @@ namespace ProjectName.UI
 
         private bool HasAppearanceOptions()
         {
-            // Lazy-find registry if not set (e.g. reused from AutoFindReferences)
-            if (bodyPartRegistry == null)
+            // Lazy-find registry if not set or stale (e.g. reused from AutoFindReferences)
+            if (bodyPartRegistry == null || bodyPartRegistry.allParts == null || bodyPartRegistry.allParts.Length == 0)
                 bodyPartRegistry = Resources.Load<BodyPartRegistry>("BodyPartRegistry");
 
-            if (bodyPartRegistry == null || bodyPartRegistry.allParts == null)
+            if (bodyPartRegistry == null || bodyPartRegistry.allParts == null || bodyPartRegistry.allParts.Length == 0)
                 return false;
 
             // Need at least a body part to show anything
@@ -761,7 +723,6 @@ namespace ProjectName.UI
                 selectedSkinToneIndex = 0;
                 selectedHairColorIndex = 3; // Brown
                 selectedBeardIndex = -1;
-                selectedEyeColorIndex = 0;
 
                 builtAppearance = ScriptableObject.CreateInstance<CharacterAppearanceConfig>();
                 builtAppearance.bodyType = selectedBodyType;
@@ -783,7 +744,6 @@ namespace ProjectName.UI
                     builtAppearance.hair = availableHairStyles[selectedHairIndex];
 
                 builtAppearance.hairTint = HairColorPresets[selectedHairColorIndex];
-                builtAppearance.eyeTint = EyeColorPresets[0];
 
                 AssignDefaultClothing();
             }
@@ -791,7 +751,6 @@ namespace ProjectName.UI
             // Show/hide option rows based on available data
             ShowRowIfHasData(hairPrevButton, availableHairStyles);
             ShowRowIfHasData(beardPrevButton, availableBeardStyles);
-            ShowRowIfHasData(eyeColorPrevButton, bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Eyes, selectedBodyType));
             // Hair color row visible only if hair styles exist
             if (hairColorPrevButton != null)
                 hairColorPrevButton.transform.parent.gameObject.SetActive(
@@ -890,15 +849,6 @@ namespace ProjectName.UI
             UpdateAppearanceUI();
         }
 
-        private void CycleEyeColor(int direction)
-        {
-            selectedEyeColorIndex = (selectedEyeColorIndex + direction + EyeColorPresets.Length) % EyeColorPresets.Length;
-            builtAppearance.eyeTint = EyeColorPresets[selectedEyeColorIndex];
-            UIManager.Instance?.PlayNavigateSound();
-            RefreshAppearancePreview();
-            UpdateAppearanceUI();
-        }
-
         private static BodyPartData[] FilterByPrefix(BodyPartData[] parts, string prefix)
         {
             return Array.FindAll(parts, p => p.partId != null && p.partId.StartsWith(prefix));
@@ -990,79 +940,11 @@ namespace ProjectName.UI
         {
             if (builtAppearance == null || bodyPartRegistry == null) return;
 
-            // Auto-assign eye color overlay so eye tinting works.
-            // Prefer "eye_color_" parts (aligned to standard heads) over "eyes_" (elderly).
-            var eyeParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Eyes, selectedBodyType);
-            BodyPartData defaultEyes = null;
-            foreach (var part in eyeParts)
-            {
-                if (part.partId != null && part.partId.StartsWith("eye_color_"))
-                {
-                    defaultEyes = part;
-                    break;
-                }
-            }
-            if (defaultEyes == null)
-            {
-                foreach (var part in eyeParts)
-                {
-                    if (part.partId != null && part.partId.Contains("eyes_default"))
-                    {
-                        defaultEyes = part;
-                        break;
-                    }
-                }
-            }
-            if (defaultEyes == null && eyeParts.Length > 0)
-                defaultEyes = eyeParts[0];
-            if (defaultEyes != null)
-                builtAppearance.SetPart(BodyPartSlot.Eyes, defaultEyes);
-
-            var torsoParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Torso, selectedBodyType);
-            BodyPartData defaultTorso = null;
-            foreach (var part in torsoParts)
-            {
-                if (part.partId != null && part.partId.Contains("tshirt"))
-                {
-                    defaultTorso = part;
-                    break;
-                }
-            }
-            if (defaultTorso == null && torsoParts.Length > 0)
-                defaultTorso = torsoParts[0];
-            if (defaultTorso != null)
-                builtAppearance.SetPart(BodyPartSlot.Torso, defaultTorso);
-
-            var legsParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Legs, selectedBodyType);
-            BodyPartData defaultLegs = null;
-            foreach (var part in legsParts)
-            {
-                if (part.partId != null && part.partId.Contains("pants"))
-                {
-                    defaultLegs = part;
-                    break;
-                }
-            }
-            if (defaultLegs == null && legsParts.Length > 0)
-                defaultLegs = legsParts[0];
-            if (defaultLegs != null)
-                builtAppearance.SetPart(BodyPartSlot.Legs, defaultLegs);
-
-            // Feet: prefers "basic_shoes", falls back to first feet part
-            var feetParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Feet, selectedBodyType);
-            BodyPartData defaultFeet = null;
-            foreach (var part in feetParts)
-            {
-                if (part.partId != null && part.partId.Contains("basic_shoes"))
-                {
-                    defaultFeet = part;
-                    break;
-                }
-            }
-            if (defaultFeet == null && feetParts.Length > 0)
-                defaultFeet = feetParts[0];
-            if (defaultFeet != null)
-                builtAppearance.SetPart(BodyPartSlot.Feet, defaultFeet);
+            // No default clothing assigned here — class equipment is applied
+            // per-class in ApplyAppearanceToCard() via jobData.starterEquipment.
+            // Previously this picked the first torso/legs/feet from the registry,
+            // which grabbed warrior plate armor as "default" since no civilian
+            // clothes (tshirt, basic_shoes) exist in the ULPC set.
         }
 
         private void RefreshAppearancePreview()
@@ -1101,11 +983,6 @@ namespace ProjectName.UI
                 }
             }
 
-            // Eye color
-            if (eyeColorPreview != null)
-                eyeColorPreview.color = builtAppearance.eyeTint;
-            if (eyeColorNameText != null && selectedEyeColorIndex >= 0 && selectedEyeColorIndex < EyeColorNames.Length)
-                eyeColorNameText.text = EyeColorNames[selectedEyeColorIndex];
         }
 
         // ----- Body Type -----
@@ -1516,11 +1393,6 @@ namespace ProjectName.UI
             MakeOptionRow(scrollContent.transform, "Beard", out ctrl.beardPrevButton, out ctrl.beardNextButton, out ctrl.beardNameText);
             ctrl.beardPrevButton.transform.parent.gameObject.SetActive(false);
 
-            // Eye color (hidden until eye assets exist)
-            MakeColorRow(scrollContent.transform, "Eye Color", EyeColorPresets[0], EyeColorNames[0],
-                out ctrl.eyeColorPrevButton, out ctrl.eyeColorNextButton, out ctrl.eyeColorPreview, out ctrl.eyeColorNameText);
-            ctrl.eyeColorPrevButton.transform.parent.gameObject.SetActive(false);
-
             // Hair color (hidden until hair assets exist)
             MakeColorRow(scrollContent.transform, "Hair Color", HairColorPresets[0], HairColorNames[0],
                 out ctrl.hairColorPrevButton, out ctrl.hairColorNextButton, out ctrl.hairColorPreview, out ctrl.hairColorNameText);
@@ -1541,7 +1413,7 @@ namespace ProjectName.UI
 
         private static void FindBodyPartRegistry(CharacterCreationController ctrl)
         {
-            if (ctrl.bodyPartRegistry != null) return;
+            if (ctrl.bodyPartRegistry != null && ctrl.bodyPartRegistry.allParts != null && ctrl.bodyPartRegistry.allParts.Length > 0) return;
 
             ctrl.bodyPartRegistry = Resources.Load<BodyPartRegistry>("BodyPartRegistry");
         }
@@ -2082,8 +1954,6 @@ namespace ProjectName.UI
             if (hairColorNextButton != null) hairColorNextButton.onClick.RemoveAllListeners();
             if (beardPrevButton != null) beardPrevButton.onClick.RemoveAllListeners();
             if (beardNextButton != null) beardNextButton.onClick.RemoveAllListeners();
-            if (eyeColorPrevButton != null) eyeColorPrevButton.onClick.RemoveAllListeners();
-            if (eyeColorNextButton != null) eyeColorNextButton.onClick.RemoveAllListeners();
         }
     }
 }

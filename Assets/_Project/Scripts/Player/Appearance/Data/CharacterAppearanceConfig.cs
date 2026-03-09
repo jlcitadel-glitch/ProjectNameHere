@@ -28,7 +28,6 @@ public class CharacterAppearanceConfig : ScriptableObject
     public Color hairTint = Color.white;
     public Color armorPrimaryTint = Color.white;
     public Color armorSecondaryTint = Color.white;
-    public Color eyeTint = new Color(0.45f, 0.30f, 0.15f, 1f);
 
     // ----- Legacy fields for migration from v1 assets -----
     [HideInInspector, FormerlySerializedAs("body")]     public BodyPartData _legacyBody;
@@ -131,7 +130,6 @@ public class CharacterAppearanceConfig : ScriptableObject
             TintCategory.Hair => hairTint,
             TintCategory.ArmorPrimary => armorPrimaryTint,
             TintCategory.ArmorSecondary => armorSecondaryTint,
-            TintCategory.Eyes => eyeTint,
             _ => Color.white
         };
     }
@@ -158,7 +156,6 @@ public class CharacterAppearanceConfig : ScriptableObject
         clone.hairTint = hairTint;
         clone.armorPrimaryTint = armorPrimaryTint;
         clone.armorSecondaryTint = armorSecondaryTint;
-        clone.eyeTint = eyeTint;
 
         if (slotEntries != null)
         {

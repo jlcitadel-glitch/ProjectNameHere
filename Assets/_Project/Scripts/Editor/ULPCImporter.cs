@@ -505,6 +505,7 @@ public static class ULPCImporter
         CreateAndWireJobEquipment(RogueEquipment, $"{JobsDir}/Rogue.asset", "Rogue");
 
         AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
 
         // Rebuild registry so equipment BodyPartData refs are current
         BodyPartRegistryBuilder.Build();
