@@ -53,6 +53,48 @@ public static class ULPCImporter
 
     static readonly string[] SkinTones = { "light", "amber", "olive", "taupe", "bronze", "brown", "black" };
 
+    // ── Equipment piece definitions ─────────────────────────────────────────
+    struct EquipDef
+    {
+        public string subFolder;   // path under Equipment/ in sprites folder
+        public string variant;     // PNG filename (without .png)
+        public string partId;      // BodyPartData.partId
+        public string displayName; // BodyPartData.displayName
+        public BodyPartSlot slot;  // rendering slot
+        public string assetDir;    // subfolder under BodyParts/
+
+        public EquipDef(string subFolder, string variant, string partId, string displayName, BodyPartSlot slot, string assetDir)
+        {
+            this.subFolder = subFolder;
+            this.variant = variant;
+            this.partId = partId;
+            this.displayName = displayName;
+            this.slot = slot;
+            this.assetDir = assetDir;
+        }
+    }
+
+    static readonly EquipDef[] EquipmentPieces = new EquipDef[]
+    {
+        new EquipDef("Equipment/Feet/BootsRevisedBrown", "brown", "feet_boots_revised_brown", "Brown Revised Boots", BodyPartSlot.Feet, "Feet"),
+        new EquipDef("Equipment/Legs/PantsBlack",        "black", "legs_pants_black",          "Black Pants",         BodyPartSlot.Legs, "Legs"),
+        new EquipDef("Equipment/Gloves/Steel",           "steel", "gloves_steel",              "Steel Gloves",        BodyPartSlot.Gloves, "Gloves"),
+        new EquipDef("Equipment/Hat/ArmetSteel",         "steel", "hat_armet_steel",           "Steel Armet Helmet",  BodyPartSlot.Hat, "Hat"),
+        new EquipDef("Equipment/Torso/PlateBlack",       "steel_black", "torso_plate_black",    "Steel Plate + Black Longsleeve", BodyPartSlot.Torso, "Torso"),
+        // Mage equipment
+        new EquipDef("Equipment/Hat/HoodPurple",          "purple",        "hat_hood_purple",       "Purple Hood",                    BodyPartSlot.Hat, "Hat"),
+        new EquipDef("Equipment/Torso/RobePurple",        "purple_maroon", "torso_robe_purple",     "Purple Robe + Maroon Sash",      BodyPartSlot.Torso, "Torso"),
+        new EquipDef("Equipment/Gloves/Brown",            "brown",         "gloves_brown",          "Brown Gloves",                   BodyPartSlot.Gloves, "Gloves"),
+        new EquipDef("Equipment/Legs/PantaloonsNavy",     "navy",          "legs_pantaloons_navy",  "Navy Pantaloons",                BodyPartSlot.Legs, "Legs"),
+        new EquipDef("Equipment/Feet/SlippersPurple",     "purple",        "feet_slippers_purple",  "Purple Slippers",                BodyPartSlot.Feet, "Feet"),
+        // Rogue equipment
+        new EquipDef("Equipment/Hat/BandanaCharcoal",     "charcoal",      "hat_bandana_charcoal",  "Charcoal Bandana",               BodyPartSlot.Hat, "Hat"),
+        new EquipDef("Equipment/Torso/TunicCharcoal",     "charcoal",      "torso_tunic_charcoal",  "Charcoal Tunic + Sash",          BodyPartSlot.Torso, "Torso"),
+        new EquipDef("Equipment/Gloves/Black",            "black",         "gloves_black",          "Black Gloves",                   BodyPartSlot.Gloves, "Gloves"),
+        new EquipDef("Equipment/Legs/LeggingsCharcoal",   "charcoal",      "legs_leggings_charcoal","Charcoal Leggings",              BodyPartSlot.Legs, "Legs"),
+        new EquipDef("Equipment/Feet/BootsFoldBrown",     "brown",         "feet_boots_fold_brown", "Brown Fold Boots",               BodyPartSlot.Feet, "Feet"),
+    };
+
     const string UlpcRoot        = "Assets/_Project/Art/Sprites/Player/ULPC";
     const string FrameMapPath    = "Assets/_Project/ScriptableObjects/Character/ULPCFrameMap.asset";
     const string BodyPartsDir    = "Assets/_Project/ScriptableObjects/Character/BodyParts";
@@ -77,6 +119,11 @@ public static class ULPCImporter
         foreach (var anim in Animations)
             foreach (string skin in SkinTones)
                 count += ConfigureTexture($"{UlpcRoot}/Head/AngryMale/{anim.folder}/{skin}.png", skin, anim);
+
+        // Equipment sprites
+        foreach (var equip in EquipmentPieces)
+            foreach (var anim in Animations)
+                count += ConfigureTexture($"{UlpcRoot}/{equip.subFolder}/{anim.folder}/{equip.variant}.png", equip.variant, anim);
 
         AssetDatabase.Refresh();
         Debug.Log($"[ULPCImporter] Configured {count} textures with sprite slicing.");
@@ -196,8 +243,22 @@ public static class ULPCImporter
                 $"{BodyPartsDir}/Eyes/face_angry_male_{skin}.asset");
         }
 
+        // Equipment pieces
+        foreach (var equip in EquipmentPieces)
+        {
+            EnsureDirectory($"{BodyPartsDir}/{equip.assetDir}");
+            CreateBodyPartAsset(
+                equip.partId, equip.displayName,
+                equip.slot, "male", equip.subFolder, equip.variant, totalFrames,
+                $"{BodyPartsDir}/{equip.assetDir}/{equip.partId}.asset");
+        }
+
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
+
+        // Rebuild registry so it references the new asset GUIDs
+        BodyPartRegistryBuilder.Build();
+
         Debug.Log("[ULPCImporter] All BodyPartData assets created.");
     }
 
@@ -383,6 +444,134 @@ public static class ULPCImporter
         AssetDatabase.CreateAsset(config, AppearancePath);
         AssetDatabase.SaveAssets();
         Debug.Log($"[ULPCImporter] Created default appearance config at {AppearancePath}");
+    }
+
+    // ── Step 6: Create EquipmentData assets and wire to Warrior ────────────
+
+    struct EquipItemDef
+    {
+        public string equipmentId;
+        public string displayName;
+        public string description;
+        public EquipmentSlotType slotType;
+        public string visualPartId; // matches BodyPartData.partId from Step 2
+        public int bonusSTR, bonusINT, bonusAGI;
+
+        public EquipItemDef(string id, string name, string desc, EquipmentSlotType slot, string visualId, int str, int intel, int agi)
+        {
+            equipmentId = id; displayName = name; description = desc;
+            slotType = slot; visualPartId = visualId;
+            bonusSTR = str; bonusINT = intel; bonusAGI = agi;
+        }
+    }
+
+    static readonly EquipItemDef[] WarriorEquipment = new EquipItemDef[]
+    {
+        new EquipItemDef("warrior_boots",  "Brown Boots",       "Sturdy revised boots.",              EquipmentSlotType.Feet,  "feet_boots_revised_brown", 1, 0, 0),
+        new EquipItemDef("warrior_pants",  "Black Pants",       "Simple black trousers.",             EquipmentSlotType.Legs,  "legs_pants_black",         1, 0, 0),
+        new EquipItemDef("warrior_gloves", "Steel Gauntlets",   "Heavy steel gauntlets.",             EquipmentSlotType.Hands, "gloves_steel",             1, 0, 0),
+        new EquipItemDef("warrior_helm",   "Steel Armet",       "A full steel armet helmet.",         EquipmentSlotType.Head,  "hat_armet_steel",          2, 0, 0),
+        new EquipItemDef("warrior_chest",  "Steel Plate Armor", "Steel plate over black longsleeve.", EquipmentSlotType.Armor, "torso_plate_black",        3, 0, 0),
+    };
+
+    static readonly EquipItemDef[] MageEquipment = new EquipItemDef[]
+    {
+        new EquipItemDef("mage_hood",      "Purple Hood",       "A mystic's hooded cowl.",            EquipmentSlotType.Head,  "hat_hood_purple",          0, 2, 0),
+        new EquipItemDef("mage_robe",      "Purple Robe",       "Purple robe with maroon sash.",      EquipmentSlotType.Armor, "torso_robe_purple",        0, 3, 0),
+        new EquipItemDef("mage_gloves",    "Leather Gloves",    "Worn leather gloves.",               EquipmentSlotType.Hands, "gloves_brown",             0, 1, 0),
+        new EquipItemDef("mage_pants",     "Navy Pantaloons",   "Puffy scholar's pantaloons.",        EquipmentSlotType.Legs,  "legs_pantaloons_navy",     0, 1, 0),
+        new EquipItemDef("mage_slippers",  "Purple Slippers",   "Soft mage's slippers.",              EquipmentSlotType.Feet,  "feet_slippers_purple",     0, 1, 0),
+    };
+
+    static readonly EquipItemDef[] RogueEquipment = new EquipItemDef[]
+    {
+        new EquipItemDef("rogue_bandana",  "Charcoal Bandana",  "A dark bandana for stealth.",         EquipmentSlotType.Head,  "hat_bandana_charcoal",     0, 0, 2),
+        new EquipItemDef("rogue_tunic",    "Dark Tunic",        "Sleeveless charcoal tunic with sash.",EquipmentSlotType.Armor, "torso_tunic_charcoal",     1, 0, 2),
+        new EquipItemDef("rogue_gloves",   "Black Gloves",      "Dark gloves for nimble fingers.",     EquipmentSlotType.Hands, "gloves_black",             0, 0, 1),
+        new EquipItemDef("rogue_leggings", "Charcoal Leggings", "Tight-fitting dark leggings.",        EquipmentSlotType.Legs,  "legs_leggings_charcoal",   0, 0, 1),
+        new EquipItemDef("rogue_boots",    "Leather Fold Boots","Soft brown leather boots.",           EquipmentSlotType.Feet,  "feet_boots_fold_brown",    0, 0, 1),
+    };
+
+    const string EquipmentDir = "Assets/_Project/Resources/Equipment";
+    const string JobsDir = "Assets/_Project/Resources/Jobs";
+
+    [MenuItem("Tools/ULPC/6 - Create Class Equipment")]
+    static void Step6_CreateClassEquipment()
+    {
+        EnsureDirectory(EquipmentDir);
+
+        CreateAndWireJobEquipment(WarriorEquipment, $"{JobsDir}/Warrior.asset", "Warrior");
+        CreateAndWireJobEquipment(MageEquipment, $"{JobsDir}/Mage.asset", "Mage");
+        CreateAndWireJobEquipment(RogueEquipment, $"{JobsDir}/Rogue.asset", "Rogue");
+
+        AssetDatabase.SaveAssets();
+
+        // Rebuild registry so equipment BodyPartData refs are current
+        BodyPartRegistryBuilder.Build();
+
+        Debug.Log("[ULPCImporter] All class equipment setup complete.");
+    }
+
+    static void CreateAndWireJobEquipment(EquipItemDef[] items, string jobPath, string className)
+    {
+        var equipAssets = new List<EquipmentData>();
+
+        foreach (var def in items)
+        {
+            var equip = ScriptableObject.CreateInstance<EquipmentData>();
+            equip.equipmentId = def.equipmentId;
+            equip.displayName = def.displayName;
+            equip.description = def.description;
+            equip.slotType = def.slotType;
+            equip.bonusSTR = def.bonusSTR;
+            equip.bonusINT = def.bonusINT;
+            equip.bonusAGI = def.bonusAGI;
+
+            equip.visualPart = FindBodyPartByPartId(def.visualPartId);
+            if (equip.visualPart == null)
+                Debug.LogWarning($"[ULPCImporter] Visual part '{def.visualPartId}' not found for {def.equipmentId} — run Step 2 first");
+
+            string path = $"{EquipmentDir}/{def.equipmentId}.asset";
+            AssetDatabase.DeleteAsset(path);
+            AssetDatabase.CreateAsset(equip, path);
+            equipAssets.Add(equip);
+            Debug.Log($"[ULPCImporter] Created equipment: {def.displayName} at {path}");
+        }
+
+        var job = AssetDatabase.LoadAssetAtPath<JobClassData>(jobPath);
+        if (job != null)
+        {
+            var so = new SerializedObject(job);
+            var starterProp = so.FindProperty("starterEquipment");
+            if (starterProp != null)
+            {
+                starterProp.arraySize = equipAssets.Count;
+                for (int i = 0; i < equipAssets.Count; i++)
+                    starterProp.GetArrayElementAtIndex(i).objectReferenceValue = equipAssets[i];
+
+                so.ApplyModifiedPropertiesWithoutUndo();
+                EditorUtility.SetDirty(job);
+                Debug.Log($"[ULPCImporter] {className} starter gear: {equipAssets.Count} items (full replacement)");
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"[ULPCImporter] {className} job not found at {jobPath}");
+        }
+    }
+
+    static BodyPartData FindBodyPartByPartId(string partId)
+    {
+        // Search all BodyPartData assets under BodyPartsDir
+        string[] guids = AssetDatabase.FindAssets("t:BodyPartData", new[] { BodyPartsDir });
+        foreach (string guid in guids)
+        {
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+            var part = AssetDatabase.LoadAssetAtPath<BodyPartData>(path);
+            if (part != null && part.partId == partId)
+                return part;
+        }
+        return null;
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────

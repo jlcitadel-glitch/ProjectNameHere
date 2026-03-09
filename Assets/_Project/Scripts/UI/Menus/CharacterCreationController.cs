@@ -639,6 +639,14 @@ namespace ProjectName.UI
                             merged.weaponFront = equip.visualPart;
                             hasEquipment = true;
                             break;
+                        case EquipmentSlotType.Head:
+                            merged.SetPart(BodyPartSlot.Hat, equip.visualPart);
+                            hasEquipment = true;
+                            break;
+                        case EquipmentSlotType.Hands:
+                            merged.SetPart(BodyPartSlot.Gloves, equip.visualPart);
+                            hasEquipment = true;
+                            break;
                     }
                 }
             }
@@ -1652,9 +1660,9 @@ namespace ProjectName.UI
         /// </summary>
         private static void WireStarterEquipmentIfMissing(CharacterCreationController ctrl)
         {
-            WireJobEquipment(ctrl.warriorData, "warrior_sword", "warrior_chainmail", "warrior_greaves", "warrior_sabatons");
-            WireJobEquipment(ctrl.mageData, "mage_staff", "mage_robe", "mage_pants", "mage_sandals");
-            WireJobEquipment(ctrl.rogueData, "rogue_dagger", "rogue_vest", "rogue_pants", "rogue_boots");
+            WireJobEquipment(ctrl.warriorData, "warrior_boots", "warrior_pants", "warrior_gloves", "warrior_helm", "warrior_chest");
+            WireJobEquipment(ctrl.mageData, "mage_hood", "mage_robe", "mage_gloves", "mage_pants", "mage_slippers");
+            WireJobEquipment(ctrl.rogueData, "rogue_bandana", "rogue_tunic", "rogue_gloves", "rogue_leggings", "rogue_boots");
         }
 
         private static void WireJobEquipment(JobClassData job, params string[] equipmentIds)
@@ -1685,18 +1693,21 @@ namespace ProjectName.UI
             // Map equipmentId → BodyPartData partId for runtime visual resolution
             var visualMap = new Dictionary<string, string>
             {
-                { "warrior_sword",      "weapon_longsword_male" },
-                { "warrior_chainmail",  "torso_chainmail" },
-                { "warrior_greaves",    "legs_armour" },
-                { "warrior_sabatons",   "shoes_armour_male" },
-                { "mage_staff",         "weapon_simple_staff_male" },
-                { "mage_robe",          "jacket_trim_frock_coat_lace_male" },
-                { "mage_pants",         "legs_pants" },
-                { "mage_sandals",       "shoes_basic_shoes_male" },
-                { "rogue_dagger",       "weapon_dagger_male" },
-                { "rogue_vest",         "torso_leather" },
-                { "rogue_pants",        "legs_pants" },
-                { "rogue_boots",        "shoes_basic_boots_male" },
+                { "warrior_boots",      "feet_boots_revised_brown" },
+                { "warrior_pants",      "legs_pants_black" },
+                { "warrior_gloves",     "gloves_steel" },
+                { "warrior_helm",       "hat_armet_steel" },
+                { "warrior_chest",      "torso_plate_black" },
+                { "mage_hood",          "hat_hood_purple" },
+                { "mage_robe",          "torso_robe_purple" },
+                { "mage_gloves",        "gloves_brown" },
+                { "mage_pants",         "legs_pantaloons_navy" },
+                { "mage_slippers",      "feet_slippers_purple" },
+                { "rogue_bandana",      "hat_bandana_charcoal" },
+                { "rogue_tunic",        "torso_tunic_charcoal" },
+                { "rogue_gloves",       "gloves_black" },
+                { "rogue_leggings",     "legs_leggings_charcoal" },
+                { "rogue_boots",        "feet_boots_fold_brown" },
             };
 
             var jobs = new[] { ctrl.warriorData, ctrl.mageData, ctrl.rogueData };

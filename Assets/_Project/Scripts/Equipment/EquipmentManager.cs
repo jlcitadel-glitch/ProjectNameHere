@@ -7,7 +7,7 @@ using UnityEngine;
 /// </summary>
 public class EquipmentManager : MonoBehaviour
 {
-    private const int SLOT_COUNT = 4;
+    private const int SLOT_COUNT = 7;
 
     private EquipmentData[] equippedItems;
 
@@ -205,6 +205,12 @@ public class EquipmentManager : MonoBehaviour
                     break;
                 case EquipmentSlotType.Weapon:
                     playerAppearance.SetPart(BodyPartSlot.WeaponFront, item?.visualPart);
+                    break;
+                case EquipmentSlotType.Head:
+                    playerAppearance.SetPart(BodyPartSlot.Hat, item?.visualPart);
+                    break;
+                case EquipmentSlotType.Hands:
+                    playerAppearance.SetPart(BodyPartSlot.Gloves, item?.visualPart);
                     break;
             }
         }

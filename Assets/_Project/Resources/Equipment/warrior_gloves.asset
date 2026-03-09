@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 374e144ba8f96b14887b6bc0512a087f, type: 3}
+  m_Name: warrior_gloves
+  m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
+  equipmentId: warrior_gloves
+  displayName: Steel Gauntlets
+  description: Heavy steel gauntlets.
+  icon: {fileID: 0}
+  slotType: 6
+  bonusSTR: 1
+  bonusINT: 0
+  bonusAGI: 0
+  visualPart: {fileID: 11400000, guid: a02ec55c63fe7454ba4cdfa5a81ee785, type: 2}
+  weaponData: {fileID: 0}

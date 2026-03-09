@@ -8,5 +8,7 @@ public enum EquipmentSlotType
     Armor = 1,
     Legs = 2,
     Accessory = 3,
-    Feet = 4
+    Feet = 4,
+    Head = 5,
+    Hands = 6
 }

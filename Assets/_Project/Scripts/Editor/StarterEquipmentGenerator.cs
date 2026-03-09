@@ -132,19 +132,21 @@ public static class StarterEquipmentGenerator
             {
                 gear = new[]
                 {
-                    LoadEquipment("mage_staff"),
+                    LoadEquipment("mage_hood"),
                     LoadEquipment("mage_robe"),
+                    LoadEquipment("mage_gloves"),
                     LoadEquipment("mage_pants"),
-                    LoadEquipment("mage_sandals")
+                    LoadEquipment("mage_slippers")
                 };
             }
             else if (id == "rogue")
             {
                 gear = new[]
                 {
-                    LoadEquipment("rogue_dagger"),
-                    LoadEquipment("rogue_vest"),
-                    LoadEquipment("rogue_pants"),
+                    LoadEquipment("rogue_bandana"),
+                    LoadEquipment("rogue_tunic"),
+                    LoadEquipment("rogue_gloves"),
+                    LoadEquipment("rogue_leggings"),
                     LoadEquipment("rogue_boots")
                 };
             }

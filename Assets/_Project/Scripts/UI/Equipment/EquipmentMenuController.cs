@@ -8,8 +8,9 @@ using TMPro;
 namespace ProjectName.UI
 {
     /// <summary>
-    /// Controller for the equipment menu. Opens with E key, shows 4 equipment slots
-    /// with character preview. Clicking a slot opens a selection panel to swap gear.
+    /// Controller for the equipment menu. Opens with E key, shows 7 equipment slots
+    /// (Weapon, Head, Armor, Hands, Legs, Feet, Accessory) with character preview.
+    /// Clicking a slot opens a selection panel to swap gear.
     /// </summary>
     public class EquipmentMenuController : MonoBehaviour
     {
@@ -37,6 +38,12 @@ namespace ProjectName.UI
         [SerializeField] private Image accessoryIcon;
         [SerializeField] private TMP_Text accessoryNameText;
         [SerializeField] private TMP_Text accessoryStatsText;
+        [SerializeField] private Image headIcon;
+        [SerializeField] private TMP_Text headNameText;
+        [SerializeField] private TMP_Text headStatsText;
+        [SerializeField] private Image handsIcon;
+        [SerializeField] private TMP_Text handsNameText;
+        [SerializeField] private TMP_Text handsStatsText;
 
         [Header("Settings")]
         [SerializeField] private bool pauseGameWhenOpen = true;
@@ -279,7 +286,9 @@ namespace ProjectName.UI
         private void RefreshDisplay()
         {
             RefreshSlot(EquipmentSlotType.Weapon, weaponIcon, weaponNameText, weaponStatsText);
+            RefreshSlot(EquipmentSlotType.Head, headIcon, headNameText, headStatsText);
             RefreshSlot(EquipmentSlotType.Armor, armorIcon, armorNameText, armorStatsText);
+            RefreshSlot(EquipmentSlotType.Hands, handsIcon, handsNameText, handsStatsText);
             RefreshSlot(EquipmentSlotType.Legs, legsIcon, legsNameText, legsStatsText);
             RefreshSlot(EquipmentSlotType.Feet, feetIcon, feetNameText, feetStatsText);
             RefreshSlot(EquipmentSlotType.Accessory, accessoryIcon, accessoryNameText, accessoryStatsText);
@@ -670,7 +679,7 @@ namespace ProjectName.UI
             panelRect.anchorMin = new Vector2(0.5f, 0.5f);
             panelRect.anchorMax = new Vector2(0.5f, 0.5f);
             panelRect.pivot = new Vector2(0.5f, 0.5f);
-            panelRect.sizeDelta = new Vector2(900f, 540f);
+            panelRect.sizeDelta = new Vector2(900f, 580f);
 
             var panelImg = panelGo.AddComponent<Image>();
             panelImg.sprite = WhiteSprite;
@@ -770,17 +779,20 @@ namespace ProjectName.UI
             slotsRect.offsetMax = Vector2.zero;
 
             float slotY = 0f;
-            float slotHeight = 90f;
-            float slotSpacing = 15f;
+            float slotSpacing = 8f;
 
             var (wRow, wIcon, wName, wStats) = BuildEquipmentSlotRow(slotsContainer.transform, "Weapon", slotY);
-            slotY -= slotHeight + slotSpacing;
+            slotY -= SLOT_ROW_HEIGHT + slotSpacing;
+            var (hRow, hIcon, hName, hStats) = BuildEquipmentSlotRow(slotsContainer.transform, "Head", slotY);
+            slotY -= SLOT_ROW_HEIGHT + slotSpacing;
             var (aRow, aIcon, aName, aStats) = BuildEquipmentSlotRow(slotsContainer.transform, "Armor", slotY);
-            slotY -= slotHeight + slotSpacing;
+            slotY -= SLOT_ROW_HEIGHT + slotSpacing;
+            var (glRow, glIcon, glName, glStats) = BuildEquipmentSlotRow(slotsContainer.transform, "Hands", slotY);
+            slotY -= SLOT_ROW_HEIGHT + slotSpacing;
             var (lRow, lIcon, lName, lStats) = BuildEquipmentSlotRow(slotsContainer.transform, "Legs", slotY);
-            slotY -= slotHeight + slotSpacing;
+            slotY -= SLOT_ROW_HEIGHT + slotSpacing;
             var (fRow, fIcon, fName, fStats) = BuildEquipmentSlotRow(slotsContainer.transform, "Feet", slotY);
-            slotY -= slotHeight + slotSpacing;
+            slotY -= SLOT_ROW_HEIGHT + slotSpacing;
             var (accRow, accIcon, accName, accStats) = BuildEquipmentSlotRow(slotsContainer.transform, "Accessory", slotY);
 
             // Vertical divider (slots | selection)
@@ -799,9 +811,15 @@ namespace ProjectName.UI
             controller.weaponIcon = wIcon;
             controller.weaponNameText = wName;
             controller.weaponStatsText = wStats;
+            controller.headIcon = hIcon;
+            controller.headNameText = hName;
+            controller.headStatsText = hStats;
             controller.armorIcon = aIcon;
             controller.armorNameText = aName;
             controller.armorStatsText = aStats;
+            controller.handsIcon = glIcon;
+            controller.handsNameText = glName;
+            controller.handsStatsText = glStats;
             controller.legsIcon = lIcon;
             controller.legsNameText = lName;
             controller.legsStatsText = lStats;
@@ -818,7 +836,9 @@ namespace ProjectName.UI
 
             // Wire slot click handlers
             wRow.onClick.AddListener(() => controller.OnSlotClicked(EquipmentSlotType.Weapon));
+            hRow.onClick.AddListener(() => controller.OnSlotClicked(EquipmentSlotType.Head));
             aRow.onClick.AddListener(() => controller.OnSlotClicked(EquipmentSlotType.Armor));
+            glRow.onClick.AddListener(() => controller.OnSlotClicked(EquipmentSlotType.Hands));
             lRow.onClick.AddListener(() => controller.OnSlotClicked(EquipmentSlotType.Legs));
             fRow.onClick.AddListener(() => controller.OnSlotClicked(EquipmentSlotType.Feet));
             accRow.onClick.AddListener(() => controller.OnSlotClicked(EquipmentSlotType.Accessory));
@@ -829,6 +849,8 @@ namespace ProjectName.UI
             return controller;
         }
 
+        private const float SLOT_ROW_HEIGHT = 58f;
+
         private static (Button rowBtn, Image icon, TMP_Text name, TMP_Text stats) BuildEquipmentSlotRow(
             Transform parent, string slotLabel, float yOffset)
         {
@@ -838,7 +860,7 @@ namespace ProjectName.UI
             rowRect.anchorMax = new Vector2(1, 1);
             rowRect.pivot = new Vector2(0, 1);
             rowRect.anchoredPosition = new Vector2(0, yOffset);
-            rowRect.sizeDelta = new Vector2(0, 90);
+            rowRect.sizeDelta = new Vector2(0, SLOT_ROW_HEIGHT);
 
             var rowBg = rowGo.AddComponent<Image>();
             rowBg.sprite = WhiteSprite;
@@ -877,8 +899,8 @@ namespace ProjectName.UI
             iconContainerRect.anchorMin = new Vector2(0, 0);
             iconContainerRect.anchorMax = new Vector2(0, 1);
             iconContainerRect.pivot = new Vector2(0, 0.5f);
-            iconContainerRect.anchoredPosition = new Vector2(6, -8);
-            iconContainerRect.sizeDelta = new Vector2(60, -24);
+            iconContainerRect.anchoredPosition = new Vector2(6, -6);
+            iconContainerRect.sizeDelta = new Vector2(46, -18);
             var iconContainerBg = iconContainerGo.AddComponent<Image>();
             iconContainerBg.sprite = WhiteSprite;
             iconContainerBg.color = new Color(0.06f, 0.06f, 0.08f, 0.8f);
@@ -904,11 +926,11 @@ namespace ProjectName.UI
             var nameRect = nameGo.GetComponent<RectTransform>();
             nameRect.anchorMin = new Vector2(0, 0.5f);
             nameRect.anchorMax = new Vector2(1, 1);
-            nameRect.offsetMin = new Vector2(72, -6);
-            nameRect.offsetMax = new Vector2(-8, -4);
+            nameRect.offsetMin = new Vector2(58, -4);
+            nameRect.offsetMax = new Vector2(-8, -2);
             var nameTmp = nameGo.AddComponent<TextMeshProUGUI>();
             nameTmp.text = "Empty";
-            nameTmp.fontSize = 18;
+            nameTmp.fontSize = 16;
             nameTmp.color = BoneWhite;
             nameTmp.alignment = TextAlignmentOptions.Left;
             nameTmp.raycastTarget = false;
@@ -919,8 +941,8 @@ namespace ProjectName.UI
             var statsRect = statsGo.GetComponent<RectTransform>();
             statsRect.anchorMin = new Vector2(0, 0);
             statsRect.anchorMax = new Vector2(1, 0.5f);
-            statsRect.offsetMin = new Vector2(72, 4);
-            statsRect.offsetMax = new Vector2(-8, 6);
+            statsRect.offsetMin = new Vector2(58, 2);
+            statsRect.offsetMax = new Vector2(-8, 4);
             var statsTmp = statsGo.AddComponent<TextMeshProUGUI>();
             statsTmp.text = "";
             statsTmp.fontSize = 14;
