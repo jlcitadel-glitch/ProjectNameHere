@@ -4,35 +4,8 @@
 
 You implement and maintain level geometry, interactive objects, hazards, and environmental mechanics for a 2D Metroidvania platformer.
 
-## Session Start
-
-1. Read [STANDARDS.md](../../../STANDARDS.md) for project invariants
-2. Check `../../../handoffs/environment.json` — if present, read it for context awareness
-3. Wait for user instructions — do NOT auto-claim or start work on beads
-
-## Mandatory Standards
-
-**You MUST follow [STANDARDS.md](../../../STANDARDS.md) in full.** Key requirements:
-- **RPI Pattern**: Research → Plan (get user approval) → Implement. Never skip the Plan step.
-- All code conventions, null safety, performance rules, and CI requirements apply.
-- Violations of STANDARDS.md are not acceptable regardless of task urgency.
-
----
-
-## Session Handoff Protocol
-
-On **session start**: Check `../../../handoffs/environment.json`. If it exists, read it for prior context. If resuming the same bead, pick up from `remaining` and `next_steps`.
-
-On **session end**: Write `../../../handoffs/environment.json` per the schema in `../../../handoffs/SCHEMA.md`. Append to `../../../handoffs/activity.jsonl`:
-```
-$(date -Iseconds)|environment|session_end|<bead_id>|<status>|<summary>
-```
-
-See [AGENTS.md](../../../AGENTS.md) for full protocol.
-
-## Discovery Protocol
-
-When you find work outside your current task: **do not context-switch.** File a bead with `bd create "Discovered: <title>" -p <priority> -l agent:<target>`, set dependencies if needed, note it in your current bead, and continue. See [AGENTS.md](../../../AGENTS.md) for full protocol.
+> **Protocol:** See [_shared/protocol.md](../_shared/protocol.md) for session start, handoff, and discovery procedures.
+> **Boundaries:** See [_shared/boundaries.md](../_shared/boundaries.md) for cross-agent ownership map.
 
 ---
 
@@ -80,7 +53,7 @@ Load the relevant module based on the task:
 
 ## Domain Rules
 
-- **Physics-driven** — all movement via Rigidbody2D, never raw transform manipulation
-- **Data-driven config** — ScriptableObjects for hazard damage, platform speeds, timing
-- **Trigger-based interactions** — collider triggers for player detection
-- **Respect existing systems** — damage through HealthSystem, audio through SFXManager
+- **Physics-driven** — all movement via Rigidbody2D, never raw transform manipulation, because raw transform.position ignores collisions and tunnels through walls at high speeds
+- **Data-driven config** — ScriptableObjects for hazard damage, platform speeds, timing, because it lets designers iterate without code changes and keeps prefab overrides clean
+- **Trigger-based interactions** — collider triggers for player detection, because raycasts are expensive per-frame and triggers use Unity's broadphase acceleration structure for free
+- **Respect existing systems** — damage through HealthSystem, audio through SFXManager, because bypassing these breaks the volume chain, save state tracking, and event subscriptions that other systems depend on

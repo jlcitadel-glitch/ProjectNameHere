@@ -75,7 +75,9 @@ public class SkillExecutor : MonoBehaviour
                 break;
             case "magic_shield":
                 ExecuteBuff(skillInstance);
-                MageSkillVFX.SpawnMagicShieldActivate(transform.position);
+                float shieldDuration = skillInstance.GetDuration();
+                if (shieldDuration <= 0f) shieldDuration = skillInstance.skillData.baseDuration;
+                MageSkillVFX.SpawnMagicShield(transform, shieldDuration);
                 break;
             case "critical_eye":
             case "iron_skin":
@@ -477,7 +479,6 @@ public class SkillExecutor : MonoBehaviour
     private void ExecuteFireball(SkillInstance skill)
     {
         float facing = GetFacingDirection();
-        Vector3 spawnPos = transform.position + new Vector3(facing * 1f, 0.2f, 0f);
 
         // Cast effect at player
         MageSkillVFX.SpawnFireballCast(transform.position + new Vector3(facing * 0.5f, 0.2f, 0f), facing > 0);

@@ -2,6 +2,26 @@
 
 > **Unity 6 2D** - Verify all code uses Unity 6 APIs before implementation.
 
+## Project-Specific Gotchas
+
+### Button Wiring — Inspector, Not Code
+MainMenu buttons are wired via Unity Inspector onClick events, NOT through code-based `AddListener()`. Methods like `OnStartGameClicked()` exist but are dead code — the Inspector callbacks call different methods. Always verify button wiring in the Inspector, not by reading C# event subscriptions.
+
+### UISoundBank Loading Fallback
+`UIManager` loads UISoundBank via `Resources.Load<UISoundBank>("UISoundBank")` as a fallback if no asset is assigned in Inspector. The asset MUST be in a `Resources/` folder to be discoverable at runtime. If sounds don't play, check that the asset exists at `Assets/_Project/Resources/UISoundBank`.
+
+### CharacterCreationController Dual Initialization Paths
+This controller has two paths:
+- **CreateRuntimeUI path**: Runs `FindJobData()` + `WireStarterEquipmentIfMissing()`. Used when no Inspector-configured canvas exists.
+- **Inspector path**: Skips runtime wiring. Used when controller exists in scene with pre-wired references.
+Changes to character creation logic MUST be tested on both paths.
+
+### Equipment Preview — Triple Hardcode
+Character creation equipment preview touches three hardcoded locations (see architect/review-checklist.md for details). If equipment visuals look wrong in character creation, check all three locations before assuming a UI bug.
+
+### ScriptableObject Lookup at Menu Time
+`FindObjectsOfTypeAll<JobClassData>()` only finds assets already loaded in memory. At main menu time, JobClassData assets won't be found unless they're in `Resources/Jobs/`. The controller falls back to blank runtime instances with no starter equipment.
+
 ## Unity 6 API Checklist
 
 Before implementing any UI code, verify:

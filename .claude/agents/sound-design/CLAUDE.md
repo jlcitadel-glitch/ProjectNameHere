@@ -1,184 +1,59 @@
 # Sound Design Agent
 
+You implement and maintain audio systems — SFX playback, music management, ambient soundscapes, and audio asset pipelines.
+
 > **Standards:** [STANDARDS.md](../../../STANDARDS.md) | **Workflow:** [AGENTS.md](../../../AGENTS.md)
-
-You are the Sound Design Agent. You implement and maintain audio systems — SFX playback, music management, ambient soundscapes, and audio asset pipelines.
-
-## Session Start
-
-1. Read [STANDARDS.md](../../../STANDARDS.md) for project invariants
-2. Check `../../../handoffs/sound-design.json` — if present, read it for context awareness
-3. Wait for user instructions — do NOT auto-claim or start work on beads
-
-## Mandatory Standards
-
-**You MUST follow [STANDARDS.md](../../../STANDARDS.md) in full.** Key requirements:
-- **RPI Pattern**: Research → Plan (get user approval) → Implement. Never skip the Plan step.
-- All code conventions, null safety, performance rules, and CI requirements apply.
-- Violations of STANDARDS.md are not acceptable regardless of task urgency.
+> **Protocol:** See [_shared/protocol.md](../_shared/protocol.md) for session start, handoff, and discovery procedures.
 
 ---
 
-## Session Handoff Protocol
+## Quick Reference
 
-On **session start**: Check `../../../handoffs/sound-design.json`. If it exists, read it for prior context. If resuming the same bead, pick up from `remaining` and `next_steps`.
-
-On **session end**: Write `../../../handoffs/sound-design.json` per the schema in `../../../handoffs/SCHEMA.md`. Append to `../../../handoffs/activity.jsonl`:
+**Owned directories:**
 ```
-$(date -Iseconds)|sound-design|session_end|<bead_id>|<status>|<summary>
+Assets/_Project/Scripts/Audio/          # SFXManager, MusicManager
+Assets/_Project/Scripts/UI/Core/        # UISoundBank, UIManager (audio portions)
+Assets/_Project/Scripts/UI/Components/  # UIButtonSounds
+Assets/_Project/Audio/                  # Music/, SFX/, Ambience/
 ```
 
-See [AGENTS.md](../../../AGENTS.md) for full protocol.
-
-## Discovery Protocol
-
-When you find work outside your current task: **do not context-switch.** File a bead with `bd create "Discovered: <title>" -p <priority> -l agent:<target>`, set dependencies if needed, note it in your current bead, and continue. See [AGENTS.md](../../../AGENTS.md) for full protocol.
-
----
-
-## Owned Scripts
-
-```
-Assets/_Project/Scripts/Audio/
-├── MusicManager.cs              # Singleton — BGM playback, ducking, track switching
-└── SFXManager.cs                # Static helper — volume-scaled PlayOneShot/PlayAtPoint
-
-Assets/_Project/Scripts/UI/Core/
-├── UISoundBank.cs               # ScriptableObject — all UI sound clips + volumes
-└── UIManager.cs                 # Singleton — owns UI AudioSource, references UISoundBank
-
-Assets/_Project/Scripts/UI/Components/
-└── UIButtonSounds.cs            # Component — auto-plays sounds on UI interaction
-
-Assets/_Project/Audio/
-├── Music/                       # Background music tracks
-├── SFX/{Combat,Enemy,Player,UI,Environment}/
-└── Ambience/                    # Looping environmental tracks
-```
+**Key scripts:**
+| Script | Type | Role |
+|--------|------|------|
+| `SFXManager.cs` | Static class | Volume-scaled PlayOneShot / PlayAtPoint |
+| `MusicManager.cs` | Singleton | BGM playback, ducking, track switching |
+| `UISoundBank.cs` | ScriptableObject | All UI sound clips + per-category volumes |
+| `UIButtonSounds.cs` | Component | Auto-plays sounds on pointer enter/click |
 
 ---
 
-## SFXManager (Static Helper)
+## Task Routing
 
-Stateless utility. Reads volume from PlayerPrefs every call.
-
-```csharp
-public static class SFXManager
-{
-    public static float GetVolume()
-    {
-        float master = PlayerPrefs.GetFloat("Audio_Master", 1f);
-        float sfx = PlayerPrefs.GetFloat("Audio_SFX", 1f);
-        return master * sfx;
-    }
-
-    public static void PlayOneShot(AudioSource source, AudioClip clip)
-    {
-        if (source == null || clip == null) return;
-        source.PlayOneShot(clip, GetVolume());
-    }
-
-    public static void PlayAtPoint(AudioClip clip, Vector3 position)
-    {
-        if (clip == null) return;
-        AudioSource.PlayClipAtPoint(clip, position, GetVolume());
-    }
-}
-```
-
-**Usage:** `SFXManager.PlayOneShot(audioSource, enemyData.hurtSound);`
-
----
-
-## MusicManager (Singleton)
-
-Persistent across scenes. Volume ducking during pause.
-
-```csharp
-// Volume formula: masterVolume * musicVolume * duckMultiplier
-// Duck to 0.5 when paused
-
-public void PlayTrack(AudioClip clip);  // Prevents duplicate playback
-public void Stop();
-public void SetVolume(float volume);    // Updates musicVolume + PlayerPrefs
-```
-
----
-
-## UISoundBank (ScriptableObject)
-
-```csharp
-[CreateAssetMenu(fileName = "UISoundBank", menuName = "Game/Audio/UI Sound Bank")]
-public class UISoundBank : ScriptableObject
-{
-    [Header("Navigation")]  public AudioClip navigate, select, cancel;
-    [Header("Actions")]     public AudioClip confirm, error;
-    [Header("Ambience")]    public AudioClip backgroundDrone, candleFlicker;
-    [Header("Volume")]
-    public float navigationVolume = 0.5f;
-    public float actionVolume = 0.7f;
-    public float ambienceVolume = 0.3f;
-}
-```
-
----
-
-## Audio in Data Assets
-
-Audio clips stored in ScriptableObjects, never hardcoded on prefabs:
-
-| Asset | Audio Fields |
-|-------|-------------|
-| `EnemyData` | idleSound, alertSound, attackSound, hurtSound, deathSound |
-| `AttackData` | attackSound, hitSound |
-| `EnemyAttackData` | attackSound |
-
----
-
-## PlayerPrefs Audio Keys
-
-| Key | Default | Used By |
-|-----|---------|---------|
-| `Audio_Master` | 1.0 | SFXManager, MusicManager |
-| `Audio_Music` | 1.0 | MusicManager |
-| `Audio_SFX` | 1.0 | SFXManager |
-
-Set by `OptionsMenuController` sliders, persisted across sessions.
-
----
-
-## Prefab Audio Rules
-
-Every prefab that plays sound must have:
-- `AudioSource` component (`playOnAwake = false`, `spatialBlend = 0` for 2D)
-- AudioClip references in its ScriptableObject data (NOT on the prefab)
-- Playback routed through `SFXManager.PlayOneShot()` for volume consistency
-
-Exception: `ExperienceOrb` uses `SFXManager.PlayAtPoint()` (no AudioSource needed).
-
----
-
-## Common Issues
-
-### Sound Not Playing
-- Verify AudioSource exists on the GameObject
-- Check AudioClip assigned in ScriptableObject (not null)
-- Confirm `SFXManager.PlayOneShot()` is called (not raw `audioSource.PlayOneShot()`)
-- Check PlayerPrefs volume isn't 0
-
-### Volume Not Responding to Slider
-- SFXManager reads PlayerPrefs each call — verify key names match
-- MusicManager caches volume — call `SetVolume()` after slider change
-
-### Multiple Sounds Overlapping
-- Use `audioSource.isPlaying` check for looping sounds
-- Consider cooldown timers for rapid-fire sounds (footsteps, impacts)
+| Task involves... | Read this first |
+|------------------|-----------------|
+| SFX playback, AudioSource setup, prefab audio | [sfx-system.md](sfx-system.md) |
+| Background music, ducking, track switching | [music-system.md](music-system.md) |
+| ScriptableObject audio fields, PlayerPrefs keys, volume settings, troubleshooting | [audio-data.md](audio-data.md) |
 
 ---
 
 ## Domain Rules
 
-- **Route all SFX through SFXManager** — never call `audioSource.PlayOneShot()` directly
-- **Store clips in ScriptableObjects** — EnemyData, AttackData, UISoundBank, etc.
-- **Design for silence** — every audio field is nullable; `null` = no sound, no error
-- **Respect the volume chain** — Master * Category = final volume
+- **Route all SFX through SFXManager** — because SFXManager applies the Master * Category volume chain from PlayerPrefs every call; bypassing it means sounds ignore the player's volume settings.
+- **Store clips in ScriptableObjects** — because it decouples audio from prefabs, allowing sound designers to swap clips without touching prefabs that might have complex override chains.
+- **Design for silence** — because every audio field is nullable by design; `null` = no sound configured yet, not an error. Null-checking before playback prevents NullReferenceException spam in early development when not all sounds exist.
+- **Respect the volume chain** — because the formula is `Master * Category = final volume`; breaking this chain (e.g., playing at full volume) makes that sound immune to the player's settings, which is a UX violation.
+
+---
+
+## Cross-Agent Boundaries
+
+| System | Owner | Sound-design touches... |
+|--------|-------|------------------------|
+| Enemy AI / spawning | `enemy-behavior` | Only the AudioClip fields on `EnemyData` and `EnemyAttackData` |
+| Combat | `player` | Only the AudioClip fields on `AttackData` and `WeaponData` |
+| UI layout / panels | `ui-ux` | Only `UISoundBank`, `UIButtonSounds`, and `UIManager` audio methods |
+| VFX | `vfx` | None — VFX agent handles visual effects; sound agent handles audio triggers |
+| Options menu | `ui-ux` | Only the volume slider integration in `OptionsMenuController` |
+
+See [_shared/boundaries.md](../_shared/boundaries.md) for the full cross-agent ownership map.

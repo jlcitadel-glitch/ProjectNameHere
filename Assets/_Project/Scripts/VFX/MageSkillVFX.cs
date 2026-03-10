@@ -82,13 +82,15 @@ public static class MageSkillVFX
         var frames = GetFrames("fireball_ball");
         if (frames == null || projectile == null) return;
 
-        var animator = projectile.AddComponent<SkillSpriteAnimator>();
         var sr = projectile.GetComponent<SpriteRenderer>();
         if (sr == null) sr = projectile.AddComponent<SpriteRenderer>();
 
+        // Reset color — sprite art already has correct colors, damage-type tint would double-color
+        sr.color = Color.white;
         sr.sortingLayerName = "Foreground";
         sr.sortingOrder = 10;
 
+        var animator = projectile.AddComponent<SkillSpriteAnimator>();
         animator.Initialize(frames, 12f, loop: true);
     }
 
@@ -126,13 +128,15 @@ public static class MageSkillVFX
         var frames = GetFrames("icebolt_ball");
         if (frames == null || projectile == null) return;
 
-        var animator = projectile.AddComponent<SkillSpriteAnimator>();
         var sr = projectile.GetComponent<SpriteRenderer>();
         if (sr == null) sr = projectile.AddComponent<SpriteRenderer>();
 
+        // Reset color — sprite art already has correct colors
+        sr.color = Color.white;
         sr.sortingLayerName = "Foreground";
         sr.sortingOrder = 10;
 
+        var animator = projectile.AddComponent<SkillSpriteAnimator>();
         animator.Initialize(frames, 12f, loop: true);
     }
 
@@ -141,20 +145,28 @@ public static class MageSkillVFX
     // ===========================
 
     /// <summary>
-    /// Spawns the shield activation burst, then returns the looping aura animator
-    /// so it can be parented to the player.
+    /// Spawns the shield activation burst and a looping aura parented to the caster.
+    /// The looping aura self-destructs after the given duration.
     /// </summary>
-    public static SkillSpriteAnimator SpawnMagicShieldActivate(Vector3 position)
+    public static void SpawnMagicShield(Transform caster, float duration)
     {
+        Vector3 position = caster.position;
+
+        // One-shot activation burst
         var activateFrames = GetFrames("magicshield_activate");
         if (activateFrames != null)
             SkillSpriteAnimator.Spawn(position, activateFrames, 20f, loop: false, scale: 1.2f);
 
-        // Spawn the looping shield aura
+        // Looping shield aura — parent to caster so it follows the player
         var loopFrames = GetFrames("magicshield_loop");
-        if (loopFrames == null) return null;
+        if (loopFrames == null) return;
 
-        return SkillSpriteAnimator.Spawn(position, loopFrames, 10f, loop: true, scale: 1f);
+        var loopAura = SkillSpriteAnimator.Spawn(position, loopFrames, 10f, loop: true, scale: 1f);
+        loopAura.transform.SetParent(caster, true);
+        loopAura.transform.localPosition = Vector3.zero;
+
+        // Destroy the loop when the buff expires
+        Object.Destroy(loopAura.gameObject, duration);
     }
 
     // ===========================

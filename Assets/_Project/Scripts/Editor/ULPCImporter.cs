@@ -575,6 +575,152 @@ public static class ULPCImporter
         return null;
     }
 
+    // ── Step 7: Configure Hair Textures ─────────────────────────────────
+    // Hair sprites use the SAME per-animation PNG layout as Body/Head/Equipment:
+    //   Hair/{style}/{anim}/{color}.png
+    // Each PNG is a standard ULPC spritesheet (right-facing row at y:0).
+
+    [MenuItem("Tools/ULPC/7 - Configure Hair Textures")]
+    static void Step7_ConfigureHairTextures()
+    {
+        string hairRoot = $"{UlpcRoot}/Hair";
+        if (!Directory.Exists(Path.GetFullPath(hairRoot)))
+        {
+            Debug.LogError($"[ULPCImporter] Hair root not found: {hairRoot}");
+            return;
+        }
+
+        // Discover all styles (subdirectories of Hair/)
+        var styleDirs = Directory.GetDirectories(Path.GetFullPath(hairRoot));
+        int count = 0;
+        int processed = 0;
+
+        // Count total PNGs for progress bar
+        int total = 0;
+        foreach (string styleDir in styleDirs)
+            foreach (var anim in Animations)
+            {
+                string animDir = Path.Combine(styleDir, anim.folder);
+                if (Directory.Exists(animDir))
+                    total += Directory.GetFiles(animDir, "*.png").Length;
+            }
+
+        try
+        {
+            foreach (string styleDir in styleDirs)
+            {
+                string styleName = Path.GetFileName(styleDir);
+
+                foreach (var anim in Animations)
+                {
+                    string animDir = Path.Combine(styleDir, anim.folder);
+                    if (!Directory.Exists(animDir)) continue;
+
+                    foreach (string pngPath in Directory.GetFiles(animDir, "*.png"))
+                    {
+                        string color = Path.GetFileNameWithoutExtension(pngPath);
+                        string assetPath = $"{hairRoot}/{styleName}/{anim.folder}/{color}.png";
+
+                        processed++;
+                        if (processed % 50 == 0)
+                            EditorUtility.DisplayProgressBar("Configure Hair Textures",
+                                $"{styleName}/{anim.folder}/{color} ({processed}/{total})",
+                                (float)processed / Mathf.Max(total, 1));
+
+                        count += ConfigureTexture(assetPath, color, anim);
+                    }
+                }
+            }
+        }
+        finally
+        {
+            EditorUtility.ClearProgressBar();
+        }
+
+        AssetDatabase.Refresh();
+        Debug.Log($"[ULPCImporter] Configured {count} hair textures with sprite slicing.");
+    }
+
+    // ── Step 8: Create Hair BodyPart Assets ─────────────────────────────
+
+    [MenuItem("Tools/ULPC/8 - Create Hair BodyPart Assets")]
+    static void Step8_CreateHairBodyPartAssets()
+    {
+        string hairRoot = $"{UlpcRoot}/Hair";
+        if (!Directory.Exists(Path.GetFullPath(hairRoot)))
+        {
+            Debug.LogError($"[ULPCImporter] Hair root not found: {hairRoot}");
+            return;
+        }
+
+        EnsureDirectory($"{BodyPartsDir}/Hair");
+
+        int totalFrames = 0;
+        foreach (var anim in Animations)
+            totalFrames += anim.frameCount;
+
+        // Discover unique style+color combos by scanning walk/ directories
+        // (walk is guaranteed to exist for every valid hair style)
+        var styleDirs = Directory.GetDirectories(Path.GetFullPath(hairRoot));
+        var combos = new List<(string style, string color)>();
+
+        foreach (string styleDir in styleDirs)
+        {
+            string styleName = Path.GetFileName(styleDir);
+            // Use walk/ as the canonical color list for this style
+            string walkDir = Path.Combine(styleDir, "walk");
+            if (!Directory.Exists(walkDir)) continue;
+
+            foreach (string pngPath in Directory.GetFiles(walkDir, "*.png"))
+            {
+                string color = Path.GetFileNameWithoutExtension(pngPath);
+                combos.Add((styleName, color));
+            }
+        }
+
+        int count = 0;
+        AssetDatabase.StartAssetEditing();
+        try
+        {
+            for (int i = 0; i < combos.Count; i++)
+            {
+                var (style, color) = combos[i];
+
+                if (i % 20 == 0)
+                    EditorUtility.DisplayProgressBar("Create Hair BodyPart Assets",
+                        $"{style}/{color} ({i}/{combos.Count})",
+                        (float)i / combos.Count);
+
+                CreateHairBodyPartAsset(style, color, hairRoot, totalFrames);
+                count++;
+            }
+        }
+        finally
+        {
+            AssetDatabase.StopAssetEditing();
+            EditorUtility.ClearProgressBar();
+        }
+
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        BodyPartRegistryBuilder.Build();
+        Debug.Log($"[ULPCImporter] Created {count} hair BodyPartData assets.");
+    }
+
+    static void CreateHairBodyPartAsset(string styleName, string color, string hairRoot, int totalFrames)
+    {
+        string partId = $"hair_{styleName}_male_{color}";
+        string displayName = $"{CapFirst(styleName)} ({CapFirst(color.Replace('_', ' '))})";
+        string outputPath = $"{BodyPartsDir}/Hair/{partId}.asset";
+        string subFolder = $"Hair/{styleName}";
+
+        // Reuse the same pattern as Body/Head/Equipment:
+        // load per-animation PNGs from Hair/{style}/{anim}/{color}.png
+        CreateBodyPartAsset(
+            partId, displayName, BodyPartSlot.Hair, "male",
+            subFolder, color, totalFrames, outputPath);
+    }
+
     // ── Helpers ────────────────────────────────────────────────────────────
 
     static void CreateBodyPartAsset(

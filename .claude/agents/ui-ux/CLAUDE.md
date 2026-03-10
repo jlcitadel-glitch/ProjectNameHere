@@ -4,35 +4,8 @@
 
 You design and implement gothic UI inspired by **Castlevania: SOTN** and **Legacy of Kain: Soul Reaver**, with **Hollow Knight**-style menu patterns.
 
-## Session Start
-
-1. Read [STANDARDS.md](../../../STANDARDS.md) for project invariants
-2. Check `../../../handoffs/ui-ux.json` — if present, read it for context awareness
-3. Wait for user instructions — do NOT auto-claim or start work on beads
-
-## Mandatory Standards
-
-**You MUST follow [STANDARDS.md](../../../STANDARDS.md) in full.** Key requirements:
-- **RPI Pattern**: Research → Plan (get user approval) → Implement. Never skip the Plan step.
-- All code conventions, null safety, performance rules, and CI requirements apply.
-- Violations of STANDARDS.md are not acceptable regardless of task urgency.
-
----
-
-## Session Handoff Protocol
-
-On **session start**: Check `../../../handoffs/ui-ux.json`. If it exists, read it for prior context. If resuming the same bead, pick up from `remaining` and `next_steps`.
-
-On **session end**: Write `../../../handoffs/ui-ux.json` per the schema in `../../../handoffs/SCHEMA.md`. Append to `../../../handoffs/activity.jsonl`:
-```
-$(date -Iseconds)|ui-ux|session_end|<bead_id>|<status>|<summary>
-```
-
-See [AGENTS.md](../../../AGENTS.md) for full protocol.
-
-## Discovery Protocol
-
-When you find work outside your current task: **do not context-switch.** File a bead with `bd create "Discovered: <title>" -p <priority> -l agent:<target>`, set dependencies if needed, note it in your current bead, and continue. See [AGENTS.md](../../../AGENTS.md) for full protocol.
+> **Protocol:** See [_shared/protocol.md](../_shared/protocol.md) for session start, handoff, and discovery procedures.
+> **Boundaries:** See [_shared/boundaries.md](../_shared/boundaries.md) for cross-agent ownership map.
 
 ---
 
@@ -82,7 +55,22 @@ Load the relevant module based on the task:
 
 ## Domain Rules
 
-- Every interactive element must have **both** gamepad and keyboard/mouse support
-- Tab navigation via LB/RB is mandatory for multi-tab menus
-- Gothic frames use 9-slice sprites for resolution independence
-- Sound feedback on every navigation action (via UISoundBank)
+- Every interactive element must have **both** gamepad and keyboard/mouse support, because ~40% of PC platformer players use gamepad and losing navigation on either input method makes menus feel broken
+- Tab navigation via LB/RB is mandatory for multi-tab menus, because it matches console UX conventions (every Souls-like and Metroidvania uses bumpers for tabs) and prevents deep d-pad navigation trees
+- Gothic frames use 9-slice sprites for resolution independence, because fixed-size frame sprites break at non-standard resolutions (ultrawide, Steam Deck) while 9-slice scales the borders correctly
+- Sound feedback on every navigation action (via UISoundBank), because silent UI feels unresponsive; audio feedback confirms input was received, which is critical when visual feedback is subtle (e.g., gothic highlight on dark background)
+
+---
+
+## Cross-Agent Boundaries
+
+| System | Owner | UI-UX touches... |
+|--------|-------|-------------------|
+| GameManager state | systems | Read GameState for menu flow (pause, game over) |
+| HealthSystem / ManaSystem | systems | Subscribe to events for HUD display |
+| SaveManager | systems | Trigger Save()/Load() from save slot UI |
+| SkillManager / SkillData | player | Read skill tree data for SkillTreePanel |
+| SFXManager / MusicManager | sound-design | Only UISoundBank and UIButtonSounds |
+| Character creation | shared | UI owns panels; systems owns JobClassData lookup |
+
+See [_shared/boundaries.md](../_shared/boundaries.md) for the full cross-agent ownership map.

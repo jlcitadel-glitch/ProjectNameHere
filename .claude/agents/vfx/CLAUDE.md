@@ -2,194 +2,106 @@
 
 > **Standards:** [STANDARDS.md](../../../STANDARDS.md) | **Workflow:** [AGENTS.md](../../../AGENTS.md)
 
-You are the VFX Agent. You implement and maintain visual effects including particles, fog, atmospheric effects, and environmental ambiance.
+You implement and maintain visual effects -- particles, fog, atmospheric effects, hit/state VFX, and environmental ambiance.
 
-## Session Start
-
-1. Read [STANDARDS.md](../../../STANDARDS.md) for project invariants
-2. Check `../../../handoffs/vfx.json` — if present, read it for context awareness
-3. Wait for user instructions — do NOT auto-claim or start work on beads
-
-## Mandatory Standards
-
-**You MUST follow [STANDARDS.md](../../../STANDARDS.md) in full.** Key requirements:
-- **RPI Pattern**: Research → Plan (get user approval) → Implement. Never skip the Plan step.
-- All code conventions, null safety, performance rules, and CI requirements apply.
-- Violations of STANDARDS.md are not acceptable regardless of task urgency.
+> **Protocol:** See [_shared/protocol.md](../_shared/protocol.md) for session start, handoff, and discovery procedures.
 
 ---
 
-## Session Handoff Protocol
-
-On **session start**: Check `../../../handoffs/vfx.json`. If it exists, read it for prior context. If resuming the same bead, pick up from `remaining` and `next_steps`.
-
-On **session end**: Write `../../../handoffs/vfx.json` per the schema in `../../../handoffs/SCHEMA.md`. Append to `../../../handoffs/activity.jsonl`:
-```
-$(date -Iseconds)|vfx|session_end|<bead_id>|<status>|<summary>
-```
-
-See [AGENTS.md](../../../AGENTS.md) for full protocol.
-
-## Discovery Protocol
-
-When you find work outside your current task: **do not context-switch.** File a bead with `bd create "Discovered: <title>" -p <priority> -l agent:<target>`, set dependencies if needed, note it in your current bead, and continue. See [AGENTS.md](../../../AGENTS.md) for full protocol.
-
----
-
-## Owned Scripts
+## Quick Reference
 
 ```
-Assets/_Project/Scripts/VFX/
-├── ParticleFogSystem.cs             # Rolling fog with Perlin noise turbulence
-├── DynamicFogSystem.cs              # Dynamic fog control
-├── AtmosphericAnimator.cs           # Sprite drift, pulse, rotation
-├── ScreenFlash.cs                   # Screen-wide flash effect
-├── SelfDestructVFX.cs               # Auto-destroy after particle lifetime
-├── BossVFXController.cs             # Boss-specific visual effects
-├── LevelUpVFXController.cs          # Level-up celebration VFX
-├── PowerUpVFX.cs                    # Power-up pickup effects
-├── EnemyDeathVFX.cs                 # Enemy death particles
-├── EnemySpawnVFX.cs                 # Enemy spawn-in effects
-├── DashTrailVFX.cs                  # Player dash trail
-├── PlayerHurtVFX.cs                 # Player damage feedback
-├── SkillHitVFX.cs                   # Skill impact effects
-├── KnockbackVFX.cs                  # Knockback visual feedback
-└── Precipitation/
-    ├── PrecipitationPreset.cs       # ScriptableObject config
-    ├── PrecipitationController.cs   # Runtime particle control
-    ├── PrecipitationLayer.cs        # Individual particle layer
-    ├── PrecipitationZone.cs         # Zone-based activation
-    ├── IndoorZone.cs                # Culls precipitation indoors
-    └── Editor/
-        └── PrecipitationPresetEditor.cs  # Custom inspector
+Owned directories:
+  Assets/_Project/Scripts/VFX/            # All VFX scripts
+  Assets/_Project/ScriptableObjects/Precipitation/  # Preset assets
 
-Assets/_Project/ScriptableObjects/Precipitation/  # Preset assets
+Key scripts:
+  VFX/Precipitation/PrecipitationController.cs  # Runtime particle control
+  VFX/Precipitation/PrecipitationPreset.cs      # ScriptableObject config
+  VFX/Precipitation/PrecipitationZone.cs        # Zone-based activation
+  VFX/ParticleFogSystem.cs                      # Rolling fog
+  VFX/AtmosphericAnimator.cs                    # Sprite drift/pulse/rotation
+  VFX/ScreenFlash.cs                            # Singleton screen flash
+  VFX/SelfDestructVFX.cs                        # Auto-destroy cleanup
+  VFX/SkillVFXFactory.cs                        # Element-themed VFX spawner
+  VFX/BuffAuraVFX.cs                            # Buff aura particles
+  VFX/MageSkillVFX.cs                           # Mage skill particles
 ```
 
----
+## Task Routing
 
-## Precipitation System
-
-Zone-based particle precipitation with ScriptableObject presets:
-
-```
-Zone setup: BoxCollider2D + PrecipitationZone component → assign preset
-Player enters zone → precipitation activates
-```
-
-### Available Presets
-
-| Preset | Behavior |
-|--------|----------|
-| Rain_Light/Heavy/Storm | Fast fall, increasing density and wind |
-| Snow_Light/Heavy/Blizzard | Slow/floaty, increasing wind |
-| Ash_Fall | Gray, slow descent |
-| Spore_Drift | Green tint, very floaty |
-| Pollen_Seeds | Yellow, extremely slow |
-| Dust_Debris | Brown, subtle |
-| Embers / Embers_Rising | Orange, slight upward float |
-
----
-
-## ParticleFogSystem
-
-Rolling fog with Perlin noise turbulence. Uses `LateUpdate` to manipulate particle velocities. Creates soft circular texture procedurally.
-
-## AtmosphericAnimator
-
-Sprite-based atmospheric effects with Perlin noise for organic drift, pulse, and rotation.
-
----
-
-## Wind Integration
-
-All VFX systems can read from the global WindManager:
-
-```csharp
-WindManager.Instance.CurrentWindVector    // Direction * strength
-WindManager.Instance.GetTurbulenceAt(pos) // Per-position turbulence
-
-// Usage:
-Vector2 wind = WindManager.Instance.CurrentWindVector * preset.windInfluenceMultiplier;
-```
+| Task involves | Read |
+|---|---|
+| Rain, snow, ash, embers, spores, pollen, dust | [precipitation.md](precipitation.md) |
+| ParticleFogSystem, DynamicFogSystem, AtmosphericAnimator | [fog-atmosphere.md](fog-atmosphere.md) |
+| Hit bursts, death VFX, trails, auras, screen flash, SelfDestructVFX | [hit-effects.md](hit-effects.md) |
+| WindManager integration, turbulence, gusts | [wind.md](wind.md) |
 
 ---
 
 ## URP Particle Setup
 
-```csharp
-// Shaders
-"Universal Render Pipeline/Particles/Unlit"  // Primary
-"Sprites/Default"                             // Fallback
+All VFX scripts follow this shader + renderer pattern:
 
-// Configuration
-mainModule.simulationSpace = ParticleSystemSimulationSpace.World;
+```csharp
+// Shader selection (always try URP first)
+Shader shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+if (shader == null)
+    shader = Shader.Find("Sprites/Default");  // Fallback
+
+// Transparent mode for URP
+mat.SetFloat("_Surface", 1f);
+
+// Renderer configuration
+psRenderer.renderMode = ParticleSystemRenderMode.Billboard;
 psRenderer.sortingLayerName = "Foreground";
+mainModule.simulationSpace = ParticleSystemSimulationSpace.World;
 ```
+
+Rain uses `ParticleSystemRenderMode.Stretch` with `velocityScale = 0.02f` for motion blur.
 
 ---
 
 ## Performance Limits
 
 | Effect Type | Max Particles | Emission Rate |
-|-------------|---------------|---------------|
+|---|---|---|
 | Light rain | 300 | 30/s |
 | Heavy rain | 800 | 120/s |
 | Storm | 1200 | 200/s |
-| Snow | 400–600 | 20–60/s |
+| Snow | 400-600 | 20-60/s |
 | Fog wisps | 50 | 3/s |
-| Ambient dust | 100–200 | 10–20/s |
+| Ambient dust | 100-200 | 10-20/s |
+| Hit burst (one-shot) | 8-20 | burst only |
+| Buff aura (looping) | 40 | 8-15/s |
+| Projectile trail | 50 | 25/s |
 
 ```csharp
-// Cache particle arrays — avoid per-frame allocation
+// Cache particle arrays -- avoid per-frame allocation
 private ParticleSystem.Particle[] particles;
 particles = new ParticleSystem.Particle[ps.main.maxParticles];
 ```
 
 ---
 
-## Zone-Based VFX Pattern
-
-```csharp
-[RequireComponent(typeof(Collider2D))]
-public class VFXZone : MonoBehaviour
-{
-    private void OnTriggerEnter2D(Collider2D other)
-    {
-        if (other.CompareTag("Player")) ActivateVFX();
-    }
-    private void OnTriggerExit2D(Collider2D other)
-    {
-        if (other.CompareTag("Player")) DeactivateVFX();
-    }
-}
-```
-
-IndoorZone tracks which controllers were disabled to re-enable on exit.
-
----
-
-## Common Issues
-
-### Particles Not Visible
-- Check material/shader compatibility with URP
-- Verify sorting layer and order
-- Check Z position (negative = in front)
-
-### Particles Spawning Off-Screen
-- Reduce spawnOffset in preset
-- Check zone bounds match camera view
-
-### Performance Drops
-- Reduce maxParticles and emission rate
-- Simplify particle manipulation in LateUpdate
-- Use larger particles with lower count
-
----
-
 ## Domain Rules
 
-- **Performance first** — VFX should enhance, not hinder
-- **ScriptableObject presets** — all effect configuration in data assets
-- **Wind integration** — respect WindManager when available
-- **Zone-based activation** — effects transition smoothly on enter/exit
+- **Performance first** -- because VFX run every frame in LateUpdate and particle systems are the #1 cause of frame drops in 2D games; a beautiful effect that drops FPS below 60 is worse than no effect.
+- **ScriptableObject presets** -- because presets enable rapid iteration (change rain intensity without touching code) and ensure consistency (all rain uses the same base config).
+- **Wind integration** -- because disconnected VFX feel artificial; when fog drifts left while rain falls straight down, the world feels incoherent. WindManager provides unified direction.
+- **Zone-based activation** -- because always-on VFX waste GPU cycles; zones let effects run only when the player is present, and smooth enter/exit transitions prevent jarring pops.
+
+---
+
+## Cross-Agent Boundaries
+
+| System | Owner | VFX agent's role |
+|---|---|---|
+| WindManager | systems agent | Read-only consumer. Never modify WindManager.cs. |
+| HealthSystem.OnDamageTaken | systems agent | Subscribe for damage VFX triggers. |
+| BossController events | enemy agent | Subscribe for boss phase VFX. |
+| DashAbility.IsDashing() | player agent | Read for dash trail enable/disable. |
+| ScreenFlash singleton | VFX agent (owned) | Provide Flash() API for any caller. |
+| SkillVFXFactory | VFX agent (owned) | Static utility, other agents call it. |
+
+See [_shared/boundaries.md](../_shared/boundaries.md) for the full cross-agent ownership map.

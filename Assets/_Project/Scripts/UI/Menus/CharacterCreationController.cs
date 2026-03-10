@@ -88,7 +88,8 @@ namespace ProjectName.UI
         private CreationStep currentStep;
 
         // Appearance selection state
-        private BodyPartData[] availableHairStyles;
+        private string[] availableHairStyleNames;     // unique style names (e.g. "messy1", "afro")
+        private string[] availableHairStyleDisplayNames; // title-cased for UI
         private int selectedHairIndex;
         private CharacterAppearanceConfig builtAppearance;
         private string selectedBodyType = "male";
@@ -119,21 +120,47 @@ namespace ProjectName.UI
             "light", "amber", "olive", "taupe", "bronze", "brown", "black"
         };
 
-        private static readonly Color[] HairColorPresets = new Color[]
-        {
-            new Color(0.75f, 0.15f, 0.10f),     // Red
-            new Color(0.90f, 0.50f, 0.10f),     // Orange
-            new Color(0.95f, 0.85f, 0.30f),     // Blonde
-            new Color(0.45f, 0.30f, 0.15f),     // Brown
-            new Color(0.15f, 0.12f, 0.10f),     // Black
-            Color.white,                          // White
-            new Color(0.10f, 0.85f, 0.90f),     // Cyan
-            new Color(0.15f, 0.70f, 0.25f),     // Green
-            new Color(0.55f, 0.20f, 0.75f),     // Purple
+        // Pre-baked ULPC hair color suffixes (match PNG filenames under Hair/{style}/male/)
+        private static readonly string[] HairColorSuffixes = {
+            "ash", "black", "blonde", "blue", "carrot", "chestnut",
+            "dark_brown", "dark_gray", "ginger", "gold", "gray", "green",
+            "light_brown", "navy", "orange", "pink", "platinum", "purple",
+            "raven", "red", "redhead", "rose", "sandy", "strawberry", "violet", "white"
         };
-        private static readonly string[] HairColorNames = new string[]
-        {
-            "Red", "Orange", "Blonde", "Brown", "Black", "White", "Cyan", "Green", "Purple"
+        private static readonly string[] HairColorNames = {
+            "Ash", "Black", "Blonde", "Blue", "Carrot", "Chestnut",
+            "Dark Brown", "Dark Gray", "Ginger", "Gold", "Gray", "Green",
+            "Light Brown", "Navy", "Orange", "Pink", "Platinum", "Purple",
+            "Raven", "Red", "Redhead", "Rose", "Sandy", "Strawberry", "Violet", "White"
+        };
+        // Approximate swatch colors for UI preview
+        private static readonly Color[] HairColorSwatches = {
+            new Color(0.70f, 0.68f, 0.65f),     // Ash
+            new Color(0.08f, 0.07f, 0.06f),     // Black
+            new Color(0.95f, 0.87f, 0.55f),     // Blonde
+            new Color(0.20f, 0.30f, 0.80f),     // Blue
+            new Color(0.90f, 0.40f, 0.10f),     // Carrot
+            new Color(0.55f, 0.27f, 0.07f),     // Chestnut
+            new Color(0.30f, 0.18f, 0.10f),     // Dark Brown
+            new Color(0.35f, 0.35f, 0.35f),     // Dark Gray
+            new Color(0.80f, 0.35f, 0.10f),     // Ginger
+            new Color(0.85f, 0.70f, 0.20f),     // Gold
+            new Color(0.60f, 0.60f, 0.60f),     // Gray
+            new Color(0.15f, 0.60f, 0.20f),     // Green
+            new Color(0.50f, 0.35f, 0.20f),     // Light Brown
+            new Color(0.10f, 0.10f, 0.35f),     // Navy
+            new Color(0.95f, 0.55f, 0.10f),     // Orange
+            new Color(0.90f, 0.45f, 0.60f),     // Pink
+            new Color(0.88f, 0.88f, 0.85f),     // Platinum
+            new Color(0.50f, 0.15f, 0.65f),     // Purple
+            new Color(0.12f, 0.10f, 0.08f),     // Raven
+            new Color(0.75f, 0.15f, 0.10f),     // Red
+            new Color(0.65f, 0.20f, 0.10f),     // Redhead
+            new Color(0.85f, 0.50f, 0.55f),     // Rose
+            new Color(0.76f, 0.70f, 0.50f),     // Sandy
+            new Color(0.85f, 0.40f, 0.30f),     // Strawberry
+            new Color(0.45f, 0.20f, 0.60f),     // Violet
+            new Color(0.95f, 0.95f, 0.95f),     // White
         };
         private int selectedHairColorIndex;
 
@@ -277,10 +304,12 @@ namespace ProjectName.UI
             availableClasses = null;
             selectedHairIndex = 0;
             selectedSkinToneIndex = 0;
-            selectedHairColorIndex = 0;
+            selectedHairColorIndex = 6; // dark_brown default
             selectedBeardIndex = -1;
             builtAppearance = null;
             selectedBodyType = "male";
+            availableHairStyleNames = null;
+            availableHairStyleDisplayNames = null;
 
             if (appearancePreview != null)
                 appearancePreview.Clear();
@@ -540,9 +569,16 @@ namespace ProjectName.UI
                 builtAppearance.head = FindDefaultHumanHead(faceHeads, headParts, selectedBodyType);
             }
 
-            var hairParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Hair);
-            if (hairParts.Length > 0) builtAppearance.hair = hairParts[0];
-            builtAppearance.hairTint = HairColorPresets[0];
+            // Hair: resolve by style+color asset-swap
+            availableHairStyleNames = GetAvailableHairStyleNames(selectedBodyType);
+            if (availableHairStyleNames.Length > 0)
+            {
+                selectedHairIndex = FindStyleIndex(availableHairStyleNames, "messy1");
+                selectedHairColorIndex = 6; // dark_brown
+                var resolved = bodyPartRegistry.GetPartById(BuildHairPartId(availableHairStyleNames[selectedHairIndex], selectedHairColorIndex));
+                if (resolved != null) builtAppearance.hair = resolved;
+            }
+            builtAppearance.hairTint = Color.white;
 
             AssignDefaultClothing();
         }
@@ -706,9 +742,9 @@ namespace ProjectName.UI
             SetPanelActive(classSelectionPanel, false);
             SetPanelActive(appearancePanel, true);
 
-            // Gather available styles (filtered by body type)
-            availableHairStyles = FilterHairStyles(
-                bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Hair, selectedBodyType), selectedBodyType);
+            // Gather available hair style names and beard styles
+            availableHairStyleNames = GetAvailableHairStyleNames(selectedBodyType);
+            availableHairStyleDisplayNames = BuildHairDisplayNames(availableHairStyleNames);
             availableBeardStyles = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Beard, selectedBodyType);
 
             // Filter head parts: only "head_" prefixed parts are actual face bases
@@ -718,10 +754,9 @@ namespace ProjectName.UI
             // Only initialize appearance if not already built (preserve choices when navigating back)
             if (builtAppearance == null)
             {
-                selectedHairIndex = availableHairStyles != null && availableHairStyles.Length > 0
-                    ? FindPartIndex(availableHairStyles, "hair_messy1") : 0;
+                selectedHairIndex = FindStyleIndex(availableHairStyleNames, "messy1");
                 selectedSkinToneIndex = 0;
-                selectedHairColorIndex = 3; // Brown
+                selectedHairColorIndex = 6; // dark_brown
                 selectedBeardIndex = -1;
 
                 builtAppearance = ScriptableObject.CreateInstance<CharacterAppearanceConfig>();
@@ -740,21 +775,26 @@ namespace ProjectName.UI
                 if (builtAppearance.head == null)
                     builtAppearance.head = FindDefaultHumanHead(filteredHeadParts, allHeadParts, selectedBodyType);
 
-                if (availableHairStyles != null && availableHairStyles.Length > 0)
-                    builtAppearance.hair = availableHairStyles[selectedHairIndex];
+                // Resolve hair by style+color
+                if (availableHairStyleNames.Length > 0)
+                {
+                    var resolved = bodyPartRegistry.GetPartById(
+                        BuildHairPartId(availableHairStyleNames[selectedHairIndex], selectedHairColorIndex));
+                    if (resolved != null) builtAppearance.hair = resolved;
+                }
 
-                builtAppearance.hairTint = HairColorPresets[selectedHairColorIndex];
+                builtAppearance.hairTint = Color.white;
 
                 AssignDefaultClothing();
             }
 
             // Show/hide option rows based on available data
-            ShowRowIfHasData(hairPrevButton, availableHairStyles);
+            bool hasHair = availableHairStyleNames != null && availableHairStyleNames.Length > 0;
+            ShowRowIfHasString(hairPrevButton, hasHair);
             ShowRowIfHasData(beardPrevButton, availableBeardStyles);
             // Hair color row visible only if hair styles exist
             if (hairColorPrevButton != null)
-                hairColorPrevButton.transform.parent.gameObject.SetActive(
-                    availableHairStyles != null && availableHairStyles.Length > 0);
+                hairColorPrevButton.transform.parent.gameObject.SetActive(hasHair);
             // Body type toggle visible only if female body parts exist
             if (bodyTypeMaleButton != null)
             {
@@ -775,10 +815,10 @@ namespace ProjectName.UI
 
         private void CycleHair(int direction)
         {
-            if (availableHairStyles == null || availableHairStyles.Length == 0) return;
+            if (availableHairStyleNames == null || availableHairStyleNames.Length == 0) return;
 
-            selectedHairIndex = (selectedHairIndex + direction + availableHairStyles.Length) % availableHairStyles.Length;
-            builtAppearance.hair = availableHairStyles[selectedHairIndex];
+            selectedHairIndex = (selectedHairIndex + direction + availableHairStyleNames.Length) % availableHairStyleNames.Length;
+            ApplyHairSelection();
             UIManager.Instance?.PlayNavigateSound();
             RefreshAppearancePreview();
             UpdateAppearanceUI();
@@ -817,8 +857,21 @@ namespace ProjectName.UI
 
         private void CycleHairColor(int direction)
         {
-            selectedHairColorIndex = (selectedHairColorIndex + direction + HairColorPresets.Length) % HairColorPresets.Length;
-            builtAppearance.hairTint = HairColorPresets[selectedHairColorIndex];
+            if (availableHairStyleNames == null || availableHairStyleNames.Length == 0) return;
+
+            // Cycle through colors, skipping any that don't have an asset for the current style
+            int startIndex = selectedHairColorIndex;
+            int totalColors = HairColorSuffixes.Length;
+            for (int attempt = 0; attempt < totalColors; attempt++)
+            {
+                int nextIndex = (selectedHairColorIndex + direction + totalColors) % totalColors;
+                selectedHairColorIndex = nextIndex;
+                string partId = BuildHairPartId(availableHairStyleNames[selectedHairIndex], nextIndex);
+                if (bodyPartRegistry.GetPartById(partId) != null)
+                    break;
+            }
+
+            ApplyHairSelection();
             UIManager.Instance?.PlayNavigateSound();
             RefreshAppearancePreview();
             UpdateAppearanceUI();
@@ -866,41 +919,88 @@ namespace ProjectName.UI
         }
 
         /// <summary>
-        /// Filters hair parts to only standalone styles for the given body type.
-        /// Excludes extension overlays (hairextl_, hairextr_, hairtie_, ponytail_, updo_)
-        /// and drops universal/unsuffixed duplicates when a gender-specific variant exists.
+        /// Extracts unique hair style names from all Hair parts for the given body type.
+        /// partId format: hair_{style}_{gender}_{color}
         /// </summary>
-        private static BodyPartData[] FilterHairStyles(BodyPartData[] parts, string bodyType)
+        private string[] GetAvailableHairStyleNames(string bodyType)
         {
-            string suffix = "_" + bodyType; // "_male" or "_female"
-            var genderedIds = new HashSet<string>();
+            if (bodyPartRegistry == null) return Array.Empty<string>();
+            var hairParts = bodyPartRegistry.GetPartsForSlot(BodyPartSlot.Hair, bodyType);
+            var styleSet = new HashSet<string>();
+            string genderSuffix = $"_{bodyType}_";
 
-            // First pass: collect base names that have a gender-specific variant
-            foreach (var p in parts)
+            foreach (var p in hairParts)
             {
-                if (p.partId == null) continue;
-                if (p.partId.EndsWith(suffix))
-                    genderedIds.Add(p.partId.Substring(0, p.partId.Length - suffix.Length));
+                if (p.partId == null || !p.partId.StartsWith("hair_")) continue;
+                // Extract style: strip "hair_" prefix, find "_{gender}_" and take everything before it
+                string withoutPrefix = p.partId.Substring(5); // remove "hair_"
+                int genderPos = withoutPrefix.IndexOf(genderSuffix);
+                if (genderPos < 0) continue;
+                string styleName = withoutPrefix.Substring(0, genderPos);
+                styleSet.Add(styleName);
             }
 
-            var result = new List<BodyPartData>();
-            foreach (var p in parts)
-            {
-                if (p.partId == null) continue;
-
-                // Exclude extension/overlay prefixes — these aren't standalone hairstyles
-                if (p.partId.StartsWith("hairextl_") || p.partId.StartsWith("hairextr_") ||
-                    p.partId.StartsWith("hairtie_") || p.partId.StartsWith("ponytail_") ||
-                    p.partId.StartsWith("updo_"))
-                    continue;
-
-                // If this is a universal part and a gendered variant exists, skip the duplicate
-                if (!p.partId.EndsWith(suffix) && genderedIds.Contains(p.partId))
-                    continue;
-
-                result.Add(p);
-            }
+            var result = new List<string>(styleSet);
+            result.Sort(StringComparer.OrdinalIgnoreCase);
             return result.ToArray();
+        }
+
+        private static string[] BuildHairDisplayNames(string[] styleNames)
+        {
+            if (styleNames == null) return Array.Empty<string>();
+            var result = new string[styleNames.Length];
+            for (int i = 0; i < styleNames.Length; i++)
+            {
+                // Title-case: replace underscores with spaces and capitalize words
+                string name = styleNames[i].Replace('_', ' ');
+                var chars = name.ToCharArray();
+                bool capitalizeNext = true;
+                for (int c = 0; c < chars.Length; c++)
+                {
+                    if (capitalizeNext && char.IsLetter(chars[c]))
+                    {
+                        chars[c] = char.ToUpper(chars[c]);
+                        capitalizeNext = false;
+                    }
+                    else if (chars[c] == ' ')
+                    {
+                        capitalizeNext = true;
+                    }
+                }
+                result[i] = new string(chars);
+            }
+            return result;
+        }
+
+        private string BuildHairPartId(string styleName, int colorIndex)
+        {
+            return $"hair_{styleName}_{selectedBodyType}_{HairColorSuffixes[colorIndex]}";
+        }
+
+        private static int FindStyleIndex(string[] styleNames, string preferred)
+        {
+            if (styleNames == null || styleNames.Length == 0) return 0;
+            for (int i = 0; i < styleNames.Length; i++)
+            {
+                if (string.Equals(styleNames[i], preferred, StringComparison.OrdinalIgnoreCase))
+                    return i;
+            }
+            return 0;
+        }
+
+        private void ApplyHairSelection()
+        {
+            if (availableHairStyleNames == null || availableHairStyleNames.Length == 0 || builtAppearance == null) return;
+            string partId = BuildHairPartId(availableHairStyleNames[selectedHairIndex], selectedHairColorIndex);
+            var resolved = bodyPartRegistry.GetPartById(partId);
+            if (resolved != null)
+                builtAppearance.hair = resolved;
+        }
+
+        private static void ShowRowIfHasString(Button rowButton, bool hasData)
+        {
+            if (rowButton == null) return;
+            rowButton.transform.parent.gameObject.SetActive(hasData);
         }
 
         /// <summary>
@@ -955,18 +1055,23 @@ namespace ProjectName.UI
 
         private void UpdateAppearanceUI()
         {
-            if (hairNameText != null && builtAppearance.hair != null)
-                hairNameText.text = !string.IsNullOrEmpty(builtAppearance.hair.displayName)
-                    ? builtAppearance.hair.displayName
-                    : builtAppearance.hair.partId;
+            // Hair style name
+            if (hairNameText != null)
+            {
+                if (availableHairStyleDisplayNames != null && selectedHairIndex >= 0 && selectedHairIndex < availableHairStyleDisplayNames.Length)
+                    hairNameText.text = availableHairStyleDisplayNames[selectedHairIndex];
+                else if (builtAppearance != null && builtAppearance.hair != null)
+                    hairNameText.text = builtAppearance.hair.displayName;
+            }
 
             if (skinColorPreview != null)
                 skinColorPreview.color = builtAppearance.skinTint;
             if (skinToneNameText != null && selectedSkinToneIndex >= 0 && selectedSkinToneIndex < SkinToneNames.Length)
                 skinToneNameText.text = SkinToneNames[selectedSkinToneIndex];
 
-            if (hairColorPreview != null)
-                hairColorPreview.color = builtAppearance.hairTint;
+            // Hair color swatch and name (pre-baked, not tint)
+            if (hairColorPreview != null && selectedHairColorIndex >= 0 && selectedHairColorIndex < HairColorSwatches.Length)
+                hairColorPreview.color = HairColorSwatches[selectedHairColorIndex];
 
             if (hairColorNameText != null && selectedHairColorIndex >= 0 && selectedHairColorIndex < HairColorNames.Length)
                 hairColorNameText.text = HairColorNames[selectedHairColorIndex];
@@ -995,6 +1100,8 @@ namespace ProjectName.UI
 
             // Rebuild appearance for new body type
             builtAppearance = null;
+            availableHairStyleNames = null;
+            availableHairStyleDisplayNames = null;
             ShowAppearanceCustomization();
         }
 
@@ -1394,7 +1501,7 @@ namespace ProjectName.UI
             ctrl.beardPrevButton.transform.parent.gameObject.SetActive(false);
 
             // Hair color (hidden until hair assets exist)
-            MakeColorRow(scrollContent.transform, "Hair Color", HairColorPresets[0], HairColorNames[0],
+            MakeColorRow(scrollContent.transform, "Hair Color", HairColorSwatches[0], HairColorNames[0],
                 out ctrl.hairColorPrevButton, out ctrl.hairColorNextButton, out ctrl.hairColorPreview, out ctrl.hairColorNameText);
             ctrl.hairColorPrevButton.transform.parent.gameObject.SetActive(false);
 
