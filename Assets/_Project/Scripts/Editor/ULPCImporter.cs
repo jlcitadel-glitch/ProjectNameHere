@@ -754,6 +754,8 @@ public static class ULPCImporter
             BodyPartSlot.Torso, "Torso"),
         new CivilianDef("Equipment/Legs/ShortsNavy", "navy", "legs_shorts_navy", "Navy Shorts",
             BodyPartSlot.Legs, "Legs", true, new Color(0.15f, 0.15f, 0.4f, 1f)),
+        new CivilianDef("Equipment/Feet/ShoesRevisedBrown", "brown", "feet_shoes_revised_brown", "Brown Revised Shoes",
+            BodyPartSlot.Feet, "Feet"),
     };
 
     [MenuItem("Tools/ULPC/9 - Create Civilian Clothing")]

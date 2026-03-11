@@ -1050,9 +1050,9 @@ namespace ProjectName.UI
             if (shorts != null && builtAppearance.legs == null)
                 builtAppearance.legs = shorts;
 
-            var boots = bodyPartRegistry.GetPartById("feet_boots_revised_brown");
-            if (boots != null && builtAppearance.GetPart(BodyPartSlot.Feet) == null)
-                builtAppearance.SetPart(BodyPartSlot.Feet, boots);
+            var shoes = bodyPartRegistry.GetPartById("feet_shoes_revised_brown");
+            if (shoes != null && builtAppearance.GetPart(BodyPartSlot.Feet) == null)
+                builtAppearance.SetPart(BodyPartSlot.Feet, shoes);
         }
 
         private void RefreshAppearancePreview()

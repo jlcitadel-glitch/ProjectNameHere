@@ -306,7 +306,7 @@ namespace ProjectName.UI
                     var displaySprite = ResolveEquipmentSprite(item, slot);
                     icon.sprite = displaySprite;
                     icon.enabled = true;
-                    icon.color = displaySprite != null ? Color.white : EmptySlotColor;
+                    icon.color = displaySprite != null ? Color.white : new Color(1f, 1f, 1f, 0f);
                     icon.rectTransform.localScale = Vector3.one;
 
                     if (displaySprite == null)
@@ -328,7 +328,7 @@ namespace ProjectName.UI
                 {
                     icon.sprite = null;
                     icon.enabled = true;
-                    icon.color = EmptySlotColor;
+                    icon.color = new Color(1f, 1f, 1f, 0f);
                     icon.rectTransform.localScale = Vector3.one;
                 }
                 if (nameText != null)
@@ -878,30 +878,15 @@ namespace ProjectName.UI
             rowBtn.colors = btnColors;
             rowBtn.targetGraphic = rowBg;
 
-            // Slot label (top-left corner)
-            var labelGo = MakeRect("SlotLabel", rowGo.transform);
-            var labelRect = labelGo.GetComponent<RectTransform>();
-            labelRect.anchorMin = new Vector2(0, 1);
-            labelRect.anchorMax = new Vector2(1, 1);
-            labelRect.pivot = new Vector2(0, 1);
-            labelRect.anchoredPosition = new Vector2(8, -4);
-            labelRect.sizeDelta = new Vector2(0, 18);
-            var labelTmp = labelGo.AddComponent<TextMeshProUGUI>();
-            labelTmp.text = slotLabel;
-            labelTmp.fontSize = 14;
-            labelTmp.color = SubtleText;
-            labelTmp.alignment = TextAlignmentOptions.TopLeft;
-            labelTmp.raycastTarget = false;
-            FontManager.EnsureFont(labelTmp);
-
+            // Left column: icon with slot label above it
             // Icon container (left side, with RectMask2D to clip scaled weapon sprites)
             var iconContainerGo = MakeRect("IconContainer", rowGo.transform);
             var iconContainerRect = iconContainerGo.GetComponent<RectTransform>();
             iconContainerRect.anchorMin = new Vector2(0, 0);
             iconContainerRect.anchorMax = new Vector2(0, 1);
             iconContainerRect.pivot = new Vector2(0, 0.5f);
-            iconContainerRect.anchoredPosition = new Vector2(6, -6);
-            iconContainerRect.sizeDelta = new Vector2(46, -18);
+            iconContainerRect.anchoredPosition = new Vector2(6, -2);
+            iconContainerRect.sizeDelta = new Vector2(46, -20);
             var iconContainerBg = iconContainerGo.AddComponent<Image>();
             iconContainerBg.sprite = WhiteSprite;
             iconContainerBg.color = new Color(0.06f, 0.06f, 0.08f, 0.8f);
@@ -917,21 +902,38 @@ namespace ProjectName.UI
             iconRect.offsetMax = new Vector2(-2, -2);
             var iconImg = iconGo.AddComponent<Image>();
             iconImg.sprite = null;
-            iconImg.color = EmptySlotColor;
+            iconImg.color = new Color(1f, 1f, 1f, 0f);
             iconImg.preserveAspect = true;
             iconImg.raycastTarget = false;
             iconImg.type = Image.Type.Simple;
 
-            // Item name
+            // Right column: slot label on top, name middle, stats bottom
+            // Slot label (top-right area, above name)
+            var labelGo = MakeRect("SlotLabel", rowGo.transform);
+            var labelRect = labelGo.GetComponent<RectTransform>();
+            labelRect.anchorMin = new Vector2(0, 1);
+            labelRect.anchorMax = new Vector2(1, 1);
+            labelRect.pivot = new Vector2(0, 1);
+            labelRect.anchoredPosition = new Vector2(58, -2);
+            labelRect.sizeDelta = new Vector2(-66, 16);
+            var labelTmp = labelGo.AddComponent<TextMeshProUGUI>();
+            labelTmp.text = slotLabel;
+            labelTmp.fontSize = 11;
+            labelTmp.color = SubtleText;
+            labelTmp.alignment = TextAlignmentOptions.TopLeft;
+            labelTmp.raycastTarget = false;
+            FontManager.EnsureFont(labelTmp);
+
+            // Item name (middle row, right of icon)
             var nameGo = MakeRect("ItemName", rowGo.transform);
             var nameRect = nameGo.GetComponent<RectTransform>();
-            nameRect.anchorMin = new Vector2(0, 0.5f);
-            nameRect.anchorMax = new Vector2(1, 1);
-            nameRect.offsetMin = new Vector2(58, -4);
-            nameRect.offsetMax = new Vector2(-8, -2);
+            nameRect.anchorMin = new Vector2(0, 0.28f);
+            nameRect.anchorMax = new Vector2(1, 0.72f);
+            nameRect.offsetMin = new Vector2(58, 0);
+            nameRect.offsetMax = new Vector2(-8, 0);
             var nameTmp = nameGo.AddComponent<TextMeshProUGUI>();
             nameTmp.text = "Empty";
-            nameTmp.fontSize = 16;
+            nameTmp.fontSize = 15;
             nameTmp.color = BoneWhite;
             nameTmp.alignment = TextAlignmentOptions.Left;
             nameTmp.raycastTarget = false;
@@ -939,16 +941,16 @@ namespace ProjectName.UI
             nameTmp.textWrappingMode = TextWrappingModes.NoWrap;
             nameTmp.enableAutoSizing = true;
             nameTmp.fontSizeMin = 11f;
-            nameTmp.fontSizeMax = 16f;
+            nameTmp.fontSizeMax = 15f;
             FontManager.EnsureFont(nameTmp);
 
-            // Stats
+            // Stats (bottom row, right of icon)
             var statsGo = MakeRect("Stats", rowGo.transform);
             var statsRect = statsGo.GetComponent<RectTransform>();
             statsRect.anchorMin = new Vector2(0, 0);
-            statsRect.anchorMax = new Vector2(1, 0.5f);
+            statsRect.anchorMax = new Vector2(1, 0.28f);
             statsRect.offsetMin = new Vector2(58, 2);
-            statsRect.offsetMax = new Vector2(-8, 4);
+            statsRect.offsetMax = new Vector2(-8, 0);
             var statsTmp = statsGo.AddComponent<TextMeshProUGUI>();
             statsTmp.text = "";
             statsTmp.fontSize = 14;
