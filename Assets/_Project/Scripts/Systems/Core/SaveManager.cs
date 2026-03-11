@@ -9,6 +9,9 @@ public class SaveManager : MonoBehaviour
 {
     public static SaveManager Instance { get; private set; }
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics() => Instance = null;
+
     private const string SAVE_KEY_PREFIX = "GameSave_Slot_";
     private const string LEGACY_SAVE_KEY = "GameSave";
     private const int CURRENT_SAVE_VERSION = 7;

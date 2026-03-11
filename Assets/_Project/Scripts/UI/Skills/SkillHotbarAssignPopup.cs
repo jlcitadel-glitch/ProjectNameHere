@@ -14,6 +14,13 @@ namespace ProjectName.UI
     {
         public static SkillHotbarAssignPopup Instance { get; private set; }
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics()
+        {
+            Instance = null;
+            _whiteSprite = null;
+        }
+
         private CanvasGroup canvasGroup;
         private TMP_Text titleText;
         private Button[] slotButtons;

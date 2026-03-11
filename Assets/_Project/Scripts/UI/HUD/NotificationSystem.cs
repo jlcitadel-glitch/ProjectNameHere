@@ -13,6 +13,9 @@ namespace ProjectName.UI
     {
         public static NotificationSystem Instance { get; private set; }
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() => Instance = null;
+
         [Header("References")]
         [SerializeField] private Transform notificationContainer;
         [SerializeField] private GameObject notificationPrefab;

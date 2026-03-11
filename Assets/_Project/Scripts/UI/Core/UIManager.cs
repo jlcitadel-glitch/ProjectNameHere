@@ -15,6 +15,9 @@ namespace ProjectName.UI
     {
         public static UIManager Instance { get; private set; }
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() => Instance = null;
+
         [Header("Style Configuration")]
         [SerializeField] private UIStyleGuide styleGuide;
         [SerializeField] private UISoundBank soundBank;

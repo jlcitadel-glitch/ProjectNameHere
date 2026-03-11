@@ -10,6 +10,9 @@ public class SkillManager : MonoBehaviour
 {
     public static SkillManager Instance { get; private set; }
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics() => Instance = null;
+
     [Header("Configuration")]
     [Tooltip("Default job for new players")]
     [SerializeField] private JobClassData defaultJob;

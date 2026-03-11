@@ -12,6 +12,9 @@ namespace ProjectName.UI
     {
         public static GraphicsSettings Instance { get; private set; }
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() => Instance = null;
+
         private const string PREF_BRIGHTNESS = "Graphics_Brightness";
         private const float DEFAULT_BRIGHTNESS = 0f;
 

@@ -10,6 +10,9 @@ public class HighscoreManager : MonoBehaviour
 {
     public static HighscoreManager Instance { get; private set; }
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics() => Instance = null;
+
     private const string HIGHSCORES_KEY = "Highscores";
     private const int MAX_ENTRIES = 10;
 

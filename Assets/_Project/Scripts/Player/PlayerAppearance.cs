@@ -174,6 +174,14 @@ public class PlayerAppearance : MonoBehaviour
                     }
                 }
             }
+
+            // Hat hides hair
+            if (slot == BodyPartSlot.Hat && part != null)
+            {
+                currentConfig.SetPart(BodyPartSlot.Hair, null);
+                if (layeredSprite != null)
+                    layeredSprite.SetPart(BodyPartSlot.Hair, null);
+            }
         }
     }
 

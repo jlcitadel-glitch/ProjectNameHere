@@ -8,6 +8,9 @@ public class MusicManager : MonoBehaviour
 {
     public static MusicManager Instance { get; private set; }
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics() => Instance = null;
+
     private AudioSource audioSource;
     private AudioClip gameplayMusic;
     private float musicVolume = 1f;

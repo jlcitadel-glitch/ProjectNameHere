@@ -639,6 +639,7 @@ namespace ProjectName.UI
                             break;
                         case EquipmentSlotType.Head:
                             merged.SetPart(BodyPartSlot.Hat, equip.visualPart);
+                            merged.hair = null;
                             hasEquipment = true;
                             break;
                         case EquipmentSlotType.Hands:
@@ -1927,7 +1928,7 @@ namespace ProjectName.UI
 
             prevBtn = MakeArrowButton(row.transform, "<");
             nameText = MakeLabel(row.transform, "None", 19f);
-            nameText.GetComponent<LayoutElement>().preferredWidth = 180f;
+            nameText.GetComponent<LayoutElement>().preferredWidth = 210f;
             nextBtn = MakeArrowButton(row.transform, ">");
         }
 
@@ -1966,7 +1967,7 @@ namespace ProjectName.UI
 
             // Name text
             var nameTmp = MakeLabel(row.transform, initialName, 18f);
-            nameTmp.GetComponent<LayoutElement>().preferredWidth = 80f;
+            nameTmp.GetComponent<LayoutElement>().preferredWidth = 120f;
             nameText = nameTmp;
 
             nextBtn = MakeArrowButton(row.transform, ">");

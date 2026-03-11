@@ -8,6 +8,9 @@ public class WindManager : MonoBehaviour
 {
     public static WindManager Instance { get; private set; }
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics() => Instance = null;
+
     [Header("Base Wind")]
     [SerializeField] private Vector2 windDirection = Vector2.right;
     [SerializeField] private float baseStrength = 1f;

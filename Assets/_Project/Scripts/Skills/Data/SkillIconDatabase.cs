@@ -16,6 +16,9 @@ public class SkillIconDatabase : ScriptableObject
 
     private static SkillIconDatabase instance;
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics() => instance = null;
+
     /// <summary>
     /// Singleton accessor via Resources.Load.
     /// </summary>

@@ -11,6 +11,9 @@ public class SceneLoader : MonoBehaviour
 {
     public static SceneLoader Instance { get; private set; }
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics() => Instance = null;
+
     public const string MAIN_MENU_SCENE = "MainMenu";
     public const string GAMEPLAY_SCENE = "SampleScene";
 

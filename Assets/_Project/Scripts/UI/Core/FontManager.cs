@@ -11,6 +11,13 @@ namespace ProjectName.UI
     {
         public static FontManager Instance { get; private set; }
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics()
+        {
+            Instance = null;
+            cachedDefaultFont = null;
+        }
+
         [Header("Font Assets")]
         [Tooltip("The primary font for UI text")]
         [SerializeField] private TMP_FontAsset primaryFont;

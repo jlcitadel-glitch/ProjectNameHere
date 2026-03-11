@@ -13,6 +13,9 @@ namespace ProjectName.UI
     {
         public static DamageNumberSpawner Instance { get; private set; }
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() => Instance = null;
+
         [Header("Pool Settings")]
         [SerializeField] private int initialPoolSize = 20;
         [SerializeField] private int maxPoolSize = 50;

@@ -9,6 +9,9 @@ public class ScreenFlash : MonoBehaviour
 {
     public static ScreenFlash Instance { get; private set; }
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics() => Instance = null;
+
     private Image flashImage;
     private float flashTimer;
     private float flashDuration;

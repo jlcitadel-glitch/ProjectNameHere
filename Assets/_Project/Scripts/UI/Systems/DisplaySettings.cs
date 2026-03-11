@@ -14,6 +14,9 @@ namespace ProjectName.UI
     {
         public static DisplaySettings Instance { get; private set; }
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() => Instance = null;
+
         [Header("Default Settings")]
         [SerializeField] private WindowMode defaultWindowMode = WindowMode.FullscreenWindowed;
         [SerializeField] private AspectRatioPreset defaultAspectRatio = AspectRatioPreset.Auto;
