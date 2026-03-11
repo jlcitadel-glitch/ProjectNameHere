@@ -33,6 +33,7 @@
 
 ## Typography
 
+### Font Families
 ```
 Headers:     Serif with flourishes (Cinzel, Cormorant Garamond)
 Body:        Clean serif for readability (Crimson Text, EB Garamond)
@@ -40,43 +41,29 @@ Numbers:     Monospace for stats (Fira Code, Source Code Pro)
 Runes/Lore:  Decorative/symbolic (custom glyph font)
 ```
 
-**TextMeshPro Settings (Unity 6 - TMPro namespace):**
-```csharp
-using UnityEngine;
-using TMPro;
+### Size Tiers (4 tiers only — no exceptions)
 
-[CreateAssetMenu(fileName = "TextStyle", menuName = "UI/Gothic Text Style")]
-public class GothicTextStyle : ScriptableObject
-{
-    [Header("Fonts")]
-    [SerializeField] private TMP_FontAsset headerFont;      // Ornate serif (Cinzel)
-    [SerializeField] private TMP_FontAsset bodyFont;        // Readable serif (Crimson Text)
+Every UI screen must use exactly these 4 sizes. No arbitrary intermediate values.
 
-    [Header("Sizes")]
-    [SerializeField] private float headerSize = 36f;
-    [SerializeField] private float bodySize = 24f;
+| Tier | Constant | Size | Usage |
+|------|----------|------|-------|
+| **Header** | `FontHeader` | 24px | Panel titles, character name |
+| **Primary** | `FontPrimary` | 16px | Stat names & values, equipment names, HP/MP, allocate buttons |
+| **Secondary** | `FontSecondary` | 13px | Slot labels, inventory count, derived stats, class/level, compare deltas |
+| **Flavor** | `FontFlavor` | 11px | Descriptions, lore, tooltips, smallest slot labels |
 
-    [Header("Colors")]
-    [SerializeField] private Color textColor = new Color(0.96f, 0.96f, 0.86f); // Bone white
+Auto-sizing ranges must only span between adjacent tiers:
+- Primary text: `fontSizeMin = FontSecondary`, `fontSizeMax = FontPrimary`
+- Secondary text: `fontSizeMin = FontFlavor`, `fontSizeMax = FontSecondary`
 
-    [Header("Spacing")]
-    [SerializeField] private float characterSpacing = 2f;   // Slightly spread for elegance
+### Color Rules for Text
+- **All body text**: Bone White (#F5F5DC) — HP, MP, stat values all use this
+- **Headers/highlights**: Aged Gold (#CFB53B) — titles, character name, stat points label
+- **Secondary labels**: Subtle Text (0.7, 0.65, 0.55) — slot labels, derived stats
+- **Never color-code HP red or MP blue** on the character/stats screen — color is reserved for HUD bars and combat feedback
+- **Stat deltas** (compare panel only): Faded Moss green for positive, Deep Crimson for negative
 
-    public void ApplyToHeader(TMP_Text text)
-    {
-        if (text == null) return;
-        text.font = headerFont;
-        text.fontSize = headerSize;
-        text.color = textColor;
-        text.characterSpacing = characterSpacing;
-    }
-
-    public void ApplyToBody(TMP_Text text)
-    {
-        if (text == null) return;
-        text.font = bodyFont;
-        text.fontSize = bodySize;
-        text.color = textColor;
-    }
-}
-```
+### Stat Display Format
+- Core stats show base with total when equipment modifies: `Strength: 1 [6]`
+- HP/MP show bonus inline: `HP: 100/130 (+30)`
+- Derived stats use prefix: `Melee Damage: x1.12`, `Critical: 2.5% (x2.01)`

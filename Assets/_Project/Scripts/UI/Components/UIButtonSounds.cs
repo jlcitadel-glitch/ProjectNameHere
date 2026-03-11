@@ -7,7 +7,7 @@ namespace ProjectName.UI
     /// Add to any Button for SOTN-style hover and click sound feedback.
     /// Set the click sound type in the Inspector to match the button's role.
     /// </summary>
-    public class UIButtonSounds : MonoBehaviour, IPointerEnterHandler, IPointerClickHandler
+    public class UIButtonSounds : MonoBehaviour, IPointerClickHandler, ISelectHandler
     {
         public enum ClickSoundType
         {
@@ -20,7 +20,7 @@ namespace ProjectName.UI
 
         public void SetClickSound(ClickSoundType type) => clickSound = type;
 
-        public void OnPointerEnter(PointerEventData eventData)
+        public void OnSelect(BaseEventData eventData)
         {
             UIManager.Instance?.PlayNavigateSound();
         }

@@ -30,10 +30,15 @@ public class StatSystem : MonoBehaviour
     private LevelSystem levelSystem;
     private EquipmentManager equipmentManager;
 
+    // Base stats (base + allocated, no equipment)
+    public int BaseStrength => baseStrength + allocatedStrength;
+    public int BaseIntelligence => baseIntelligence + allocatedIntelligence;
+    public int BaseAgility => baseAgility + allocatedAgility;
+
     // Total stats (base + allocated + equipment)
-    public int Strength => baseStrength + allocatedStrength + GetEquipmentBonus(0);
-    public int Intelligence => baseIntelligence + allocatedIntelligence + GetEquipmentBonus(1);
-    public int Agility => baseAgility + allocatedAgility + GetEquipmentBonus(2);
+    public int Strength => BaseStrength + GetEquipmentBonus(0);
+    public int Intelligence => BaseIntelligence + GetEquipmentBonus(1);
+    public int Agility => BaseAgility + GetEquipmentBonus(2);
     public int AvailableStatPoints => availableStatPoints;
 
     // Derived stats
@@ -62,6 +67,8 @@ public class StatSystem : MonoBehaviour
     /// </summary>
     private int GetEquipmentBonus(int statIndex)
     {
+        if (equipmentManager == null)
+            equipmentManager = GetComponent<EquipmentManager>();
         if (equipmentManager == null)
             return 0;
 

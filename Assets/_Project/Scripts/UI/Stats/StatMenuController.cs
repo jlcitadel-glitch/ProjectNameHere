@@ -416,10 +416,21 @@ namespace ProjectName.UI
         {
             if (statSystem == null) return;
 
-            if (statSystem.AllocateStat(statName))
+            var kb = UnityEngine.InputSystem.Keyboard.current;
+            bool shiftHeld = kb != null
+                && (kb.leftShiftKey.isPressed || kb.rightShiftKey.isPressed);
+            int amount = shiftHeld ? 5 : 1;
+
+            bool anyAllocated = false;
+            for (int i = 0; i < amount; i++)
             {
-                RefreshDisplay();
+                if (!statSystem.AllocateStat(statName))
+                    break;
+                anyAllocated = true;
             }
+
+            if (anyAllocated)
+                RefreshDisplay();
         }
 
         private void RefreshDisplay()
@@ -430,27 +441,27 @@ namespace ProjectName.UI
             if (availablePointsText != null)
                 availablePointsText.text = $"Available Points: {statSystem.AvailableStatPoints}";
 
-            // Core stats
+            // Core stats — show base stat with [total] in brackets when equipment modifies it
             if (strengthText != null)
-                strengthText.text = $"STR: {statSystem.Strength}";
+                strengthText.text = FormatCoreStat("Strength", statSystem.BaseStrength, statSystem.Strength);
             if (intelligenceText != null)
-                intelligenceText.text = $"INT: {statSystem.Intelligence}";
+                intelligenceText.text = FormatCoreStat("Intelligence", statSystem.BaseIntelligence, statSystem.Intelligence);
             if (agilityText != null)
-                agilityText.text = $"AGI: {statSystem.Agility}";
+                agilityText.text = FormatCoreStat("Agility", statSystem.BaseAgility, statSystem.Agility);
 
             // Derived stats
             if (bonusHPText != null)
                 bonusHPText.text = $"Bonus HP: +{statSystem.BonusMaxHP:F0}";
             if (meleeDamageText != null)
-                meleeDamageText.text = $"Melee Dmg: x{statSystem.MeleeDamageMultiplier:F2}";
+                meleeDamageText.text = $"Melee Damage: x{statSystem.MeleeDamageMultiplier:F2}";
             if (bonusManaText != null)
                 bonusManaText.text = $"Bonus Mana: +{statSystem.BonusMaxMana:F0}";
             if (skillDamageText != null)
-                skillDamageText.text = $"Skill Dmg: x{statSystem.SkillDamageMultiplier:F2}";
+                skillDamageText.text = $"Skill Damage: x{statSystem.SkillDamageMultiplier:F2}";
             if (speedText != null)
-                speedText.text = $"Atk Spd: x{(1f / statSystem.AttackSpeedMultiplier):F2}";
+                speedText.text = $"Attack Speed: x{(1f / statSystem.AttackSpeedMultiplier):F2}";
             if (critChanceText != null)
-                critChanceText.text = $"Crit: {statSystem.CritChance * 100f:F1}% (x{statSystem.CritDamageMultiplier:F2})";
+                critChanceText.text = $"Critical: {statSystem.CritChance * 100f:F1}% (x{statSystem.CritDamageMultiplier:F2})";
 
             // Enable/disable allocate buttons based on available points
             bool hasPoints = statSystem.AvailableStatPoints > 0;
@@ -460,6 +471,17 @@ namespace ProjectName.UI
 
             // Player info
             RefreshPlayerInfo();
+        }
+
+        /// <summary>
+        /// Formats a core stat line. Shows "Name: base [total]" when equipment modifies
+        /// the stat, or just "Name: value" when base equals total.
+        /// </summary>
+        private static string FormatCoreStat(string name, int baseStat, int total)
+        {
+            if (total != baseStat)
+                return $"{name}: {baseStat} [{total}]";
+            return $"{name}: {baseStat}";
         }
 
         private void RefreshPlayerInfo()
@@ -566,7 +588,7 @@ namespace ProjectName.UI
             panelRect.anchorMin = new Vector2(0.5f, 0.5f);
             panelRect.anchorMax = new Vector2(0.5f, 0.5f);
             panelRect.pivot = new Vector2(0.5f, 0.5f);
-            panelRect.sizeDelta = new Vector2(700f, 520f);
+            panelRect.sizeDelta = new Vector2(760f, 520f);
 
             var panelImg = panelGo.AddComponent<Image>();
             panelImg.sprite = WhiteSprite;
@@ -729,28 +751,28 @@ namespace ProjectName.UI
             // STR row
             var strRow = MakeRect("StrRow", panelGo.transform);
             PositionGridRow(strRow, gridY);
-            var strTmp = BuildStatCell(strRow.transform, "StatVal", "STR: 1", 0f, 0.18f);
-            var strBtn = BuildAllocateButton(strRow.transform, "+", 0.18f, 0.25f);
-            var bonusHpTmp = BuildStatCell(strRow.transform, "BonusHP", "Bonus HP: +5", 0.28f, 0.56f);
-            var meleeTmp = BuildStatCell(strRow.transform, "MeleeDmg", "Melee Dmg: x1.02", 0.58f, 0.95f);
+            var strTmp = BuildStatCell(strRow.transform, "StatVal", "Strength: 1", 0f, 0.26f);
+            var strBtn = BuildAllocateButton(strRow.transform, "+", 0.26f, 0.32f);
+            var bonusHpTmp = BuildStatCell(strRow.transform, "BonusHP", "Bonus HP: +5", 0.34f, 0.62f);
+            var meleeTmp = BuildStatCell(strRow.transform, "MeleeDmg", "Melee Damage: x1.02", 0.64f, 1f);
             gridY -= rowH + 6f;
 
             // INT row
             var intRow = MakeRect("IntRow", panelGo.transform);
             PositionGridRow(intRow, gridY);
-            var intTmp = BuildStatCell(intRow.transform, "StatVal", "INT: 1", 0f, 0.18f);
-            var intBtn = BuildAllocateButton(intRow.transform, "+", 0.18f, 0.25f);
-            var bonusManaTmp = BuildStatCell(intRow.transform, "BonusMana", "Bonus Mana: +3", 0.28f, 0.56f);
-            var skillDmgTmp = BuildStatCell(intRow.transform, "SkillDmg", "Skill Dmg: x1.02", 0.58f, 0.95f);
+            var intTmp = BuildStatCell(intRow.transform, "StatVal", "Intelligence: 1", 0f, 0.26f);
+            var intBtn = BuildAllocateButton(intRow.transform, "+", 0.26f, 0.32f);
+            var bonusManaTmp = BuildStatCell(intRow.transform, "BonusMana", "Bonus Mana: +3", 0.34f, 0.62f);
+            var skillDmgTmp = BuildStatCell(intRow.transform, "SkillDmg", "Skill Damage: x1.02", 0.64f, 1f);
             gridY -= rowH + 6f;
 
             // AGI row
             var agiRow = MakeRect("AgiRow", panelGo.transform);
             PositionGridRow(agiRow, gridY);
-            var agiTmp = BuildStatCell(agiRow.transform, "StatVal", "AGI: 1", 0f, 0.18f);
-            var agiBtn = BuildAllocateButton(agiRow.transform, "+", 0.18f, 0.25f);
-            var spdTmp = BuildStatCell(agiRow.transform, "AtkSpd", "Atk Spd: x1.01", 0.28f, 0.56f);
-            var critTmp = BuildStatCell(agiRow.transform, "Crit", "Crit: 0.5% (x2.01)", 0.58f, 0.95f);
+            var agiTmp = BuildStatCell(agiRow.transform, "StatVal", "Agility: 1", 0f, 0.26f);
+            var agiBtn = BuildAllocateButton(agiRow.transform, "+", 0.26f, 0.32f);
+            var spdTmp = BuildStatCell(agiRow.transform, "AtkSpd", "Attack Speed: x1.01", 0.34f, 0.62f);
+            var critTmp = BuildStatCell(agiRow.transform, "Crit", "Critical: 0.5% (x2.01)", 0.64f, 1f);
 
             // --- Wire up StatMenuController component ---
             var controller = canvasGo.AddComponent<StatMenuController>();
@@ -855,6 +877,11 @@ namespace ProjectName.UI
             tmp.fontSize = 16;
             tmp.color = BoneWhite;
             tmp.alignment = TextAlignmentOptions.Left;
+            tmp.overflowMode = TextOverflowModes.Ellipsis;
+            tmp.textWrappingMode = TextWrappingModes.NoWrap;
+            tmp.enableAutoSizing = true;
+            tmp.fontSizeMin = 12f;
+            tmp.fontSizeMax = 16f;
             FontManager.EnsureFont(tmp);
             return tmp;
         }

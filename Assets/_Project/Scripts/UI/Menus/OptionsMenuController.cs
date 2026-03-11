@@ -255,6 +255,7 @@ namespace ProjectName.UI
             dd.captionText = capTmp;
 
             CreateDropdownTemplate(dd);
+            ddGO.AddComponent<UIButtonSounds>();
             allSelectables.Add(dd);
             return dd;
         }
@@ -298,6 +299,7 @@ namespace ProjectName.UI
             txtRt.offsetMin = Vector2.zero;
             txtRt.offsetMax = Vector2.zero;
 
+            btn.gameObject.AddComponent<UIButtonSounds>();
             allSelectables.Add(btn);
             return btn;
         }
@@ -384,6 +386,7 @@ namespace ProjectName.UI
             valRt.offsetMin = Vector2.zero;
             valRt.offsetMax = new Vector2(-10, 0);
 
+            sliderGO.AddComponent<UIButtonSounds>();
             allSelectables.Add(slider);
             return slider;
         }
@@ -427,6 +430,7 @@ namespace ProjectName.UI
             txtRt.offsetMin = Vector2.zero;
             txtRt.offsetMax = Vector2.zero;
 
+            btn.gameObject.AddComponent<UIButtonSounds>();
             y -= 55f;
             allSelectables.Add(btn);
             return btn;

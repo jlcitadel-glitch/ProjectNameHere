@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using TMPro;
@@ -492,6 +493,19 @@ namespace ProjectName.UI
                 characterPreview.ApplyConfig(playerAppearance.CurrentConfig);
         }
 
+        private void OnSlotRightClicked(EquipmentSlotType slot)
+        {
+            FindEquipmentManager();
+            if (equipmentManager == null) return;
+
+            var item = equipmentManager.GetEquipped(slot);
+            if (item != null)
+            {
+                equipmentManager.Unequip(slot);
+                HideSelectionPanel();
+            }
+        }
+
         #region Selection Panel
 
         private void OnSlotClicked(EquipmentSlotType slot)
@@ -835,7 +849,7 @@ namespace ProjectName.UI
             controller.selectionTitleText = selPanel.title;
             controller.selectionListContent = selPanel.content;
 
-            // Wire slot click handlers
+            // Wire slot left-click handlers (opens selection panel)
             wRow.onClick.AddListener(() => controller.OnSlotClicked(EquipmentSlotType.Weapon));
             hRow.onClick.AddListener(() => controller.OnSlotClicked(EquipmentSlotType.Head));
             aRow.onClick.AddListener(() => controller.OnSlotClicked(EquipmentSlotType.Armor));
@@ -843,6 +857,15 @@ namespace ProjectName.UI
             lRow.onClick.AddListener(() => controller.OnSlotClicked(EquipmentSlotType.Legs));
             fRow.onClick.AddListener(() => controller.OnSlotClicked(EquipmentSlotType.Feet));
             accRow.onClick.AddListener(() => controller.OnSlotClicked(EquipmentSlotType.Accessory));
+
+            // Wire slot right-click handlers (unequip immediately)
+            WireRightClick(wRow.gameObject, () => controller.OnSlotRightClicked(EquipmentSlotType.Weapon));
+            WireRightClick(hRow.gameObject, () => controller.OnSlotRightClicked(EquipmentSlotType.Head));
+            WireRightClick(aRow.gameObject, () => controller.OnSlotRightClicked(EquipmentSlotType.Armor));
+            WireRightClick(glRow.gameObject, () => controller.OnSlotRightClicked(EquipmentSlotType.Hands));
+            WireRightClick(lRow.gameObject, () => controller.OnSlotRightClicked(EquipmentSlotType.Legs));
+            WireRightClick(fRow.gameObject, () => controller.OnSlotRightClicked(EquipmentSlotType.Feet));
+            WireRightClick(accRow.gameObject, () => controller.OnSlotRightClicked(EquipmentSlotType.Accessory));
 
             controller.WireButtonListeners();
 
@@ -1147,6 +1170,12 @@ namespace ProjectName.UI
             return rowGo;
         }
 
+        private static void WireRightClick(GameObject go, System.Action callback)
+        {
+            var handler = go.AddComponent<SlotRightClickHandler>();
+            handler.onRightClick = callback;
+        }
+
         private static void BuildDivider(Transform parent, float yOffset)
         {
             var divider = MakeRect("Divider", parent);
@@ -1192,5 +1221,20 @@ namespace ProjectName.UI
         }
 
         #endregion
+
+        /// <summary>
+        /// Helper component that detects right-clicks on a UI element.
+        /// Used on equipment slot rows to allow right-click unequip.
+        /// </summary>
+        private class SlotRightClickHandler : MonoBehaviour, IPointerClickHandler
+        {
+            public System.Action onRightClick;
+
+            public void OnPointerClick(PointerEventData eventData)
+            {
+                if (eventData.button == PointerEventData.InputButton.Right)
+                    onRightClick?.Invoke();
+            }
+        }
     }
 }

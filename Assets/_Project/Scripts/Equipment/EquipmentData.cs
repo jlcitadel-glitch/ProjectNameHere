@@ -39,9 +39,9 @@ public class EquipmentData : ScriptableObject
     public string GetStatSummary()
     {
         var sb = new System.Text.StringBuilder();
-        if (bonusSTR != 0) sb.Append($"STR {bonusSTR:+#;-#}  ");
-        if (bonusINT != 0) sb.Append($"INT {bonusINT:+#;-#}  ");
-        if (bonusAGI != 0) sb.Append($"AGI {bonusAGI:+#;-#}  ");
+        if (bonusSTR != 0) sb.Append($"STR {bonusSTR:+#;-#}   ");
+        if (bonusINT != 0) sb.Append($"INT {bonusINT:+#;-#}   ");
+        if (bonusAGI != 0) sb.Append($"AGI {bonusAGI:+#;-#}   ");
         return sb.ToString().TrimEnd();
     }
 }

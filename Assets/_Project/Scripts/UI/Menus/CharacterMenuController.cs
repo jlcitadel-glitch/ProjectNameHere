@@ -58,10 +58,13 @@ namespace ProjectName.UI
         [SerializeField] private Image[] inventoryCellBorders;
         [SerializeField] private Button[] inventoryCellButtons;
 
-        [Header("Compare Panel")]
-        [SerializeField] private GameObject comparePanel;
-        [SerializeField] private TMP_Text compareItemName;
-        [SerializeField] private TMP_Text compareStatDeltas;
+        // Floating tooltip (replaces old compare panel)
+        private GameObject tooltipPanel;
+        private TMP_Text tooltipTitle;
+        private TMP_Text tooltipStats;
+        private TMP_Text tooltipDesc;
+        private RectTransform tooltipRect;
+        private RectTransform canvasRect;
 
         [Header("Settings")]
         [SerializeField] private bool pauseGameWhenOpen = true;
@@ -83,8 +86,10 @@ namespace ProjectName.UI
         private InventoryManager inventoryManager;
         private PlayerAppearance playerAppearance;
 
-        // Drag state
+        // Drag state (-1 = no drag; for inventory drags use dragSourceIndex,
+        // for equipment drags use dragEquipSlotIndex)
         private int dragSourceIndex = -1;
+        private int dragEquipSlotIndex = -1;
         private GameObject dragGhost;
         private Canvas dragCanvas;
 
@@ -288,7 +293,7 @@ namespace ProjectName.UI
         private void HandleStatPointsChanged(int points) { if (isOpen) RefreshStats(); }
         private void HandleEquipmentChanged(EquipmentSlotType slot, EquipmentData item)
         {
-            if (isOpen) { RefreshEquipment(); RefreshCharacterPreview(); }
+            if (isOpen) { RefreshEquipment(); RefreshStats(); RefreshPlayerInfo(); RefreshCharacterPreview(); }
         }
 
         #endregion
@@ -357,7 +362,7 @@ namespace ProjectName.UI
             }
 
             RefreshAll();
-            HideComparePanel();
+            HideTooltip();
 
             if (UIManager.Instance != null)
                 UIManager.Instance.RegisterOverlayMenu();
@@ -435,13 +440,23 @@ namespace ProjectName.UI
             }
 
             if (levelText != null && levelSystem != null)
-                levelText.text = $"Lv {levelSystem.CurrentLevel}";
+                levelText.text = $"Level {levelSystem.CurrentLevel}";
 
+            // HP with stat bonus shown inline
             if (hpText != null && healthSystem != null)
-                hpText.text = $"HP: {healthSystem.CurrentHealth:F0}/{healthSystem.MaxHealth:F0}";
+            {
+                float bonusHP = statSystem != null ? statSystem.BonusMaxHP : 0f;
+                string hpBonus = bonusHP > 0 ? $" (+{bonusHP:F0})" : "";
+                hpText.text = $"HP: {healthSystem.CurrentHealth:F0}/{healthSystem.MaxHealth:F0}{hpBonus}";
+            }
 
+            // MP with stat bonus shown inline
             if (mpText != null && manaSystem != null)
-                mpText.text = $"MP: {manaSystem.CurrentMana:F0}/{manaSystem.MaxMana:F0}";
+            {
+                float bonusMP = statSystem != null ? statSystem.BonusMaxMana : 0f;
+                string mpBonus = bonusMP > 0 ? $" (+{bonusMP:F0})" : "";
+                mpText.text = $"MP: {manaSystem.CurrentMana:F0}/{manaSystem.MaxMana:F0}{mpBonus}";
+            }
         }
 
         private void RefreshStats()
@@ -449,27 +464,24 @@ namespace ProjectName.UI
             if (statSystem == null) return;
 
             if (availablePointsText != null)
-                availablePointsText.text = $"Pts: {statSystem.AvailableStatPoints}";
+                availablePointsText.text = $"Stat Points: {statSystem.AvailableStatPoints}";
 
             if (strengthText != null)
-                strengthText.text = $"STR: {statSystem.Strength}";
+                strengthText.text = FormatCoreStat("Strength", statSystem.BaseStrength, statSystem.Strength);
             if (intelligenceText != null)
-                intelligenceText.text = $"INT: {statSystem.Intelligence}";
+                intelligenceText.text = FormatCoreStat("Intelligence", statSystem.BaseIntelligence, statSystem.Intelligence);
             if (agilityText != null)
-                agilityText.text = $"AGI: {statSystem.Agility}";
+                agilityText.text = FormatCoreStat("Agility", statSystem.BaseAgility, statSystem.Agility);
 
-            if (bonusHPText != null)
-                bonusHPText.text = $"HP+{statSystem.BonusMaxHP:F0}";
+            // Derived combat stats (Bonus HP/Mana now shown inline with HP/MP above)
             if (meleeDamageText != null)
-                meleeDamageText.text = $"Melee{statSystem.MeleeDamageMultiplier:F2}";
-            if (bonusManaText != null)
-                bonusManaText.text = $"MP+{statSystem.BonusMaxMana:F0}";
+                meleeDamageText.text = $"Melee Damage: x{statSystem.MeleeDamageMultiplier:F2}";
             if (skillDamageText != null)
-                skillDamageText.text = $"Skill{statSystem.SkillDamageMultiplier:F2}";
+                skillDamageText.text = $"Skill Damage: x{statSystem.SkillDamageMultiplier:F2}";
             if (speedText != null)
-                speedText.text = $"Spd{(1f / statSystem.AttackSpeedMultiplier):F2}";
+                speedText.text = $"Attack Speed: x{(1f / statSystem.AttackSpeedMultiplier):F2}";
             if (critChanceText != null)
-                critChanceText.text = $"Crit{statSystem.CritChance * 100f:F0}%";
+                critChanceText.text = $"Critical: {statSystem.CritChance * 100f:F1}% (x{statSystem.CritDamageMultiplier:F2})";
 
             bool hasPoints = statSystem.AvailableStatPoints > 0;
             if (allocateStrButton != null) allocateStrButton.interactable = hasPoints;
@@ -576,11 +588,31 @@ namespace ProjectName.UI
 
         #region Stat Allocation
 
+        private static string FormatCoreStat(string name, int baseStat, int total)
+        {
+            if (total != baseStat)
+                return $"{name}: {baseStat} [{total}]";
+            return $"{name}: {baseStat}";
+        }
+
         private void AllocateStat(string statName)
         {
             if (statSystem == null) return;
 
-            if (statSystem.AllocateStat(statName))
+            var kb = Keyboard.current;
+            bool shiftHeld = kb != null
+                && (kb.leftShiftKey.isPressed || kb.rightShiftKey.isPressed);
+            int amount = shiftHeld ? 5 : 1;
+
+            bool anyAllocated = false;
+            for (int i = 0; i < amount; i++)
+            {
+                if (!statSystem.AllocateStat(statName))
+                    break;
+                anyAllocated = true;
+            }
+
+            if (anyAllocated)
             {
                 RefreshStats();
                 RefreshPlayerInfo();
@@ -618,7 +650,16 @@ namespace ProjectName.UI
                 }
             }
 
-            // Right-click / normal click: unequip to inventory
+            // Left-click with no active drag: no action (drag is handled by EventTrigger)
+            // Right-click handles unequip via OnEquipSlotRightClicked
+        }
+
+        private void OnEquipSlotRightClicked(int slotIndex)
+        {
+            if (slotIndex < 0 || slotIndex >= SlotDisplayOrder.Length) return;
+            if (equipmentManager == null || inventoryManager == null) return;
+
+            var slotType = SlotDisplayOrder[slotIndex];
             var equipped = equipmentManager.GetEquipped(slotType);
             if (equipped != null)
             {
@@ -639,10 +680,25 @@ namespace ProjectName.UI
         {
             if (inventoryManager == null || equipmentManager == null) return;
 
+            // If dragging equipment, drop it into this inventory cell (unequip)
+            if (dragEquipSlotIndex >= 0)
+            {
+                var slotType = SlotDisplayOrder[dragEquipSlotIndex];
+                inventoryManager.UnequipToInventory(slotType, equipmentManager);
+                CancelDrag();
+                return;
+            }
+
+            // Left-click does nothing (drag only). Right-click equips via InventoryRightClickHandler.
+        }
+
+        private void OnInventoryCellRightClicked(int cellIndex)
+        {
+            if (inventoryManager == null || equipmentManager == null) return;
+
             var item = inventoryManager.GetItem(cellIndex);
             if (item == null) return;
 
-            // Double-click / quick-equip: equip to matching slot
             inventoryManager.EquipFromInventory(cellIndex, equipmentManager);
 
             if (UIManager.Instance != null)
@@ -656,49 +712,162 @@ namespace ProjectName.UI
             var item = inventoryManager.GetItem(cellIndex);
             if (item == null)
             {
-                HideComparePanel();
+                HideTooltip();
                 return;
             }
 
-            // Show compare panel
             var equipped = equipmentManager.GetEquipped(item.slotType);
-            ShowComparePanel(item, equipped);
+            ShowTooltip(item, equipped);
 
-            // Highlight border
             if (cellIndex < inventoryCellBorders.Length && inventoryCellBorders[cellIndex] != null)
                 inventoryCellBorders[cellIndex].color = AgedGold;
         }
 
         private void OnInventoryCellHoverExit(int cellIndex)
         {
-            HideComparePanel();
+            HideTooltip();
 
             if (cellIndex < inventoryCellBorders.Length && inventoryCellBorders[cellIndex] != null)
                 inventoryCellBorders[cellIndex].color = CellBorderNormal;
         }
 
-        private void ShowComparePanel(EquipmentData candidate, EquipmentData currentEquipped)
+        private void OnEquipSlotHoverEnter(int slotIndex)
         {
-            if (comparePanel == null) return;
+            if (equipmentManager == null) return;
+            if (slotIndex < 0 || slotIndex >= SlotDisplayOrder.Length) return;
 
-            comparePanel.SetActive(true);
+            var item = equipmentManager.GetEquipped(SlotDisplayOrder[slotIndex]);
+            if (item == null)
+            {
+                HideTooltip();
+                return;
+            }
 
-            if (compareItemName != null)
-                compareItemName.text = candidate.displayName;
-
-            if (compareStatDeltas != null)
-                compareStatDeltas.text = StatComparisonHelper.BuildCompareText(currentEquipped, candidate);
+            ShowTooltip(item, null);
         }
 
-        private void HideComparePanel()
+        private void OnEquipSlotHoverExit(int slotIndex)
         {
-            if (comparePanel != null)
-                comparePanel.SetActive(false);
+            HideTooltip();
+        }
+
+        private void ShowTooltip(EquipmentData item, EquipmentData compareAgainst)
+        {
+            if (tooltipPanel == null || item == null) return;
+
+            tooltipPanel.SetActive(true);
+
+            if (tooltipTitle != null)
+                tooltipTitle.text = item.displayName;
+
+            if (tooltipStats != null)
+            {
+                string statLine = item.GetStatSummary();
+                if (compareAgainst != null)
+                    statLine += "\n" + BuildCompareText(compareAgainst, item);
+                tooltipStats.text = !string.IsNullOrEmpty(statLine) ? statLine : "No bonuses";
+            }
+
+            if (tooltipDesc != null)
+                tooltipDesc.text = !string.IsNullOrEmpty(item.description) ? item.description : "";
+
+            PositionTooltipAtCursor();
+        }
+
+        private void HideTooltip()
+        {
+            if (tooltipPanel != null)
+                tooltipPanel.SetActive(false);
+        }
+
+        private void PositionTooltipAtCursor()
+        {
+            if (tooltipRect == null || canvasRect == null) return;
+
+            var mouse = Mouse.current;
+            if (mouse == null) return;
+
+            Vector2 screenPos = mouse.position.ReadValue();
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                canvasRect, screenPos,
+                menuCanvas != null && menuCanvas.renderMode != RenderMode.ScreenSpaceOverlay ? menuCanvas.worldCamera : null,
+                out var localPoint);
+
+            // Offset so tooltip doesn't sit right under cursor
+            localPoint += new Vector2(16f, -16f);
+
+            // Clamp to canvas bounds
+            Vector2 canvasSize = canvasRect.rect.size;
+            Vector2 tooltipSize = tooltipRect.sizeDelta;
+            Vector2 pivot = tooltipRect.pivot;
+
+            float minX = -canvasSize.x * canvasRect.pivot.x + tooltipSize.x * pivot.x;
+            float maxX = canvasSize.x * (1f - canvasRect.pivot.x) - tooltipSize.x * (1f - pivot.x);
+            float minY = -canvasSize.y * canvasRect.pivot.y + tooltipSize.y * pivot.y;
+            float maxY = canvasSize.y * (1f - canvasRect.pivot.y) - tooltipSize.y * (1f - pivot.y);
+
+            localPoint.x = Mathf.Clamp(localPoint.x, minX, maxX);
+            localPoint.y = Mathf.Clamp(localPoint.y, minY, maxY);
+
+            tooltipRect.anchoredPosition = localPoint;
+        }
+
+        private static string BuildCompareText(EquipmentData current, EquipmentData candidate)
+        {
+            var sb = new System.Text.StringBuilder();
+            AppendDelta(sb, "STR", candidate.bonusSTR - current.bonusSTR);
+            AppendDelta(sb, "INT", candidate.bonusINT - current.bonusINT);
+            AppendDelta(sb, "AGI", candidate.bonusAGI - current.bonusAGI);
+            return sb.ToString().TrimEnd();
+        }
+
+        private static void AppendDelta(System.Text.StringBuilder sb, string stat, int delta)
+        {
+            if (delta == 0) return;
+            string color = delta > 0 ? "#4CAF50" : "#8B0000";
+            sb.Append($"<color={color}>{stat} {delta:+#;-#}</color>   ");
+        }
+
+        private void LateUpdate()
+        {
+            if (tooltipPanel != null && tooltipPanel.activeSelf)
+                PositionTooltipAtCursor();
         }
 
         #endregion
 
         #region Drag and Drop
+
+        private void StartEquipDrag(int slotIndex, EquipmentSlotType slotType)
+        {
+            var item = equipmentManager.GetEquipped(slotType);
+            if (item == null) return;
+
+            dragEquipSlotIndex = slotIndex;
+
+            if (dragGhost != null)
+                Destroy(dragGhost);
+
+            dragCanvas = menuCanvas;
+            dragGhost = new GameObject("DragGhost", typeof(RectTransform), typeof(CanvasGroup));
+            dragGhost.transform.SetParent(menuCanvas.transform, false);
+
+            var ghostCg = dragGhost.GetComponent<CanvasGroup>();
+            ghostCg.alpha = 0.6f;
+            ghostCg.blocksRaycasts = false;
+
+            var ghostImg = dragGhost.AddComponent<Image>();
+            ghostImg.sprite = ResolveEquipmentSprite(item, slotType);
+            ghostImg.preserveAspect = true;
+            ghostImg.raycastTarget = false;
+
+            var ghostRect = dragGhost.GetComponent<RectTransform>();
+            ghostRect.sizeDelta = new Vector2(48, 48);
+
+            // Dim the source slot icon
+            if (slotIndex < equipSlotIcons.Length && equipSlotIcons[slotIndex] != null)
+                equipSlotIcons[slotIndex].color = new Color(1f, 1f, 1f, 0.3f);
+        }
 
         private void StartDrag(int inventoryIndex)
         {
@@ -758,17 +927,23 @@ namespace ProjectName.UI
                 dragGhost = null;
             }
 
-            // Restore source cell visual
+            // Restore source cell visual (inventory drag)
             if (dragSourceIndex >= 0)
             {
                 if (dragSourceIndex < inventoryCellBorders.Length && inventoryCellBorders[dragSourceIndex] != null)
                     inventoryCellBorders[dragSourceIndex].color = CellBorderNormal;
 
-                // Refresh icon
                 RefreshInventory();
             }
 
+            // Restore source slot visual (equipment drag)
+            if (dragEquipSlotIndex >= 0)
+            {
+                RefreshEquipment();
+            }
+
             dragSourceIndex = -1;
+            dragEquipSlotIndex = -1;
         }
 
         #endregion
@@ -821,6 +996,12 @@ namespace ProjectName.UI
 
         #region Runtime UI Builder
 
+        // Typography — 4 tiers only
+        private const float FontHeader = 24f;    // panel title, character name
+        private const float FontPrimary = 16f;   // stat names, stat values, equipment names, HP/MP
+        private const float FontSecondary = 13f;  // slot labels, inventory count, derived stats, class/level
+        private const float FontFlavor = 11f;     // descriptions, lore, tooltips
+
         // Gothic color palette
         private static readonly Color PanelBg = new Color(0.08f, 0.08f, 0.1f, 0.97f);
         private static readonly Color AgedGold = new Color(0.812f, 0.710f, 0.231f, 1f);
@@ -831,8 +1012,6 @@ namespace ProjectName.UI
         private static readonly Color BtnHover = new Color(0.3f, 0.3f, 0.35f, 1f);
         private static readonly Color BtnPress = new Color(0.15f, 0.15f, 0.2f, 1f);
         private static readonly Color SubtleText = new Color(0.7f, 0.65f, 0.55f, 1f);
-        private static readonly Color DeepCrimson = new Color(0.545f, 0f, 0f, 1f);
-        private static readonly Color DarkBlue = new Color(0.1f, 0.2f, 0.6f, 1f);
         private static readonly Color CellBg = new Color(0.06f, 0.06f, 0.08f, 0.8f);
         private static readonly Color CellBorderNormal = new Color(0.3f, 0.3f, 0.3f, 0.3f);
         private static readonly Color CompareBg = new Color(0.06f, 0.06f, 0.08f, 0.95f);
@@ -910,7 +1089,7 @@ namespace ProjectName.UI
             Stretch(titleTextGo);
             var titleTmp = titleTextGo.AddComponent<TextMeshProUGUI>();
             titleTmp.text = "CHARACTER";
-            titleTmp.fontSize = 28;
+            titleTmp.fontSize = FontHeader;
             titleTmp.fontStyle = FontStyles.Bold;
             titleTmp.color = AgedGold;
             titleTmp.alignment = TextAlignmentOptions.Center;
@@ -965,15 +1144,15 @@ namespace ProjectName.UI
             float infoY = 0f;
             float lineH = 22f;
 
-            var charNameGo = BuildInfoText(leftCol.transform, "CharName", "Hero", 20, AgedGold, infoX, infoY);
+            var charNameGo = BuildInfoText(leftCol.transform, "CharName", "Hero", FontHeader, AgedGold, infoX, infoY);
             infoY -= lineH + 2f;
-            var classGo = BuildInfoText(leftCol.transform, "Class", "(Adventurer)", 16, SubtleText, infoX, infoY);
+            var classGo = BuildInfoText(leftCol.transform, "Class", "(Adventurer)", FontSecondary, SubtleText, infoX, infoY);
             infoY -= lineH + 2f;
-            var lvlGo = BuildInfoText(leftCol.transform, "Level", "Lv 1", 16, BoneWhite, infoX, infoY);
+            var lvlGo = BuildInfoText(leftCol.transform, "Level", "Level 1", FontSecondary, BoneWhite, infoX, infoY);
             infoY -= lineH + 2f;
-            var hpGoTxt = BuildInfoText(leftCol.transform, "HP", "HP: 100/100", 16, DeepCrimson, infoX, infoY);
+            var hpGoTxt = BuildInfoText(leftCol.transform, "HP", "HP: 100/100", FontPrimary, BoneWhite, infoX, infoY);
             infoY -= lineH + 2f;
-            var mpGoTxt = BuildInfoText(leftCol.transform, "MP", "MP: 50/50", 16, DarkBlue, infoX, infoY);
+            var mpGoTxt = BuildInfoText(leftCol.transform, "MP", "MP: 50/50", FontPrimary, BoneWhite, infoX, infoY);
 
             // Stats + Derived (below preview area)
             float statsBaseY = -210f;
@@ -987,8 +1166,8 @@ namespace ProjectName.UI
             ptsRect.anchoredPosition = new Vector2(0, statsBaseY);
             ptsRect.sizeDelta = new Vector2(0, 22);
             var ptsTmp = ptsGo.AddComponent<TextMeshProUGUI>();
-            ptsTmp.text = "Pts: 0";
-            ptsTmp.fontSize = 16;
+            ptsTmp.text = "Stat Points: 0";
+            ptsTmp.fontSize = FontPrimary;
             ptsTmp.fontStyle = FontStyles.Bold;
             ptsTmp.color = AgedGold;
             ptsTmp.alignment = TextAlignmentOptions.Left;
@@ -996,17 +1175,40 @@ namespace ProjectName.UI
 
             statsBaseY -= 28f;
 
-            // Stat rows: STR [+]  HP+60 Melee1.24
-            var (strTmp, strBtn, bHpTmp, meleeTmp) =
-                BuildStatRow(leftCol.transform, "STR", statsBaseY);
-            statsBaseY -= 26f;
+            // Two-column layout: left = core stats with [+], right = derived stats
+            // Left sub-column (0–55%)
+            var statLeftCol = MakeRect("StatLeftCol", leftCol.transform);
+            var statLeftRect = statLeftCol.GetComponent<RectTransform>();
+            statLeftRect.anchorMin = new Vector2(0, 1);
+            statLeftRect.anchorMax = new Vector2(0.55f, 1);
+            statLeftRect.pivot = new Vector2(0, 1);
+            statLeftRect.anchoredPosition = new Vector2(0, statsBaseY);
+            statLeftRect.sizeDelta = new Vector2(0, 100);
 
-            var (intTmp, intBtn, bManaTmp, skillDmgTmp) =
-                BuildStatRow(leftCol.transform, "INT", statsBaseY);
-            statsBaseY -= 26f;
+            float leftY = 0f;
+            var (strTmp, strBtn) = BuildStatRow(statLeftCol.transform, "Strength", leftY);
+            leftY -= 26f;
+            var (intTmp, intBtn) = BuildStatRow(statLeftCol.transform, "Intelligence", leftY);
+            leftY -= 26f;
+            var (agiTmp, agiBtn) = BuildStatRow(statLeftCol.transform, "Agility", leftY);
 
-            var (agiTmp, agiBtn, spdTmp, critTmp) =
-                BuildStatRow(leftCol.transform, "AGI", statsBaseY);
+            // Right sub-column (58–100%) — derived stats stacked
+            var statRightCol = MakeRect("StatRightCol", leftCol.transform);
+            var statRightRect = statRightCol.GetComponent<RectTransform>();
+            statRightRect.anchorMin = new Vector2(0.58f, 1);
+            statRightRect.anchorMax = new Vector2(1, 1);
+            statRightRect.pivot = new Vector2(0, 1);
+            statRightRect.anchoredPosition = new Vector2(0, statsBaseY);
+            statRightRect.sizeDelta = new Vector2(0, 100);
+
+            float rightY = 0f;
+            var meleeTmp = BuildDerivedStatLine(statRightCol.transform, "Melee Damage: x1.00", rightY);
+            rightY -= 22f;
+            var skillDmgTmp = BuildDerivedStatLine(statRightCol.transform, "Skill Damage: x1.00", rightY);
+            rightY -= 22f;
+            var spdTmp = BuildDerivedStatLine(statRightCol.transform, "Attack Speed: x1.00", rightY);
+            rightY -= 22f;
+            var critTmp = BuildDerivedStatLine(statRightCol.transform, "Critical: 0.0% (x2.00)", rightY);
 
             // --- GOLD VERTICAL DIVIDER at 49% ---
             BuildVerticalDivider(topSection.transform, 0.49f);
@@ -1018,6 +1220,7 @@ namespace ProjectName.UI
             rightColRect.anchorMax = new Vector2(1, 1);
             rightColRect.offsetMin = Vector2.zero;
             rightColRect.offsetMax = Vector2.zero;
+            rightCol.AddComponent<RectMask2D>();
 
             // Build 7 equipment slot rows
             var slotIcons = new Image[7];
@@ -1063,13 +1266,13 @@ namespace ProjectName.UI
             var invLabelGo = MakeRect("InvLabel", bottomSection.transform);
             var invLabelRect = invLabelGo.GetComponent<RectTransform>();
             invLabelRect.anchorMin = new Vector2(0, 1);
-            invLabelRect.anchorMax = new Vector2(0.6f, 1);
+            invLabelRect.anchorMax = new Vector2(1f, 1);
             invLabelRect.pivot = new Vector2(0, 1);
             invLabelRect.anchoredPosition = Vector2.zero;
             invLabelRect.sizeDelta = new Vector2(0, 22);
             var invLabelTmp = invLabelGo.AddComponent<TextMeshProUGUI>();
             invLabelTmp.text = "INVENTORY (0/24)";
-            invLabelTmp.fontSize = 14;
+            invLabelTmp.fontSize = FontSecondary;
             invLabelTmp.fontStyle = FontStyles.Bold;
             invLabelTmp.color = AgedGold;
             invLabelTmp.alignment = TextAlignmentOptions.Left;
@@ -1079,14 +1282,14 @@ namespace ProjectName.UI
             var gridContainer = MakeRect("InventoryGrid", bottomSection.transform);
             var gridRect = gridContainer.GetComponent<RectTransform>();
             gridRect.anchorMin = new Vector2(0, 0);
-            gridRect.anchorMax = new Vector2(0.6f, 1);
+            gridRect.anchorMax = new Vector2(1f, 1);
             gridRect.offsetMin = new Vector2(0, 0);
             gridRect.offsetMax = new Vector2(0, -26);
 
             int cols = 8;
             int rows = 3;
             int totalCells = cols * rows;
-            float cellSize = 52f;
+            float cellSize = 64f;
             float cellSpacing = 4f;
 
             var cellIcons = new Image[totalCells];
@@ -1136,8 +1339,8 @@ namespace ProjectName.UI
                     // Item icon
                     var iconGo = MakeRect("Icon", cellGo.transform);
                     var iconRect = iconGo.GetComponent<RectTransform>();
-                    iconRect.anchorMin = new Vector2(0.1f, 0.1f);
-                    iconRect.anchorMax = new Vector2(0.9f, 0.9f);
+                    iconRect.anchorMin = new Vector2(0.05f, 0.05f);
+                    iconRect.anchorMax = new Vector2(0.95f, 0.95f);
                     iconRect.offsetMin = Vector2.zero;
                     iconRect.offsetMax = Vector2.zero;
                     var iconImg = iconGo.AddComponent<Image>();
@@ -1165,50 +1368,80 @@ namespace ProjectName.UI
                 }
             }
 
-            // Compare panel (right 38%)
-            var compPanel = MakeRect("ComparePanel", bottomSection.transform);
-            var compPanelRect = compPanel.GetComponent<RectTransform>();
-            compPanelRect.anchorMin = new Vector2(0.62f, 0);
-            compPanelRect.anchorMax = new Vector2(1, 1);
-            compPanelRect.offsetMin = Vector2.zero;
-            compPanelRect.offsetMax = new Vector2(0, -26);
+            // Floating tooltip (parented to canvas root, not panel, so it renders on top)
+            var ttGo = MakeRect("Tooltip", canvasGo.transform);
+            var ttRect = ttGo.GetComponent<RectTransform>();
+            ttRect.pivot = new Vector2(0, 1);
+            ttRect.sizeDelta = new Vector2(250, 0); // width fixed, height auto
+            var ttCg = ttGo.AddComponent<CanvasGroup>();
+            ttCg.blocksRaycasts = false;
+            ttCg.interactable = false;
 
-            var compBg = compPanel.AddComponent<Image>();
-            compBg.sprite = WhiteSprite;
-            compBg.color = CompareBg;
+            var ttBg = ttGo.AddComponent<Image>();
+            ttBg.sprite = WhiteSprite;
+            ttBg.color = CompareBg;
 
-            // Compare title "COMPARE"
-            var compTitleGo = MakeRect("CompTitle", compPanel.transform);
-            var compTitleRect = compTitleGo.GetComponent<RectTransform>();
-            compTitleRect.anchorMin = new Vector2(0, 1);
-            compTitleRect.anchorMax = new Vector2(1, 1);
-            compTitleRect.pivot = new Vector2(0.5f, 1);
-            compTitleRect.anchoredPosition = new Vector2(0, -4);
-            compTitleRect.sizeDelta = new Vector2(-16, 24);
-            var compTitleTmp = compTitleGo.AddComponent<TextMeshProUGUI>();
-            compTitleTmp.text = "";
-            compTitleTmp.fontSize = 16;
-            compTitleTmp.fontStyle = FontStyles.Bold;
-            compTitleTmp.color = AgedGold;
-            compTitleTmp.alignment = TextAlignmentOptions.Left;
-            FontManager.EnsureFont(compTitleTmp);
+            // 1px gold border via child overlay
+            var ttBorder = MakeRect("Border", ttGo.transform);
+            Stretch(ttBorder);
+            var ttBorderImg = ttBorder.AddComponent<Image>();
+            ttBorderImg.sprite = WhiteSprite;
+            ttBorderImg.color = AgedGold;
+            ttBorderImg.raycastTarget = false;
+            var ttInner = MakeRect("Inner", ttBorder.transform);
+            var ttInnerRect = ttInner.GetComponent<RectTransform>();
+            ttInnerRect.anchorMin = Vector2.zero;
+            ttInnerRect.anchorMax = Vector2.one;
+            ttInnerRect.offsetMin = new Vector2(1, 1);
+            ttInnerRect.offsetMax = new Vector2(-1, -1);
+            var ttInnerImg = ttInner.AddComponent<Image>();
+            ttInnerImg.sprite = WhiteSprite;
+            ttInnerImg.color = CompareBg;
+            ttInnerImg.raycastTarget = false;
 
-            // Compare stat deltas
-            var compDeltaGo = MakeRect("CompDeltas", compPanel.transform);
-            var compDeltaRect = compDeltaGo.GetComponent<RectTransform>();
-            compDeltaRect.anchorMin = new Vector2(0, 0);
-            compDeltaRect.anchorMax = new Vector2(1, 1);
-            compDeltaRect.offsetMin = new Vector2(8, 8);
-            compDeltaRect.offsetMax = new Vector2(-8, -30);
-            var compDeltaTmp = compDeltaGo.AddComponent<TextMeshProUGUI>();
-            compDeltaTmp.text = "";
-            compDeltaTmp.fontSize = 14;
-            compDeltaTmp.color = BoneWhite;
-            compDeltaTmp.alignment = TextAlignmentOptions.TopLeft;
-            compDeltaTmp.richText = true;
-            FontManager.EnsureFont(compDeltaTmp);
+            // Vertical layout for auto-sizing
+            var ttLayout = ttGo.AddComponent<VerticalLayoutGroup>();
+            ttLayout.padding = new RectOffset(8, 8, 6, 6);
+            ttLayout.spacing = 2f;
+            ttLayout.childForceExpandWidth = true;
+            ttLayout.childForceExpandHeight = false;
+            ttLayout.childControlWidth = true;
+            ttLayout.childControlHeight = true;
 
-            compPanel.SetActive(false);
+            var ttFitter = ttGo.AddComponent<ContentSizeFitter>();
+            ttFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            ttFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+
+            // Title
+            var ttTitleGo = MakeRect("Title", ttGo.transform);
+            var ttTitleTmp = ttTitleGo.AddComponent<TextMeshProUGUI>();
+            ttTitleTmp.text = "";
+            ttTitleTmp.fontSize = FontPrimary;
+            ttTitleTmp.fontStyle = FontStyles.Bold;
+            ttTitleTmp.color = AgedGold;
+            ttTitleTmp.alignment = TextAlignmentOptions.TopLeft;
+            FontManager.EnsureFont(ttTitleTmp);
+
+            // Stats
+            var ttStatsGo = MakeRect("Stats", ttGo.transform);
+            var ttStatsTmp = ttStatsGo.AddComponent<TextMeshProUGUI>();
+            ttStatsTmp.text = "";
+            ttStatsTmp.fontSize = FontSecondary;
+            ttStatsTmp.color = BoneWhite;
+            ttStatsTmp.alignment = TextAlignmentOptions.TopLeft;
+            ttStatsTmp.richText = true;
+            FontManager.EnsureFont(ttStatsTmp);
+
+            // Description
+            var ttDescGo = MakeRect("Desc", ttGo.transform);
+            var ttDescTmp = ttDescGo.AddComponent<TextMeshProUGUI>();
+            ttDescTmp.text = "";
+            ttDescTmp.fontSize = FontFlavor;
+            ttDescTmp.color = SubtleText;
+            ttDescTmp.alignment = TextAlignmentOptions.TopLeft;
+            FontManager.EnsureFont(ttDescTmp);
+
+            ttGo.SetActive(false);
 
             // =================================================================
             // Wire Controller
@@ -1235,10 +1468,8 @@ namespace ProjectName.UI
             controller.allocateIntButton = intBtn;
             controller.allocateAgiButton = agiBtn;
 
-            // Derived stats
-            controller.bonusHPText = bHpTmp;
+            // Derived combat stats (Bonus HP/Mana shown inline with HP/MP, not here)
             controller.meleeDamageText = meleeTmp;
-            controller.bonusManaText = bManaTmp;
             controller.skillDamageText = skillDmgTmp;
             controller.speedText = spdTmp;
             controller.critChanceText = critTmp;
@@ -1255,18 +1486,25 @@ namespace ProjectName.UI
             controller.inventoryCellBorders = cellBorders;
             controller.inventoryCellButtons = cellButtons;
 
-            // Compare
-            controller.comparePanel = compPanel;
-            controller.compareItemName = compTitleTmp;
-            controller.compareStatDeltas = compDeltaTmp;
+            // Tooltip
+            controller.tooltipPanel = ttGo;
+            controller.tooltipTitle = ttTitleTmp;
+            controller.tooltipStats = ttStatsTmp;
+            controller.tooltipDesc = ttDescTmp;
+            controller.tooltipRect = ttRect;
+            controller.canvasRect = canvasGo.GetComponent<RectTransform>();
 
             // Wire equipment slot click handlers
             for (int i = 0; i < 7; i++)
             {
-                // Remove the placeholder listener and add real one
+                // Left-click: start drag of equipped item
                 slotRowBtns[i].onClick.RemoveAllListeners();
                 int capturedSlot = i;
                 slotRowBtns[i].onClick.AddListener(() => controller.OnEquipSlotClicked(capturedSlot));
+
+                // Right-click: unequip to inventory
+                var rightClick = slotRowBtns[i].gameObject.AddComponent<SlotRightClickHandler>();
+                rightClick.onRightClick = () => controller.OnEquipSlotRightClicked(capturedSlot);
             }
 
             // Wire inventory cell handlers
@@ -1274,8 +1512,12 @@ namespace ProjectName.UI
             {
                 int capturedIdx = i;
 
-                // Click = quick-equip
+                // Left-click: only handles equip-drag-to-inventory drop
                 cellButtons[i].onClick.AddListener(() => controller.OnInventoryCellClicked(capturedIdx));
+
+                // Right-click: quick-equip from inventory
+                var invRightClick = cellButtons[i].gameObject.AddComponent<InventoryRightClickHandler>();
+                invRightClick.onRightClick = () => controller.OnInventoryCellRightClicked(capturedIdx);
 
                 // Hover events via EventTrigger
                 var trigger = cellButtons[i].GetComponent<EventTrigger>();
@@ -1306,18 +1548,51 @@ namespace ProjectName.UI
                     var endDragEntry = new EventTrigger.Entry { eventID = EventTriggerType.EndDrag };
                     endDragEntry.callback.AddListener(_ => controller.OnDragEnd());
                     trigger.triggers.Add(endDragEntry);
+
+                    // Drop target (for equipment → inventory drags)
+                    var dropEntry = new EventTrigger.Entry { eventID = EventTriggerType.Drop };
+                    dropEntry.callback.AddListener(_ => controller.OnInventoryCellDrop(capturedIdx));
+                    trigger.triggers.Add(dropEntry);
                 }
             }
 
-            // Wire drop targets on equipment slot rows
+            // Wire drag + drop + hover on equipment slot rows
             for (int i = 0; i < 7; i++)
             {
                 int capturedSlot = i;
                 var slotTrigger = slotRowBtns[i].gameObject.AddComponent<EventTrigger>();
 
+                // Drop target (for inventory → equip drags)
                 var dropEntry = new EventTrigger.Entry { eventID = EventTriggerType.Drop };
                 dropEntry.callback.AddListener(_ => controller.OnEquipSlotDrop(capturedSlot));
                 slotTrigger.triggers.Add(dropEntry);
+
+                // Drag source (for equip → inventory drags)
+                var beginDragEntry = new EventTrigger.Entry { eventID = EventTriggerType.BeginDrag };
+                beginDragEntry.callback.AddListener(_ => controller.StartEquipDrag(capturedSlot, SlotDisplayOrder[capturedSlot]));
+                slotTrigger.triggers.Add(beginDragEntry);
+
+                var dragEntry = new EventTrigger.Entry { eventID = EventTriggerType.Drag };
+                dragEntry.callback.AddListener(data =>
+                {
+                    var pointerData = data as PointerEventData;
+                    if (pointerData != null)
+                        controller.UpdateDragPosition(pointerData.position);
+                });
+                slotTrigger.triggers.Add(dragEntry);
+
+                var endDragEntry = new EventTrigger.Entry { eventID = EventTriggerType.EndDrag };
+                endDragEntry.callback.AddListener(_ => controller.OnDragEnd());
+                slotTrigger.triggers.Add(endDragEntry);
+
+                // Hover tooltip on equipment slots
+                var slotEnterEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
+                slotEnterEntry.callback.AddListener(_ => controller.OnEquipSlotHoverEnter(capturedSlot));
+                slotTrigger.triggers.Add(slotEnterEntry);
+
+                var slotExitEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
+                slotExitEntry.callback.AddListener(_ => controller.OnEquipSlotHoverExit(capturedSlot));
+                slotTrigger.triggers.Add(slotExitEntry);
             }
 
             // Wire button listeners (close, allocate)
@@ -1328,11 +1603,35 @@ namespace ProjectName.UI
         }
 
         /// <summary>
-        /// Called when a drag ends (released anywhere).
+        /// Called when a drag ends (released anywhere without hitting a drop target).
         /// </summary>
         private void OnDragEnd()
         {
-            // If not dropped on a valid target, cancel
+            CancelDrag();
+        }
+
+        /// <summary>
+        /// Called when an equipment drag is dropped on an inventory cell.
+        /// Unequips the item to inventory.
+        /// </summary>
+        private void OnInventoryCellDrop(int cellIndex)
+        {
+            if (dragEquipSlotIndex < 0) return;
+            if (equipmentManager == null || inventoryManager == null) return;
+
+            var slotType = SlotDisplayOrder[dragEquipSlotIndex];
+            if (inventoryManager.UnequipToInventory(slotType, equipmentManager))
+            {
+                if (UIManager.Instance != null)
+                    UIManager.Instance.PlaySelectSound();
+            }
+            else
+            {
+                Debug.Log("[CharacterMenuController] Inventory full, cannot unequip");
+                if (UIManager.Instance != null)
+                    UIManager.Instance.PlayErrorSound();
+            }
+
             CancelDrag();
         }
 
@@ -1392,7 +1691,7 @@ namespace ProjectName.UI
             Stretch(textGo);
             var tmp = textGo.AddComponent<TextMeshProUGUI>();
             tmp.text = "X";
-            tmp.fontSize = 20;
+            tmp.fontSize = FontPrimary;
             tmp.fontStyle = FontStyles.Bold;
             tmp.color = BoneWhite;
             tmp.alignment = TextAlignmentOptions.Center;
@@ -1421,7 +1720,7 @@ namespace ProjectName.UI
             return tmp;
         }
 
-        private static (TMP_Text statText, Button allocBtn, TMP_Text derived1, TMP_Text derived2)
+        private static (TMP_Text statText, Button allocBtn)
             BuildStatRow(Transform parent, string label, float yOffset)
         {
             var rowGo = MakeRect(label + "Row", parent);
@@ -1432,25 +1731,27 @@ namespace ProjectName.UI
             rowRect.anchoredPosition = new Vector2(0, yOffset);
             rowRect.sizeDelta = new Vector2(0, 24);
 
-            // Stat value text (left)
+            // Stat value text
             var statGo = MakeRect("StatVal", rowGo.transform);
             var statRect = statGo.GetComponent<RectTransform>();
             statRect.anchorMin = new Vector2(0, 0);
-            statRect.anchorMax = new Vector2(0.22f, 1);
+            statRect.anchorMax = new Vector2(0.78f, 1);
             statRect.offsetMin = Vector2.zero;
             statRect.offsetMax = Vector2.zero;
             var statTmp = statGo.AddComponent<TextMeshProUGUI>();
             statTmp.text = $"{label}: 1";
-            statTmp.fontSize = 15;
+            statTmp.fontSize = FontPrimary;
             statTmp.color = BoneWhite;
             statTmp.alignment = TextAlignmentOptions.Left;
+            statTmp.overflowMode = TextOverflowModes.Ellipsis;
+            statTmp.textWrappingMode = TextWrappingModes.NoWrap;
             FontManager.EnsureFont(statTmp);
 
             // Allocate [+] button
             var btnGo = MakeRect("AllocBtn", rowGo.transform);
             var btnRect = btnGo.GetComponent<RectTransform>();
-            btnRect.anchorMin = new Vector2(0.22f, 0.05f);
-            btnRect.anchorMax = new Vector2(0.30f, 0.95f);
+            btnRect.anchorMin = new Vector2(0.80f, 0.05f);
+            btnRect.anchorMax = new Vector2(0.96f, 0.95f);
             btnRect.offsetMin = new Vector2(2, 0);
             btnRect.offsetMax = new Vector2(-2, 0);
             var btnImg = btnGo.AddComponent<Image>();
@@ -1468,41 +1769,36 @@ namespace ProjectName.UI
             Stretch(btnTextGo);
             var btnTmp = btnTextGo.AddComponent<TextMeshProUGUI>();
             btnTmp.text = "+";
-            btnTmp.fontSize = 16;
+            btnTmp.fontSize = FontPrimary;
             btnTmp.fontStyle = FontStyles.Bold;
             btnTmp.color = AgedGold;
             btnTmp.alignment = TextAlignmentOptions.Center;
             FontManager.EnsureFont(btnTmp);
 
-            // Derived stat 1
-            var d1Go = MakeRect("Derived1", rowGo.transform);
-            var d1Rect = d1Go.GetComponent<RectTransform>();
-            d1Rect.anchorMin = new Vector2(0.32f, 0);
-            d1Rect.anchorMax = new Vector2(0.60f, 1);
-            d1Rect.offsetMin = Vector2.zero;
-            d1Rect.offsetMax = Vector2.zero;
-            var d1Tmp = d1Go.AddComponent<TextMeshProUGUI>();
-            d1Tmp.text = "";
-            d1Tmp.fontSize = 13;
-            d1Tmp.color = SubtleText;
-            d1Tmp.alignment = TextAlignmentOptions.Left;
-            FontManager.EnsureFont(d1Tmp);
+            return (statTmp, btn);
+        }
 
-            // Derived stat 2
-            var d2Go = MakeRect("Derived2", rowGo.transform);
-            var d2Rect = d2Go.GetComponent<RectTransform>();
-            d2Rect.anchorMin = new Vector2(0.62f, 0);
-            d2Rect.anchorMax = new Vector2(1, 1);
-            d2Rect.offsetMin = Vector2.zero;
-            d2Rect.offsetMax = Vector2.zero;
-            var d2Tmp = d2Go.AddComponent<TextMeshProUGUI>();
-            d2Tmp.text = "";
-            d2Tmp.fontSize = 13;
-            d2Tmp.color = SubtleText;
-            d2Tmp.alignment = TextAlignmentOptions.Left;
-            FontManager.EnsureFont(d2Tmp);
-
-            return (statTmp, btn, d1Tmp, d2Tmp);
+        /// <summary>
+        /// Builds a single derived stat text line (secondary font, subtle color).
+        /// </summary>
+        private static TMP_Text BuildDerivedStatLine(Transform parent, string defaultText, float yOffset)
+        {
+            var go = MakeRect("DerivedStat", parent);
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0, 1);
+            rt.anchorMax = new Vector2(1, 1);
+            rt.pivot = new Vector2(0, 1);
+            rt.anchoredPosition = new Vector2(0, yOffset);
+            rt.sizeDelta = new Vector2(0, 20);
+            var tmp = go.AddComponent<TextMeshProUGUI>();
+            tmp.text = defaultText;
+            tmp.fontSize = FontSecondary;
+            tmp.color = SubtleText;
+            tmp.alignment = TextAlignmentOptions.Left;
+            tmp.overflowMode = TextOverflowModes.Ellipsis;
+            tmp.textWrappingMode = TextWrappingModes.NoWrap;
+            FontManager.EnsureFont(tmp);
+            return tmp;
         }
 
         private const float SLOT_ROW_HEIGHT = 50f;
@@ -1538,8 +1834,8 @@ namespace ProjectName.UI
             iconContainerRect.anchorMin = new Vector2(0, 0);
             iconContainerRect.anchorMax = new Vector2(0, 1);
             iconContainerRect.pivot = new Vector2(0, 0.5f);
-            iconContainerRect.anchoredPosition = new Vector2(4, -2);
-            iconContainerRect.sizeDelta = new Vector2(42, -12);
+            iconContainerRect.anchoredPosition = new Vector2(4, 0);
+            iconContainerRect.sizeDelta = new Vector2(46, -6);
             var iconContainerBg = iconContainerGo.AddComponent<Image>();
             iconContainerBg.sprite = WhiteSprite;
             iconContainerBg.color = CellBg;
@@ -1563,7 +1859,7 @@ namespace ProjectName.UI
             labelRect.sizeDelta = new Vector2(-58, 14);
             var labelTmp = labelGo.AddComponent<TextMeshProUGUI>();
             labelTmp.text = slotLabel;
-            labelTmp.fontSize = 11;
+            labelTmp.fontSize = FontFlavor;
             labelTmp.color = SubtleText;
             labelTmp.alignment = TextAlignmentOptions.TopLeft;
             labelTmp.raycastTarget = false;
@@ -1578,15 +1874,15 @@ namespace ProjectName.UI
             nameRect.offsetMax = new Vector2(-6, 0);
             var nameTmp = nameGo.AddComponent<TextMeshProUGUI>();
             nameTmp.text = "Empty";
-            nameTmp.fontSize = 14;
+            nameTmp.fontSize = FontPrimary;
             nameTmp.color = BoneWhite;
             nameTmp.alignment = TextAlignmentOptions.Left;
             nameTmp.raycastTarget = false;
             nameTmp.overflowMode = TextOverflowModes.Ellipsis;
             nameTmp.textWrappingMode = TextWrappingModes.NoWrap;
             nameTmp.enableAutoSizing = true;
-            nameTmp.fontSizeMin = 10f;
-            nameTmp.fontSizeMax = 14f;
+            nameTmp.fontSizeMin = FontSecondary;
+            nameTmp.fontSizeMax = FontPrimary;
             FontManager.EnsureFont(nameTmp);
 
             // Stats (bottom)
@@ -1598,15 +1894,15 @@ namespace ProjectName.UI
             statsRect.offsetMax = new Vector2(-6, 0);
             var statsTmp = statsGo.AddComponent<TextMeshProUGUI>();
             statsTmp.text = "";
-            statsTmp.fontSize = 12;
+            statsTmp.fontSize = FontSecondary;
             statsTmp.color = AgedGold;
             statsTmp.alignment = TextAlignmentOptions.Left;
             statsTmp.raycastTarget = false;
             statsTmp.overflowMode = TextOverflowModes.Ellipsis;
             statsTmp.textWrappingMode = TextWrappingModes.NoWrap;
             statsTmp.enableAutoSizing = true;
-            statsTmp.fontSizeMin = 9f;
-            statsTmp.fontSizeMax = 12f;
+            statsTmp.fontSizeMin = FontFlavor;
+            statsTmp.fontSizeMax = FontSecondary;
             FontManager.EnsureFont(statsTmp);
 
             return (rowBtn, iconImg, nameTmp, statsTmp);
@@ -1658,5 +1954,31 @@ namespace ProjectName.UI
         #endregion
 
         #endregion
+
+        /// <summary>
+        /// Helper component that detects right-clicks on a UI element.
+        /// Used on equipment slot rows for right-click-to-unequip.
+        /// </summary>
+        private class SlotRightClickHandler : MonoBehaviour, IPointerClickHandler
+        {
+            public System.Action onRightClick;
+
+            public void OnPointerClick(PointerEventData eventData)
+            {
+                if (eventData.button == PointerEventData.InputButton.Right)
+                    onRightClick?.Invoke();
+            }
+        }
+
+        private class InventoryRightClickHandler : MonoBehaviour, IPointerClickHandler
+        {
+            public System.Action onRightClick;
+
+            public void OnPointerClick(PointerEventData eventData)
+            {
+                if (eventData.button == PointerEventData.InputButton.Right)
+                    onRightClick?.Invoke();
+            }
+        }
     }
 }
