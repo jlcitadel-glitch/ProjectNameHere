@@ -679,7 +679,7 @@ namespace ProjectName.UI
             panelRect.anchorMin = new Vector2(0.5f, 0.5f);
             panelRect.anchorMax = new Vector2(0.5f, 0.5f);
             panelRect.pivot = new Vector2(0.5f, 0.5f);
-            panelRect.sizeDelta = new Vector2(900f, 580f);
+            panelRect.sizeDelta = new Vector2(1000f, 580f);
 
             var panelImg = panelGo.AddComponent<Image>();
             panelImg.sprite = WhiteSprite;
@@ -751,7 +751,7 @@ namespace ProjectName.UI
             var previewContainer = MakeRect("PreviewContainer", bodyGo.transform);
             var previewContainerRect = previewContainer.GetComponent<RectTransform>();
             previewContainerRect.anchorMin = new Vector2(0, 0);
-            previewContainerRect.anchorMax = new Vector2(0.25f, 1);
+            previewContainerRect.anchorMax = new Vector2(0.22f, 1);
             previewContainerRect.offsetMin = Vector2.zero;
             previewContainerRect.offsetMax = Vector2.zero;
 
@@ -768,12 +768,12 @@ namespace ProjectName.UI
             var charPreview = previewGo.AddComponent<UILayeredSpritePreview>();
 
             // Vertical divider (preview | slots)
-            BuildVerticalDivider(bodyGo.transform, 0.27f);
+            BuildVerticalDivider(bodyGo.transform, 0.24f);
 
             // Center: equipment slots
             var slotsContainer = MakeRect("SlotsContainer", bodyGo.transform);
             var slotsRect = slotsContainer.GetComponent<RectTransform>();
-            slotsRect.anchorMin = new Vector2(0.29f, 0);
+            slotsRect.anchorMin = new Vector2(0.26f, 0);
             slotsRect.anchorMax = new Vector2(0.58f, 1);
             slotsRect.offsetMin = Vector2.zero;
             slotsRect.offsetMax = Vector2.zero;
@@ -797,6 +797,7 @@ namespace ProjectName.UI
 
             // Vertical divider (slots | selection)
             BuildVerticalDivider(bodyGo.transform, 0.60f);
+
 
             // Right side: selection panel (hidden initially)
             var selPanel = BuildSelectionPanel(bodyGo.transform);
@@ -934,6 +935,11 @@ namespace ProjectName.UI
             nameTmp.color = BoneWhite;
             nameTmp.alignment = TextAlignmentOptions.Left;
             nameTmp.raycastTarget = false;
+            nameTmp.overflowMode = TextOverflowModes.Ellipsis;
+            nameTmp.textWrappingMode = TextWrappingModes.NoWrap;
+            nameTmp.enableAutoSizing = true;
+            nameTmp.fontSizeMin = 11f;
+            nameTmp.fontSizeMax = 16f;
             FontManager.EnsureFont(nameTmp);
 
             // Stats
@@ -949,6 +955,11 @@ namespace ProjectName.UI
             statsTmp.color = AgedGold;
             statsTmp.alignment = TextAlignmentOptions.Left;
             statsTmp.raycastTarget = false;
+            statsTmp.overflowMode = TextOverflowModes.Ellipsis;
+            statsTmp.textWrappingMode = TextWrappingModes.NoWrap;
+            statsTmp.enableAutoSizing = true;
+            statsTmp.fontSizeMin = 10f;
+            statsTmp.fontSizeMax = 14f;
             FontManager.EnsureFont(statsTmp);
 
             return (rowBtn, iconImg, nameTmp, statsTmp);
@@ -1101,6 +1112,11 @@ namespace ProjectName.UI
             nameTmp.color = isSelected ? AgedGold : BoneWhite;
             nameTmp.alignment = TextAlignmentOptions.Left;
             nameTmp.raycastTarget = false;
+            nameTmp.overflowMode = TextOverflowModes.Ellipsis;
+            nameTmp.textWrappingMode = TextWrappingModes.NoWrap;
+            nameTmp.enableAutoSizing = true;
+            nameTmp.fontSizeMin = 11f;
+            nameTmp.fontSizeMax = 16f;
             FontManager.EnsureFont(nameTmp);
 
             // Stats
@@ -1118,6 +1134,11 @@ namespace ProjectName.UI
                 statsTmp.color = SubtleText;
                 statsTmp.alignment = TextAlignmentOptions.Left;
                 statsTmp.raycastTarget = false;
+                statsTmp.overflowMode = TextOverflowModes.Ellipsis;
+                statsTmp.textWrappingMode = TextWrappingModes.NoWrap;
+                statsTmp.enableAutoSizing = true;
+                statsTmp.fontSizeMin = 10f;
+                statsTmp.fontSizeMax = 13f;
                 FontManager.EnsureFont(statsTmp);
             }
 

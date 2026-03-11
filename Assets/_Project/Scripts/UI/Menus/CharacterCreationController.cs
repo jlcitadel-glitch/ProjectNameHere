@@ -1041,11 +1041,18 @@ namespace ProjectName.UI
         {
             if (builtAppearance == null || bodyPartRegistry == null) return;
 
-            // No default clothing assigned here — class equipment is applied
-            // per-class in ApplyAppearanceToCard() via jobData.starterEquipment.
-            // Previously this picked the first torso/legs/feet from the registry,
-            // which grabbed warrior plate armor as "default" since no civilian
-            // clothes (tshirt, basic_shoes) exist in the ULPC set.
+            // Default civilian clothing for appearance preview (before class selection)
+            var tshirt = bodyPartRegistry.GetPartById("torso_tshirt_white");
+            if (tshirt != null && builtAppearance.torso == null)
+                builtAppearance.torso = tshirt;
+
+            var shorts = bodyPartRegistry.GetPartById("legs_shorts_navy");
+            if (shorts != null && builtAppearance.legs == null)
+                builtAppearance.legs = shorts;
+
+            var boots = bodyPartRegistry.GetPartById("feet_boots_revised_brown");
+            if (boots != null && builtAppearance.GetPart(BodyPartSlot.Feet) == null)
+                builtAppearance.SetPart(BodyPartSlot.Feet, boots);
         }
 
         private void RefreshAppearancePreview()
@@ -1929,6 +1936,10 @@ namespace ProjectName.UI
             prevBtn = MakeArrowButton(row.transform, "<");
             nameText = MakeLabel(row.transform, "None", 19f);
             nameText.GetComponent<LayoutElement>().preferredWidth = 210f;
+            nameText.textWrappingMode = TextWrappingModes.NoWrap;
+            nameText.enableAutoSizing = true;
+            nameText.fontSizeMin = 14f;
+            nameText.fontSizeMax = 19f;
             nextBtn = MakeArrowButton(row.transform, ">");
         }
 
@@ -1967,7 +1978,11 @@ namespace ProjectName.UI
 
             // Name text
             var nameTmp = MakeLabel(row.transform, initialName, 18f);
-            nameTmp.GetComponent<LayoutElement>().preferredWidth = 120f;
+            nameTmp.GetComponent<LayoutElement>().preferredWidth = 150f;
+            nameTmp.textWrappingMode = TextWrappingModes.NoWrap;
+            nameTmp.enableAutoSizing = true;
+            nameTmp.fontSizeMin = 12f;
+            nameTmp.fontSizeMax = 18f;
             nameText = nameTmp;
 
             nextBtn = MakeArrowButton(row.transform, ">");

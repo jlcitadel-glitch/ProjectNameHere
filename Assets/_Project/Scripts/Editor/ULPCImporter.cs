@@ -721,6 +721,105 @@ public static class ULPCImporter
             subFolder, color, totalFrames, outputPath);
     }
 
+    // ── Step 9: Create Civilian Clothing (preview-only, idle frames) ──────
+
+    struct CivilianDef
+    {
+        public string subFolder;   // path under Equipment/ in sprites folder
+        public string variant;     // PNG filename (without .png)
+        public string partId;
+        public string displayName;
+        public BodyPartSlot slot;
+        public string assetDir;    // subfolder under BodyParts/
+        public bool supportsTinting;
+        public Color defaultTint;
+
+        public CivilianDef(string subFolder, string variant, string partId, string displayName,
+            BodyPartSlot slot, string assetDir, bool tinting = false, Color? tint = null)
+        {
+            this.subFolder = subFolder;
+            this.variant = variant;
+            this.partId = partId;
+            this.displayName = displayName;
+            this.slot = slot;
+            this.assetDir = assetDir;
+            this.supportsTinting = tinting;
+            this.defaultTint = tint ?? Color.white;
+        }
+    }
+
+    static readonly CivilianDef[] CivilianPieces = new CivilianDef[]
+    {
+        new CivilianDef("Equipment/Torso/TshirtWhite", "white", "torso_tshirt_white", "White T-Shirt",
+            BodyPartSlot.Torso, "Torso"),
+        new CivilianDef("Equipment/Legs/ShortsNavy", "navy", "legs_shorts_navy", "Navy Shorts",
+            BodyPartSlot.Legs, "Legs", true, new Color(0.15f, 0.15f, 0.4f, 1f)),
+    };
+
+    [MenuItem("Tools/ULPC/9 - Create Civilian Clothing")]
+    static void Step9_CreateCivilianClothing()
+    {
+        // These assets only have idle frames (not the full 15-animation set).
+        // They work for the character creation preview which uses previewSprite.
+        var idleAnim = System.Array.Find(Animations, a => a.folder == "idle");
+
+        foreach (var civ in CivilianPieces)
+        {
+            EnsureDirectory($"{BodyPartsDir}/{civ.assetDir}");
+
+            // Configure texture import for the idle PNG
+            string texPath = $"{UlpcRoot}/{civ.subFolder}/idle/{civ.variant}.png";
+            ConfigureTexture(texPath, civ.variant, idleAnim);
+            AssetDatabase.Refresh();
+
+            // Load sliced sprites
+            var sprites = LoadSpritesFromTexture(texPath, idleAnim.frameCount);
+            if (sprites == null || sprites.Length == 0)
+            {
+                Debug.LogError($"[ULPCImporter] No sprites from {texPath} — ensure PNG exists");
+                continue;
+            }
+
+            // Build BodyPartData with sparse frames (nulls for non-idle anims)
+            var part = ScriptableObject.CreateInstance<BodyPartData>();
+            part.partId = civ.partId;
+            part.displayName = civ.displayName;
+            part.slot = civ.slot;
+            part.bodyTypeTag = "male";
+            part.supportsTinting = civ.supportsTinting;
+            part.defaultTint = civ.defaultTint;
+            part.tintCategory = TintCategory.None;
+
+            // Build frames array matching the full animation layout
+            int totalFrames = 0;
+            foreach (var a in Animations) totalFrames += a.frameCount;
+
+            var frames = new Sprite[totalFrames];
+            // Place idle sprites at the correct offset
+            int idleStart = 0;
+            foreach (var a in Animations)
+            {
+                if (a.folder == "idle") break;
+                idleStart += a.frameCount;
+            }
+            for (int i = 0; i < sprites.Length && i < idleAnim.frameCount; i++)
+                frames[idleStart + i] = sprites[i];
+
+            part.frames = frames;
+            part.previewSprite = sprites[0];
+
+            string outputPath = $"{BodyPartsDir}/{civ.assetDir}/{civ.partId}.asset";
+            AssetDatabase.DeleteAsset(outputPath);
+            AssetDatabase.CreateAsset(part, outputPath);
+            Debug.Log($"[ULPCImporter] Created civilian clothing: {civ.displayName} at {outputPath}");
+        }
+
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        BodyPartRegistryBuilder.Build();
+        Debug.Log("[ULPCImporter] Civilian clothing setup complete.");
+    }
+
     // ── Helpers ────────────────────────────────────────────────────────────
 
     static void CreateBodyPartAsset(
