@@ -13,6 +13,7 @@ public class PlayerAppearance : MonoBehaviour
     private RuntimeAnimatorController originalAnimator;
     private CharacterAppearanceConfig currentConfig;
     private bool configIsClone;
+    private BodyPartData hiddenHair; // hair stashed while hat is equipped
 
     /// <summary>
     /// The currently applied appearance config, or null if using fallback rendering.
@@ -122,6 +123,7 @@ public class PlayerAppearance : MonoBehaviour
 
         currentConfig = config;
         configIsClone = false;
+        hiddenHair = null; // clear stash when switching configs
 
         // Disable root SpriteRenderer when layered system is active
         if (fallbackRenderer != null)
@@ -175,12 +177,24 @@ public class PlayerAppearance : MonoBehaviour
                 }
             }
 
-            // Hat hides hair
-            if (slot == BodyPartSlot.Hat && part != null)
+            // Hat hides hair visually but preserves it in the config
+            if (slot == BodyPartSlot.Hat)
             {
-                currentConfig.SetPart(BodyPartSlot.Hair, null);
-                if (layeredSprite != null)
-                    layeredSprite.SetPart(BodyPartSlot.Hair, null);
+                if (part != null)
+                {
+                    // Stash current hair and hide it visually
+                    hiddenHair = currentConfig.GetPart(BodyPartSlot.Hair);
+                    if (layeredSprite != null)
+                        layeredSprite.SetPart(BodyPartSlot.Hair, null);
+                }
+                else if (hiddenHair != null)
+                {
+                    // Hat removed — restore stashed hair
+                    currentConfig.SetPart(BodyPartSlot.Hair, hiddenHair);
+                    if (layeredSprite != null)
+                        layeredSprite.SetPart(BodyPartSlot.Hair, hiddenHair);
+                    hiddenHair = null;
+                }
             }
         }
     }
