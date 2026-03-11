@@ -14,7 +14,7 @@ public class SaveManager : MonoBehaviour
 
     private const string SAVE_KEY_PREFIX = "GameSave_Slot_";
     private const string LEGACY_SAVE_KEY = "GameSave";
-    private const int CURRENT_SAVE_VERSION = 7;
+    private const int CURRENT_SAVE_VERSION = 8;
     private const int MAX_SAVE_SLOTS = 5;
 
     [Header("Settings")]
@@ -89,6 +89,9 @@ public class SaveManager : MonoBehaviour
 
         // Equipment (v7)
         public string[] equippedItemIds;
+
+        // Inventory (v8)
+        public string[] inventoryItemIds;
 
         // Metadata
         public string saveTimestamp;
@@ -238,6 +241,10 @@ public class SaveManager : MonoBehaviour
             var equipmentManager = player.GetComponent<EquipmentManager>();
             if (equipmentManager != null)
                 data.equippedItemIds = equipmentManager.GetEquippedIds();
+
+            var inventoryManager = player.GetComponent<InventoryManager>();
+            if (inventoryManager != null)
+                data.inventoryItemIds = inventoryManager.GetItemIds();
         }
 
         // Carry over death count
@@ -611,6 +618,13 @@ public class SaveManager : MonoBehaviour
         if (currentSaveData.equippedItemIds != null && currentSaveData.equippedItemIds.Length > 0)
             equipmentManager.LoadFromIds(currentSaveData.equippedItemIds);
 
+        // Apply inventory
+        var inventoryManager = player.GetComponent<InventoryManager>();
+        if (inventoryManager == null)
+            inventoryManager = player.AddComponent<InventoryManager>();
+        if (currentSaveData.inventoryItemIds != null && currentSaveData.inventoryItemIds.Length > 0)
+            inventoryManager.LoadFromIds(currentSaveData.inventoryItemIds);
+
         Debug.Log("[SaveManager] Save data applied to game world.");
     }
 
@@ -668,6 +682,11 @@ public class SaveManager : MonoBehaviour
             equipmentManager = player.AddComponent<EquipmentManager>();
         if (SkillManager.Instance?.CurrentJob != null)
             equipmentManager.EquipStarterGear(SkillManager.Instance.CurrentJob);
+
+        // Ensure inventory manager exists for new games
+        var inventoryManager = player.GetComponent<InventoryManager>();
+        if (inventoryManager == null)
+            player.AddComponent<InventoryManager>();
 
         // New games always start at full health and mana
         var healthSystem = player.GetComponent<HealthSystem>();
@@ -745,6 +764,12 @@ public class SaveManager : MonoBehaviour
         {
             if (data.appearanceData != null)
                 data.appearanceData.MigrateFromV6();
+        }
+
+        // Migration from version 7 to 8: Add inventory
+        if (data.saveVersion < 8)
+        {
+            data.inventoryItemIds = null;
         }
 
         data.saveVersion = CURRENT_SAVE_VERSION;

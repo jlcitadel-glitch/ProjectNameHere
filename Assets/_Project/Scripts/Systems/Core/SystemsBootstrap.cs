@@ -28,8 +28,8 @@ public class SystemsBootstrap : MonoBehaviour
     [Tooltip("Create DisplaySettings if not found")]
     [SerializeField] private bool ensureDisplaySettings = true;
 
-    [Tooltip("Create StatMenu UI if not found")]
-    [SerializeField] private bool ensureStatMenu = true;
+    [Tooltip("Create CharacterMenu UI if not found")]
+    [SerializeField] private bool ensureCharacterMenu = true;
 
     [Header("Debug")]
     [SerializeField] private bool logCreation = true;
@@ -130,15 +130,15 @@ public class SystemsBootstrap : MonoBehaviour
             }
         }
 
-        // Ensure StatMenu UI
-        if (ensureStatMenu && FindAnyObjectByType<StatMenuController>() == null)
+        // Ensure CharacterMenu UI (merged stats+equipment+inventory)
+        if (ensureCharacterMenu && FindAnyObjectByType<CharacterMenuController>() == null)
         {
-            var statMenu = StatMenuController.CreateRuntimeUI();
-            DontDestroyOnLoad(statMenu.gameObject);
+            var charMenu = CharacterMenuController.CreateRuntimeUI();
+            DontDestroyOnLoad(charMenu.gameObject);
 
             if (logCreation)
             {
-                Debug.Log("[SystemsBootstrap] Created StatMenu UI");
+                Debug.Log("[SystemsBootstrap] Created CharacterMenu UI");
             }
         }
 

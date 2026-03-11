@@ -108,14 +108,11 @@ namespace ProjectName.UI
             // Ensure a death screen exists for gameplay scenes
             EnsureDeathScreen();
 
-            // Ensure the stat menu exists for gameplay scenes
-            EnsureStatMenu();
+            // Ensure the character menu (merged stats+equipment+inventory) exists
+            EnsureCharacterMenu();
 
             // Ensure the skill tree exists for gameplay scenes
             EnsureSkillTree();
-
-            // Ensure the equipment menu exists for gameplay scenes
-            EnsureEquipmentMenu();
 
             // Ensure damage number spawner exists for gameplay scenes
             EnsureDamageNumberSpawner();
@@ -480,17 +477,17 @@ namespace ProjectName.UI
             Debug.Log("[UIManager] Created runtime DeathScreen");
         }
 
-        private void EnsureStatMenu()
+        private void EnsureCharacterMenu()
         {
             if (IsMainMenuScene())
                 return;
 
-            var existing = FindObjectsByType<StatMenuController>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            var existing = FindObjectsByType<CharacterMenuController>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             if (existing.Length > 0)
                 return;
 
-            StatMenuController.CreateRuntimeUI();
-            Debug.Log("[UIManager] Created runtime StatMenu");
+            CharacterMenuController.CreateRuntimeUI();
+            Debug.Log("[UIManager] Created runtime CharacterMenu");
         }
 
         private void EnsureSkillTree()
@@ -504,19 +501,6 @@ namespace ProjectName.UI
 
             SkillTreeController.CreateRuntimeUI();
             Debug.Log("[UIManager] Created runtime SkillTree");
-        }
-
-        private void EnsureEquipmentMenu()
-        {
-            if (IsMainMenuScene())
-                return;
-
-            var existing = FindObjectsByType<EquipmentMenuController>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-            if (existing.Length > 0)
-                return;
-
-            EquipmentMenuController.CreateRuntimeUI();
-            Debug.Log("[UIManager] Created runtime EquipmentMenu");
         }
 
         private void EnsureDamageNumberSpawner()

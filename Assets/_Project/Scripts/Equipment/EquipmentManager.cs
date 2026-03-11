@@ -39,19 +39,22 @@ public class EquipmentManager : MonoBehaviour
 
     /// <summary>
     /// Equips an item to its designated slot, replacing any existing item.
+    /// Returns the previously equipped item (or null if the slot was empty).
     /// </summary>
-    public void Equip(EquipmentData item)
+    public EquipmentData Equip(EquipmentData item)
     {
-        if (item == null) return;
+        if (item == null) return null;
 
         int idx = (int)item.slotType;
-        if (idx < 0 || idx >= SLOT_COUNT) return;
+        if (idx < 0 || idx >= SLOT_COUNT) return null;
 
+        var previous = equippedItems[idx];
         equippedItems[idx] = item;
         ApplyEquipmentEffects(item.slotType, item);
         OnEquipmentChanged?.Invoke(item.slotType, item);
 
         Debug.Log($"[EquipmentManager] Equipped {item.displayName} in {item.slotType}");
+        return previous;
     }
 
     /// <summary>
