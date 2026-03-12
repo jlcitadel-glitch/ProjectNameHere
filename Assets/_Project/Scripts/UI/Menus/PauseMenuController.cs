@@ -31,6 +31,9 @@ namespace ProjectName.UI
         private MenuState currentState = MenuState.Closed;
         private SkillTreeController skillTreeController;
 
+        private CanvasGroup mainPauseGroup;
+        private CanvasGroup optionsGroup;
+
         public enum MenuState
         {
             Closed,
@@ -52,6 +55,24 @@ namespace ProjectName.UI
             // Ensure correct initial state - options hidden, main panel ready
             if (optionsPanel != null)
                 optionsPanel.SetActive(false);
+
+            // Add CanvasGroups for transitions
+            if (mainPausePanel != null)
+            {
+                mainPauseGroup = mainPausePanel.GetComponent<CanvasGroup>();
+                if (mainPauseGroup == null)
+                    mainPauseGroup = mainPausePanel.AddComponent<CanvasGroup>();
+                mainPausePanel.AddComponent<UIDepthLayer>();
+                ProceduralFrameBuilder.ApplyFrame(mainPausePanel.GetComponent<RectTransform>());
+            }
+            if (optionsPanel != null)
+            {
+                optionsGroup = optionsPanel.GetComponent<CanvasGroup>();
+                if (optionsGroup == null)
+                    optionsGroup = optionsPanel.AddComponent<CanvasGroup>();
+                optionsPanel.AddComponent<UIDepthLayer>();
+                ProceduralFrameBuilder.ApplyFrame(optionsPanel.GetComponent<RectTransform>());
+            }
         }
 
         private void AutoFindReferences()
@@ -238,6 +259,11 @@ namespace ProjectName.UI
             if (mainPausePanel != null)
             {
                 mainPausePanel.SetActive(true);
+                var transitions = UIManager.Instance?.Transitions;
+                if (transitions != null && mainPauseGroup != null)
+                {
+                    transitions.OpenMenu(mainPauseGroup, mainPausePanel.GetComponent<RectTransform>());
+                }
                 Debug.Log($"[PauseMenu] MainPausePanel activated: {mainPausePanel.activeSelf}");
             }
             else
@@ -260,23 +286,21 @@ namespace ProjectName.UI
             // Store last selected for when we come back
             lastSelected = EventSystem.current?.currentSelectedGameObject;
 
-            if (mainPausePanel != null)
-                mainPausePanel.SetActive(false);
-
-            if (optionsPanel != null)
+            var transitions = UIManager.Instance?.Transitions;
+            if (transitions != null && mainPauseGroup != null && optionsGroup != null)
             {
-                optionsPanel.SetActive(true);
-                Debug.Log($"[PauseMenu] OptionsPanel activated: {optionsPanel.activeSelf}");
-
-                // Debug back button state
-                if (optionsBackButton != null)
+                if (optionsPanel != null) optionsPanel.SetActive(true);
+                transitions.CrossFade(mainPauseGroup, optionsGroup, () =>
                 {
-                    Debug.Log($"[PauseMenu] BackButton state - Active: {optionsBackButton.gameObject.activeSelf}, Interactable: {optionsBackButton.interactable}, Image raycast: {optionsBackButton.GetComponent<UnityEngine.UI.Image>()?.raycastTarget}");
-                }
+                    if (mainPausePanel != null) mainPausePanel.SetActive(false);
+                });
             }
             else
             {
-                Debug.LogWarning("[PauseMenu] optionsPanel is NULL! Cannot show options.");
+                if (mainPausePanel != null)
+                    mainPausePanel.SetActive(false);
+                if (optionsPanel != null)
+                    optionsPanel.SetActive(true);
             }
 
             SetSelected(optionsFirstSelected ?? optionsBackButton?.gameObject);
@@ -286,7 +310,23 @@ namespace ProjectName.UI
         public void CloseOptions()
         {
             Debug.Log("[PauseMenu] CloseOptions called");
-            ShowMainPause();
+
+            var transitions = UIManager.Instance?.Transitions;
+            if (transitions != null && optionsGroup != null && mainPauseGroup != null)
+            {
+                currentState = MenuState.MainPause;
+                if (mainPausePanel != null) mainPausePanel.SetActive(true);
+                transitions.CrossFade(optionsGroup, mainPauseGroup, () =>
+                {
+                    if (optionsPanel != null) optionsPanel.SetActive(false);
+                });
+                SetSelected(mainMenuFirstSelected ?? resumeButton?.gameObject);
+                OnStateChanged?.Invoke(currentState);
+            }
+            else
+            {
+                ShowMainPause();
+            }
 
             // Restore selection
             if (lastSelected != null)
@@ -297,8 +337,18 @@ namespace ProjectName.UI
         {
             currentState = MenuState.Closed;
 
-            if (mainPausePanel != null)
+            var transitions = UIManager.Instance?.Transitions;
+            if (transitions != null && mainPauseGroup != null && mainPausePanel != null && mainPausePanel.activeSelf)
+            {
+                transitions.CloseMenu(mainPauseGroup, mainPausePanel.GetComponent<RectTransform>(), () =>
+                {
+                    if (mainPausePanel != null) mainPausePanel.SetActive(false);
+                });
+            }
+            else if (mainPausePanel != null)
+            {
                 mainPausePanel.SetActive(false);
+            }
 
             if (optionsPanel != null)
                 optionsPanel.SetActive(false);

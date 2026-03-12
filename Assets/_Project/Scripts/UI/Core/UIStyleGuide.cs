@@ -168,6 +168,7 @@ namespace ProjectName.UI
 
         /// <summary>
         /// Configures a TextMeshPro component with header styling.
+        /// Includes drop shadow for depth (upper-left light source).
         /// </summary>
         public void ApplyHeaderStyle(TMP_Text text)
         {
@@ -177,6 +178,12 @@ namespace ProjectName.UI
             text.fontSize = headerSize;
             text.color = boneWhite;
             text.characterSpacing = characterSpacing;
+
+            // Drop shadow — implies consistent upper-left light source
+            text.fontMaterial.SetFloat(ShaderUtilities.ID_UnderlayOffsetX, 1f);
+            text.fontMaterial.SetFloat(ShaderUtilities.ID_UnderlayOffsetY, -1f);
+            text.fontMaterial.SetFloat(ShaderUtilities.ID_UnderlayDilate, 0.1f);
+            text.fontMaterial.SetColor(ShaderUtilities.ID_UnderlayColor, new Color(0, 0, 0, 0.5f));
         }
 
         /// <summary>
@@ -193,6 +200,7 @@ namespace ProjectName.UI
 
         /// <summary>
         /// Configures a TextMeshPro component with number/stat styling.
+        /// Includes thin outline for stat numbers to pop against dark backgrounds.
         /// </summary>
         public void ApplyNumberStyle(TMP_Text text)
         {
@@ -201,6 +209,27 @@ namespace ProjectName.UI
                 text.font = numbersFont;
             text.fontSize = bodySize;
             text.color = boneWhite;
+
+            text.outlineWidth = 0.15f;
+            text.outlineColor = obsidian;
+        }
+
+        /// <summary>
+        /// Configures a TextMeshPro component for section sub-headers
+        /// (e.g. "EQUIPMENT", "INVENTORY", "STATS").
+        /// Aged gold with thin outline and wider character spacing.
+        /// </summary>
+        public void ApplySectionHeaderStyle(TMP_Text text)
+        {
+            if (text == null) return;
+            if (headerFont != null)
+                text.font = headerFont;
+            text.fontSize = headerSize * 0.75f;
+            text.color = agedGold;
+            text.characterSpacing = 3f;
+
+            text.outlineWidth = 0.1f;
+            text.outlineColor = obsidian;
         }
     }
 }

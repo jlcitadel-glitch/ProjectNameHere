@@ -52,8 +52,8 @@ public static class SkillVFXFactory
         var main = ps.main;
         main.playOnAwake = false;
         main.loop = false;
-        main.startLifetime = 0.3f;
-        main.startSpeed = 4f;
+        main.startLifetime = 0.5f;
+        main.startSpeed = 2.5f;
         main.startSize = 0.08f;
         main.startColor = primary;
         main.simulationSpace = ParticleSystemSimulationSpace.World;
@@ -107,8 +107,8 @@ public static class SkillVFXFactory
         var main = ps.main;
         main.playOnAwake = true;
         main.loop = true;
-        main.startLifetime = 0.4f;
-        main.startSpeed = 0.5f;
+        main.startLifetime = 0.7f;
+        main.startSpeed = 0.3f;
         main.startSize = 0.06f;
         main.startColor = primary;
         main.simulationSpace = ParticleSystemSimulationSpace.World;
@@ -153,8 +153,8 @@ public static class SkillVFXFactory
         var main = ps.main;
         main.playOnAwake = false;
         main.loop = false;
-        main.startLifetime = 0.25f;
-        main.startSpeed = 3f;
+        main.startLifetime = 0.45f;
+        main.startSpeed = 1.8f;
         main.startSize = 0.06f;
         main.startColor = primary;
         main.simulationSpace = ParticleSystemSimulationSpace.World;
@@ -203,8 +203,8 @@ public static class SkillVFXFactory
         var main = ps.main;
         main.playOnAwake = false;
         main.loop = false;
-        main.startLifetime = 0.6f;
-        main.startSpeed = radius * 2f;
+        main.startLifetime = 1.0f;
+        main.startSpeed = radius * 1.2f;
         main.startSize = 0.1f;
         main.startColor = primary;
         main.simulationSpace = ParticleSystemSimulationSpace.World;

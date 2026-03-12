@@ -55,8 +55,11 @@ namespace ProjectName.UI
         // When > 0, Escape should close the overlay rather than toggling pause.
         private int overlayMenuCount;
 
+        private MenuTransitions menuTransitions;
+
         public UIStyleGuide StyleGuide => styleGuide;
         public UISoundBank SoundBank => soundBank;
+        public MenuTransitions Transitions => menuTransitions;
 
         /// <summary>
         /// Returns true if game is paused. Delegates to GameManager.
@@ -82,6 +85,8 @@ namespace ProjectName.UI
 
             Instance = this;
             DontDestroyOnLoad(gameObject);
+
+            menuTransitions = gameObject.AddComponent<MenuTransitions>();
 
             InitializeCanvases();
             InitializeAudio();

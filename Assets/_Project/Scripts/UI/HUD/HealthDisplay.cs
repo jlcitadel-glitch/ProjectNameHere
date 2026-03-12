@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -38,6 +39,12 @@ namespace ProjectName.UI
 
         private bool visualsInitialized;
 
+        [Header("Glow Flash")]
+        [SerializeField] private float glowFlashDuration = 0.2f;
+        [SerializeField] private float glowFlashAlpha = 0.3f;
+        private Image glowFlashImage;
+        private Coroutine glowFlashCoroutine;
+
         private void Start()
         {
             InitializeVisuals();
@@ -60,6 +67,7 @@ namespace ProjectName.UI
             visualsInitialized = true;
             InitializeStyle();
             InitializeAudio();
+            CreateGlowFlash();
         }
 
         private void EnsureReferences()
@@ -195,6 +203,15 @@ namespace ProjectName.UI
 
             isPulsing = targetHealth <= lowHealthPulseThreshold && targetHealth > 0f;
 
+            // Flash glow on value change
+            if (!Mathf.Approximately(targetHealth, previousTarget))
+            {
+                Color flashCol = targetHealth < previousTarget
+                    ? (styleGuide != null ? styleGuide.bloodRed : Color.red)
+                    : (styleGuide != null ? styleGuide.etherealGreen : Color.green);
+                FlashGlow(flashCol);
+            }
+
             if (healthLabel != null)
             {
                 healthLabel.text = $"{Mathf.CeilToInt(current)}/{Mathf.CeilToInt(max)}";
@@ -266,6 +283,56 @@ namespace ProjectName.UI
                 targetHealth = displayedHealth;
                 UpdateBar(displayedHealth);
             }
+        }
+
+        private void CreateGlowFlash()
+        {
+            if (fillImage == null) return;
+
+            var go = new GameObject("GlowFlash", typeof(RectTransform));
+            go.transform.SetParent(fillImage.transform.parent, false);
+
+            var rt = go.GetComponent<RectTransform>();
+            // Copy fill image anchors but slightly wider
+            rt.anchorMin = fillImage.rectTransform.anchorMin;
+            rt.anchorMax = fillImage.rectTransform.anchorMax;
+            rt.offsetMin = fillImage.rectTransform.offsetMin + new Vector2(-2f, -2f);
+            rt.offsetMax = fillImage.rectTransform.offsetMax + new Vector2(2f, 2f);
+
+            glowFlashImage = go.AddComponent<Image>();
+            var tex = new Texture2D(1, 1, TextureFormat.RGBA32, false);
+            tex.SetPixel(0, 0, Color.white);
+            tex.Apply();
+            glowFlashImage.sprite = Sprite.Create(tex, new Rect(0, 0, 1, 1), new Vector2(0.5f, 0.5f), 100f);
+            glowFlashImage.color = new Color(1f, 0f, 0f, 0f);
+            glowFlashImage.raycastTarget = false;
+
+            // Push behind the fill but above the background
+            go.transform.SetSiblingIndex(fillImage.transform.GetSiblingIndex());
+        }
+
+        private void FlashGlow(Color flashColor)
+        {
+            if (glowFlashImage == null) return;
+            if (glowFlashCoroutine != null) StopCoroutine(glowFlashCoroutine);
+            glowFlashCoroutine = StartCoroutine(GlowFlashCoroutine(flashColor));
+        }
+
+        private IEnumerator GlowFlashCoroutine(Color flashColor)
+        {
+            float elapsed = 0f;
+            Color startColor = new Color(flashColor.r, flashColor.g, flashColor.b, glowFlashAlpha);
+
+            while (elapsed < glowFlashDuration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(elapsed / glowFlashDuration);
+                float alpha = Mathf.Lerp(glowFlashAlpha, 0f, t * t);
+                glowFlashImage.color = new Color(startColor.r, startColor.g, startColor.b, alpha);
+                yield return null;
+            }
+
+            glowFlashImage.color = new Color(startColor.r, startColor.g, startColor.b, 0f);
         }
 
 #if UNITY_EDITOR

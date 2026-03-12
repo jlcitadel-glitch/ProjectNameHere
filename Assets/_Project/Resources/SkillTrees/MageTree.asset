@@ -17,17 +17,17 @@ MonoBehaviour:
   nodes:
   - skill: {fileID: 11400000, guid: aabbd849ae9bcf146a10ee16708217ab, type: 2}
     position: {x: 0, y: 0}
-    childNodeIndices: 0200000004000000
+    childNodeIndices: 020000000400000005000000
     row: 0
     column: 0
   - skill: {fileID: 11400000, guid: e8dbd858b30443b4a8c9c1e5f75b19fd, type: 2}
     position: {x: 0, y: 0}
-    childNodeIndices: 03000000
+    childNodeIndices: 0300000006000000
     row: 0
     column: 1
   - skill: {fileID: 11400000, guid: 51908f3d0fd3f4a41970e255cfab48ed, type: 2}
     position: {x: 0, y: 0}
-    childNodeIndices: 04000000
+    childNodeIndices: 0400000007000000
     row: 1
     column: 0
   - skill: {fileID: 11400000, guid: 55b3da55d8eb3ec4ea8e8a58760965b7, type: 2}
@@ -37,9 +37,24 @@ MonoBehaviour:
     column: 1
   - skill: {fileID: 11400000, guid: ecf3afe18a8c464468a55c9f8854091d, type: 2}
     position: {x: 0, y: 0}
-    childNodeIndices: 
+    childNodeIndices:
     row: 2
     column: 0
+  - skill: {fileID: 11400000, guid: 621414221cbca834da2cf03d3b166f16, type: 2}
+    position: {x: 0, y: 0}
+    childNodeIndices:
+    row: 1
+    column: 2
+  - skill: {fileID: 11400000, guid: 00e108468ee1ea6478253f33bb3c8f4d, type: 2}
+    position: {x: 0, y: 0}
+    childNodeIndices:
+    row: 1
+    column: 3
+  - skill: {fileID: 11400000, guid: a0812f1224b3d554d8bfc478bcc9e601, type: 2}
+    position: {x: 0, y: 0}
+    childNodeIndices:
+    row: 2
+    column: 1
   connections:
   - fromNodeIndex: 0
     toNodeIndex: 2
@@ -52,6 +67,15 @@ MonoBehaviour:
     curvePoints: []
   - fromNodeIndex: 2
     toNodeIndex: 4
+    curvePoints: []
+  - fromNodeIndex: 0
+    toNodeIndex: 5
+    curvePoints: []
+  - fromNodeIndex: 1
+    toNodeIndex: 6
+    curvePoints: []
+  - fromNodeIndex: 2
+    toNodeIndex: 7
     curvePoints: []
   horizontalSpacing: 150
   verticalSpacing: 120

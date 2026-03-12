@@ -429,6 +429,58 @@ namespace ProjectName.UI
             onComplete?.Invoke();
         }
 
+        /// <summary>
+        /// Starts a subtle breathing animation on a transform (sine-wave scale pulse).
+        /// Nearly imperceptible but adds "life" to panels.
+        /// </summary>
+        public Coroutine StartBreathing(Transform target, float intensity = 0.002f, float period = 4f)
+        {
+            if (target == null) return null;
+            return StartCoroutine(BreathingCoroutine(target, intensity, period));
+        }
+
+        private IEnumerator BreathingCoroutine(Transform target, float intensity, float period)
+        {
+            Vector3 originalScale = target.localScale;
+            float t = 0f;
+
+            while (target != null)
+            {
+                t += Time.unscaledDeltaTime / period;
+                float scale = 1f + Mathf.Sin(t * Mathf.PI * 2f) * intensity;
+                target.localScale = originalScale * scale;
+                yield return null;
+            }
+        }
+
+        /// <summary>
+        /// Starts a candle-flicker color pulse on a TMP_Text element.
+        /// Subtle brightness variation between base color and slightly brighter.
+        /// </summary>
+        public Coroutine StartCandleFlicker(TMPro.TMP_Text text, float period = 3f, float intensity = 0.03f)
+        {
+            if (text == null) return null;
+            return StartCoroutine(CandleFlickerCoroutine(text, period, intensity));
+        }
+
+        private IEnumerator CandleFlickerCoroutine(TMPro.TMP_Text text, float period, float intensity)
+        {
+            Color baseColor = text.color;
+            float t = 0f;
+
+            while (text != null)
+            {
+                t += Time.unscaledDeltaTime / period;
+                float flicker = 1f + Mathf.Sin(t * Mathf.PI * 2f) * intensity;
+                text.color = new Color(
+                    Mathf.Clamp01(baseColor.r * flicker),
+                    Mathf.Clamp01(baseColor.g * flicker),
+                    Mathf.Clamp01(baseColor.b * flicker),
+                    baseColor.a);
+                yield return null;
+            }
+        }
+
         #region Easing Functions
 
         private float EaseOutQuart(float t) => 1f - Mathf.Pow(1f - t, 4f);

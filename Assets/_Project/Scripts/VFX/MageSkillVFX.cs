@@ -22,6 +22,9 @@ public static class MageSkillVFX
         { "meteor_explosion", 7 },
         { "meteor_hit1", 6 },
         { "meteor_hit2", 13 },
+        { "charge_shot_cast", 5 },
+        { "shield_cast_activate", 6 },
+        { "lightning_chain_cast", 5 },
     };
 
     // Cached sprite arrays per sheet name
@@ -71,7 +74,7 @@ public static class MageSkillVFX
         var frames = GetFrames("fireball_cast");
         if (frames == null) return;
 
-        SkillSpriteAnimator.Spawn(position, frames, 18f, loop: false, scale: 1f, flipX: !facingRight);
+        SkillSpriteAnimator.Spawn(position, frames, 10f, loop: false, scale: 1f, flipX: !facingRight);
     }
 
     /// <summary>
@@ -91,7 +94,7 @@ public static class MageSkillVFX
         sr.sortingOrder = 10;
 
         var animator = projectile.AddComponent<SkillSpriteAnimator>();
-        animator.Initialize(frames, 12f, loop: true);
+        animator.Initialize(frames, 8f, loop: true);
     }
 
     /// <summary>
@@ -102,7 +105,7 @@ public static class MageSkillVFX
         var frames = GetFrames("fireball_hit");
         if (frames == null) return;
 
-        SkillSpriteAnimator.Spawn(position, frames, 20f, loop: false, scale: 1.2f);
+        SkillSpriteAnimator.Spawn(position, frames, 12f, loop: false, scale: 1.2f);
     }
 
     // ===========================
@@ -117,7 +120,7 @@ public static class MageSkillVFX
         var frames = GetFrames("icebolt_cast");
         if (frames == null) return;
 
-        SkillSpriteAnimator.Spawn(position, frames, 18f, loop: false, scale: 1f, flipX: !facingRight);
+        SkillSpriteAnimator.Spawn(position, frames, 10f, loop: false, scale: 1f, flipX: !facingRight);
     }
 
     /// <summary>
@@ -137,7 +140,7 @@ public static class MageSkillVFX
         sr.sortingOrder = 10;
 
         var animator = projectile.AddComponent<SkillSpriteAnimator>();
-        animator.Initialize(frames, 12f, loop: true);
+        animator.Initialize(frames, 8f, loop: true);
     }
 
     // ===========================
@@ -155,13 +158,13 @@ public static class MageSkillVFX
         // One-shot activation burst
         var activateFrames = GetFrames("magicshield_activate");
         if (activateFrames != null)
-            SkillSpriteAnimator.Spawn(position, activateFrames, 20f, loop: false, scale: 1.2f);
+            SkillSpriteAnimator.Spawn(position, activateFrames, 12f, loop: false, scale: 1.2f);
 
         // Looping shield aura — parent to caster so it follows the player
         var loopFrames = GetFrames("magicshield_loop");
         if (loopFrames == null) return;
 
-        var loopAura = SkillSpriteAnimator.Spawn(position, loopFrames, 10f, loop: true, scale: 1f);
+        var loopAura = SkillSpriteAnimator.Spawn(position, loopFrames, 7f, loop: true, scale: 1f);
         loopAura.transform.SetParent(caster, true);
         loopAura.transform.localPosition = Vector3.zero;
 
@@ -181,7 +184,7 @@ public static class MageSkillVFX
         var frames = GetFrames("manamastery_effect");
         if (frames == null) return;
 
-        SkillSpriteAnimator.Spawn(position, frames, 15f, loop: false, scale: 1.5f);
+        SkillSpriteAnimator.Spawn(position, frames, 10f, loop: false, scale: 1.5f);
     }
 
     // ===========================
@@ -196,7 +199,7 @@ public static class MageSkillVFX
         var frames = GetFrames("meteor_prepare");
         if (frames == null) return;
 
-        SkillSpriteAnimator.Spawn(position, frames, 8f, loop: false, scale: 1.5f);
+        SkillSpriteAnimator.Spawn(position, frames, 5f, loop: false, scale: 1.5f);
     }
 
     /// <summary>
@@ -207,7 +210,7 @@ public static class MageSkillVFX
         var frames = GetFrames("meteor_explosion");
         if (frames == null) return;
 
-        SkillSpriteAnimator.Spawn(position, frames, 14f, loop: false, scale: 2f);
+        SkillSpriteAnimator.Spawn(position, frames, 8f, loop: false, scale: 2f);
     }
 
     /// <summary>
@@ -218,14 +221,95 @@ public static class MageSkillVFX
         var frames = GetFrames("meteor_hit1");
         if (frames == null) return;
 
-        SkillSpriteAnimator.Spawn(position, frames, 18f, loop: false, scale: 1.2f);
+        SkillSpriteAnimator.Spawn(position, frames, 10f, loop: false, scale: 1.2f);
 
         // Also spawn the secondary hit effect slightly offset
         var frames2 = GetFrames("meteor_hit2");
         if (frames2 != null)
         {
             Vector3 offset = new Vector3(Random.Range(-0.5f, 0.5f), Random.Range(-0.3f, 0.3f), 0f);
-            SkillSpriteAnimator.Spawn(position + offset, frames2, 20f, loop: false, scale: 1f);
+            SkillSpriteAnimator.Spawn(position + offset, frames2, 12f, loop: false, scale: 1f);
         }
+    }
+
+    // ===========================
+    // Charge Shot
+    // ===========================
+
+    /// <summary>
+    /// Spawns the charge shot cast effect at the caster's position.
+    /// </summary>
+    public static void SpawnChargeShotCast(Vector3 position, bool facingRight)
+    {
+        var frames = GetFrames("charge_shot_cast");
+        if (frames == null) return;
+
+        SkillSpriteAnimator.Spawn(position, frames, 10f, loop: false, scale: 1f, flipX: !facingRight);
+    }
+
+    /// <summary>
+    /// Attaches the animated charge shot sprite to a projectile, looping the cast frames.
+    /// </summary>
+    public static void AttachChargeShotSprite(GameObject projectile)
+    {
+        var frames = GetFrames("charge_shot_cast");
+        if (frames == null || projectile == null) return;
+
+        var sr = projectile.GetComponent<SpriteRenderer>();
+        if (sr == null) sr = projectile.AddComponent<SpriteRenderer>();
+
+        sr.color = Color.white;
+        sr.sortingLayerName = "Foreground";
+        sr.sortingOrder = 10;
+
+        var animator = projectile.AddComponent<SkillSpriteAnimator>();
+        animator.Initialize(frames, 8f, loop: true);
+    }
+
+    // ===========================
+    // Chain Lightning
+    // ===========================
+
+    /// <summary>
+    /// Spawns the chain lightning cast effect at the caster's position.
+    /// </summary>
+    public static void SpawnChainLightningCast(Vector3 position, bool facingRight)
+    {
+        var frames = GetFrames("lightning_chain_cast");
+        if (frames == null) return;
+
+        SkillSpriteAnimator.Spawn(position, frames, 12f, loop: false, scale: 1.2f, flipX: !facingRight);
+    }
+
+    // ===========================
+    // Arcane Ward
+    // ===========================
+
+    /// <summary>
+    /// Spawns the arcane ward activation burst and a looping aura parented to the caster.
+    /// Same pattern as SpawnMagicShield.
+    /// </summary>
+    public static void SpawnArcaneWard(Transform caster, float duration)
+    {
+        Vector3 position = caster.position;
+
+        // One-shot activation burst
+        var activateFrames = GetFrames("shield_cast_activate");
+        if (activateFrames != null)
+            SkillSpriteAnimator.Spawn(position, activateFrames, 10f, loop: false, scale: 1.3f);
+
+        // Looping aura — reuse the last few frames of the activation for the sustained effect
+        if (activateFrames == null || activateFrames.Length < 2) return;
+
+        // Use frames 3+ (the formed shield) as the loop
+        int loopStart = Mathf.Min(3, activateFrames.Length - 1);
+        var loopFrames = new Sprite[activateFrames.Length - loopStart];
+        System.Array.Copy(activateFrames, loopStart, loopFrames, 0, loopFrames.Length);
+
+        var loopAura = SkillSpriteAnimator.Spawn(position, loopFrames, 5f, loop: true, scale: 1.1f);
+        loopAura.transform.SetParent(caster, true);
+        loopAura.transform.localPosition = Vector3.zero;
+
+        Object.Destroy(loopAura.gameObject, duration);
     }
 }

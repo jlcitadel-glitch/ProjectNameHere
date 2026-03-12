@@ -216,9 +216,24 @@ namespace ProjectName.UI
 
             if (skillTreeCanvasGroup != null)
             {
-                skillTreeCanvasGroup.alpha = 1f;
-                skillTreeCanvasGroup.interactable = true;
-                skillTreeCanvasGroup.blocksRaycasts = true;
+                var transitions = UIManager.Instance?.Transitions;
+                if (transitions != null)
+                {
+                    skillTreeCanvasGroup.alpha = 0f;
+                    skillTreeCanvasGroup.interactable = false;
+                    skillTreeCanvasGroup.blocksRaycasts = false;
+                    transitions.OpenMenu(skillTreeCanvasGroup, skillTreeCanvasGroup.GetComponent<RectTransform>(), () =>
+                    {
+                        skillTreeCanvasGroup.interactable = true;
+                        skillTreeCanvasGroup.blocksRaycasts = true;
+                    });
+                }
+                else
+                {
+                    skillTreeCanvasGroup.alpha = 1f;
+                    skillTreeCanvasGroup.interactable = true;
+                    skillTreeCanvasGroup.blocksRaycasts = true;
+                }
             }
 
             // Load current job's skill tree
@@ -271,14 +286,28 @@ namespace ProjectName.UI
             // Hide canvas using CanvasGroup (don't use SetActive - keeps controller running for input)
             if (skillTreeCanvasGroup != null)
             {
-                skillTreeCanvasGroup.alpha = 0f;
-                skillTreeCanvasGroup.interactable = false;
-                skillTreeCanvasGroup.blocksRaycasts = false;
+                var transitions = UIManager.Instance?.Transitions;
+                if (transitions != null)
+                {
+                    transitions.CloseMenu(skillTreeCanvasGroup, skillTreeCanvasGroup.GetComponent<RectTransform>(), () =>
+                    {
+                        if (skillTreeCanvas != null)
+                            skillTreeCanvas.enabled = false;
+                    });
+                }
+                else
+                {
+                    skillTreeCanvasGroup.alpha = 0f;
+                    skillTreeCanvasGroup.interactable = false;
+                    skillTreeCanvasGroup.blocksRaycasts = false;
+                    if (skillTreeCanvas != null)
+                        skillTreeCanvas.enabled = false;
+                }
             }
-
-            // Disable canvas rendering when closed
-            if (skillTreeCanvas != null)
+            else if (skillTreeCanvas != null)
+            {
                 skillTreeCanvas.enabled = false;
+            }
 
             // Restore time if we froze it
             if (pauseGameWhenOpen && GameManager.Instance != null)
@@ -653,6 +682,10 @@ namespace ProjectName.UI
 
             // --- Build skill node prefab template ---
             var nodePrefab = BuildSkillNodePrefab();
+
+            // --- Visual depth layers ---
+            panelGo.AddComponent<UIDepthLayer>();
+            ProceduralFrameBuilder.ApplyFrame(panelRect);
 
             // --- Wire SkillTreePanel ---
             var treePanel = panelGo.AddComponent<SkillTreePanel>();

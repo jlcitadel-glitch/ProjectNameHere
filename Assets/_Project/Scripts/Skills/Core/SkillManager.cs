@@ -740,21 +740,71 @@ public class SkillManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Gets a skill data by ID.
+    /// Gets a skill data by ID. Falls back to case-insensitive and name matching on miss.
     /// </summary>
     public SkillData GetSkillData(string skillId)
     {
-        skillDataLookup.TryGetValue(skillId, out var data);
-        return data;
+        if (string.IsNullOrEmpty(skillId)) return null;
+
+        // Strategy 1: Exact match (fast path)
+        if (skillDataLookup.TryGetValue(skillId, out var data))
+            return data;
+
+        // Strategy 2: Case-insensitive match
+        foreach (var kvp in skillDataLookup)
+        {
+            if (string.Equals(kvp.Key, skillId, StringComparison.OrdinalIgnoreCase))
+            {
+                Debug.LogWarning($"[SkillManager] Skill '{skillId}' resolved via case-insensitive match to '{kvp.Key}'. Update the save data or asset ID to match.");
+                return kvp.Value;
+            }
+        }
+
+        // Strategy 3: Match by skillName
+        foreach (var kvp in skillDataLookup)
+        {
+            if (kvp.Value != null && string.Equals(kvp.Value.skillName, skillId, StringComparison.OrdinalIgnoreCase))
+            {
+                Debug.LogWarning($"[SkillManager] Skill '{skillId}' resolved via skillName match to '{kvp.Key}' (\"{kvp.Value.skillName}\"). The skillId was likely renamed.");
+                return kvp.Value;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>
-    /// Gets a job data by ID.
+    /// Gets a job data by ID. Falls back to case-insensitive and name matching on miss.
     /// </summary>
     public JobClassData GetJobData(string jobId)
     {
-        jobDataLookup.TryGetValue(jobId, out var data);
-        return data;
+        if (string.IsNullOrEmpty(jobId)) return null;
+
+        // Strategy 1: Exact match (fast path)
+        if (jobDataLookup.TryGetValue(jobId, out var data))
+            return data;
+
+        // Strategy 2: Case-insensitive match
+        foreach (var kvp in jobDataLookup)
+        {
+            if (string.Equals(kvp.Key, jobId, StringComparison.OrdinalIgnoreCase))
+            {
+                Debug.LogWarning($"[SkillManager] Job '{jobId}' resolved via case-insensitive match to '{kvp.Key}'. Update the save data or asset ID to match.");
+                return kvp.Value;
+            }
+        }
+
+        // Strategy 3: Match by jobName
+        foreach (var kvp in jobDataLookup)
+        {
+            if (kvp.Value != null && string.Equals(kvp.Value.jobName, jobId, StringComparison.OrdinalIgnoreCase))
+            {
+                Debug.LogWarning($"[SkillManager] Job '{jobId}' resolved via jobName match to '{kvp.Key}' (\"{kvp.Value.jobName}\"). The jobId was likely renamed.");
+                return kvp.Value;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -801,6 +851,8 @@ public class SkillManager : MonoBehaviour
                 var job = GetJobData(jobId);
                 if (job != null)
                     jobHistory.Add(job);
+                else
+                    Debug.LogWarning($"[SkillManager] Job history entry '{jobId}' not found — skipping. Available jobs: [{string.Join(", ", jobDataLookup.Keys)}]");
             }
         }
 
@@ -808,6 +860,7 @@ public class SkillManager : MonoBehaviour
         currentJob = GetJobData(saveData.currentJobId);
         if (currentJob == null && defaultJob != null)
         {
+            Debug.LogWarning($"[SkillManager] Saved job '{saveData.currentJobId}' not found — falling back to '{defaultJob.jobName}'. Available jobs: [{string.Join(", ", jobDataLookup.Keys)}]");
             currentJob = defaultJob;
             if (!jobHistory.Contains(currentJob))
                 jobHistory.Add(currentJob);
@@ -830,6 +883,10 @@ public class SkillManager : MonoBehaviour
                     var instance = SkillInstance.FromSaveData(skillSave, skillData);
                     if (instance != null)
                         learnedSkills[skillSave.skillId] = instance;
+                }
+                else
+                {
+                    Debug.LogWarning($"[SkillManager] Saved skill '{skillSave.skillId}' not found — skipping. Available skills: [{string.Join(", ", skillDataLookup.Keys)}]");
                 }
             }
         }

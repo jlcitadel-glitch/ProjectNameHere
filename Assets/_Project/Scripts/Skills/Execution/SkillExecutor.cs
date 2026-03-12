@@ -105,6 +105,18 @@ public class SkillExecutor : MonoBehaviour
             case "meteor":
                 StartCoroutine(ExecuteMeteorSequence(skillInstance));
                 break;
+            case "charge_shot":
+                ExecuteChargeShot(skillInstance);
+                break;
+            case "chain_lightning":
+                ExecuteChainLightning(skillInstance);
+                break;
+            case "arcane_ward":
+                ExecuteBuff(skillInstance);
+                float wardDuration = skillInstance.GetDuration();
+                if (wardDuration <= 0f) wardDuration = skillInstance.skillData.baseDuration;
+                MageSkillVFX.SpawnArcaneWard(transform, wardDuration);
+                break;
 
             // --- Rogue ---
             case "quick_strike":
@@ -203,7 +215,7 @@ public class SkillExecutor : MonoBehaviour
             SkillVFXFactory.SpawnMeleeSweep(spawnPos, facing, dmgType);
 
             if (i < 2) // No wait after last hit
-                yield return new WaitForSeconds(0.12f);
+                yield return new WaitForSeconds(0.22f);
         }
     }
 
@@ -328,8 +340,8 @@ public class SkillExecutor : MonoBehaviour
     private IEnumerator ExecuteShadowStrike(SkillInstance skill)
     {
         float facing = GetFacingDirection();
-        float dashSpeed = 25f;
-        float dashDuration = 0.25f;
+        float dashSpeed = 18f;
+        float dashDuration = 0.35f;
 
         float baseDamage = skill.GetDamage();
         float statMult = GetStatMultiplier(skill);
@@ -484,7 +496,7 @@ public class SkillExecutor : MonoBehaviour
         MageSkillVFX.SpawnFireballCast(transform.position + new Vector3(facing * 0.5f, 0.2f, 0f), facing > 0);
 
         // Create projectile with animated fireball sprite
-        var projectile = CreateSkillProjectile(skill, 15f, 5f);
+        var projectile = CreateSkillProjectile(skill, 10f, 5f);
         MageSkillVFX.AttachFireballSprite(projectile.gameObject);
         SkillVFXFactory.AttachProjectileTrail(projectile.gameObject, skill.skillData.damageType);
     }
@@ -501,7 +513,7 @@ public class SkillExecutor : MonoBehaviour
         MageSkillVFX.SpawnIceBoltCast(transform.position + new Vector3(facing * 0.5f, 0.2f, 0f), facing > 0);
 
         // Create projectile with animated ice bolt sprite
-        var projectile = CreateSkillProjectile(skill, 12f, 5f, slowPercent: 0.5f, slowDuration: 2f);
+        var projectile = CreateSkillProjectile(skill, 8f, 5f, slowPercent: 0.5f, slowDuration: 2f);
         MageSkillVFX.AttachIceBoltSprite(projectile.gameObject);
         SkillVFXFactory.AttachProjectileTrail(projectile.gameObject, skill.skillData.damageType);
     }
@@ -518,8 +530,8 @@ public class SkillExecutor : MonoBehaviour
         // Charge-up effect at target location
         MageSkillVFX.SpawnMeteorPrepare(center + Vector3.up * 2f);
 
-        // Wait for the prepare animation (10 frames at 8fps ≈ 1.25s, matches 1.5s cast time)
-        yield return new WaitForSeconds(1.25f);
+        // Wait for the prepare animation (10 frames at 5fps = 2.0s)
+        yield return new WaitForSeconds(2.0f);
 
         // Explosion effect
         MageSkillVFX.SpawnMeteorExplosion(center);
@@ -558,6 +570,132 @@ public class SkillExecutor : MonoBehaviour
             slowPercent, slowDuration);
 
         return projectile;
+    }
+
+    // ===========================
+    // Charge Shot (mage) — projectile with sprite VFX
+    // ===========================
+
+    private void ExecuteChargeShot(SkillInstance skill)
+    {
+        float facing = GetFacingDirection();
+
+        // Cast effect at player
+        MageSkillVFX.SpawnChargeShotCast(transform.position + new Vector3(facing * 0.5f, 0.2f, 0f), facing > 0);
+
+        // Create projectile with animated charge shot sprite
+        var projectile = CreateSkillProjectile(skill, 10f, 4f);
+        MageSkillVFX.AttachChargeShotSprite(projectile.gameObject);
+        SkillVFXFactory.AttachProjectileTrail(projectile.gameObject, skill.skillData.damageType);
+    }
+
+    // ===========================
+    // Chain Lightning (mage) — chain-targeting AoE
+    // ===========================
+
+    private void ExecuteChainLightning(SkillInstance skill)
+    {
+        float facing = GetFacingDirection();
+        bool facingRight = facing > 0;
+
+        // Cast VFX at player
+        MageSkillVFX.SpawnChainLightningCast(transform.position + new Vector3(facing * 0.5f, 0.2f, 0f), facingRight);
+
+        // Damage calculation
+        float baseDamage = skill.GetDamage();
+        float statMult = GetStatMultiplier(skill);
+        float buffMult = buffTracker != null ? buffTracker.TotalAttackMultiplier : 1f;
+        float finalDamage = baseDamage * statMult * buffMult;
+        DamageType dmgType = skill.skillData.damageType;
+
+        // Single crit roll for entire chain
+        bool isCrit = RollCrit();
+        float critDamageMult = 1f + (passiveTracker != null ? passiveTracker.PassiveCritDamageBonus : 0f);
+        float baseCritMult = statSystem != null ? statSystem.CritDamageMultiplier : 2f;
+        if (isCrit)
+            finalDamage *= (baseCritMult * critDamageMult);
+
+        // Find closest enemy in range (8 units)
+        float primaryRange = 8f;
+        Collider2D[] candidates = Physics2D.OverlapCircleAll(transform.position, primaryRange, enemyLayers);
+        if (candidates.Length == 0)
+            candidates = Physics2D.OverlapCircleAll(transform.position, primaryRange);
+
+        Collider2D primaryTarget = null;
+        float closestDist = float.MaxValue;
+
+        foreach (var c in candidates)
+        {
+            if (c.isTrigger) continue;
+            if (c.transform.IsChildOf(transform)) continue;
+
+            IDamageable dmg = c.GetComponent<IDamageable>() ?? c.GetComponentInParent<IDamageable>();
+            HealthSystem hs = c.GetComponent<HealthSystem>() ?? c.GetComponentInParent<HealthSystem>();
+            if (dmg == null && hs == null) continue;
+
+            float dist = Vector2.Distance(transform.position, c.bounds.center);
+            if (dist < closestDist)
+            {
+                closestDist = dist;
+                primaryTarget = c;
+            }
+        }
+
+        if (primaryTarget == null) return;
+
+        // Damage primary target (full damage)
+        HashSet<Transform> hitRoots = new HashSet<Transform>();
+        hitRoots.Add(primaryTarget.transform.root);
+
+        ApplyChainDamage(primaryTarget, finalDamage, dmgType, isCrit);
+        SkillVFXFactory.SpawnImpactBurst(primaryTarget.bounds.center, dmgType);
+
+        // Chain to up to 2 secondary targets within 4 units of primary
+        float chainRange = 4f;
+        float chainDamage = finalDamage * 0.5f;
+        int chainsRemaining = 2;
+
+        Collider2D[] chainCandidates = Physics2D.OverlapCircleAll(primaryTarget.bounds.center, chainRange, enemyLayers);
+        if (chainCandidates.Length == 0)
+            chainCandidates = Physics2D.OverlapCircleAll(primaryTarget.bounds.center, chainRange);
+
+        foreach (var c in chainCandidates)
+        {
+            if (chainsRemaining <= 0) break;
+            if (c.isTrigger) continue;
+            if (c.transform.IsChildOf(transform)) continue;
+
+            Transform root = c.transform.root;
+            if (!hitRoots.Add(root)) continue;
+
+            IDamageable dmg = c.GetComponent<IDamageable>() ?? c.GetComponentInParent<IDamageable>();
+            HealthSystem hs = c.GetComponent<HealthSystem>() ?? c.GetComponentInParent<HealthSystem>();
+            if (dmg == null && hs == null) continue;
+
+            ApplyChainDamage(c, chainDamage, dmgType, isCrit);
+            SkillVFXFactory.SpawnImpactBurst(c.bounds.center, dmgType);
+            chainsRemaining--;
+        }
+    }
+
+    private void ApplyChainDamage(Collider2D target, float damage, DamageType dmgType, bool isCrit)
+    {
+        IDamageable damageable = target.GetComponent<IDamageable>()
+            ?? target.GetComponentInParent<IDamageable>();
+
+        if (damageable != null)
+        {
+            damageable.TakeDamage(damage);
+        }
+        else
+        {
+            HealthSystem hs = target.GetComponent<HealthSystem>()
+                ?? target.GetComponentInParent<HealthSystem>();
+            if (hs != null)
+                hs.TakeDamage(damage);
+        }
+
+        SpawnDamageNumber(target, damage, dmgType, isCrit);
     }
 
     // ===========================

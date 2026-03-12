@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -69,6 +70,11 @@ namespace ProjectName.UI
 
         private float pulseTimer;
 
+        private SpriteRenderer healthGlow;
+        private SpriteRenderer manaGlow;
+        private Coroutine healthGlowCoroutine;
+        private Coroutine manaGlowCoroutine;
+
         private void Start()
         {
             CreateBars();
@@ -134,6 +140,9 @@ namespace ProjectName.UI
             healthFill = CreateBarSprite(healthBarContainer.transform, "HealthFill", 0f, healthFillColor, false);
             healthFill.sortingOrder = healthBackground.sortingOrder + 1;
 
+            healthGlow = CreateBarSprite(healthBarContainer.transform, "HealthGlow", 0f, new Color(healthFillColor.r, healthFillColor.g, healthFillColor.b, 0f), true);
+            healthGlow.sortingOrder = healthBackground.sortingOrder + 2;
+
             // Create mana bar container (BELOW player)
             manaBarContainer = new GameObject("ManaBar");
             manaBarContainer.transform.SetParent(transform);
@@ -143,6 +152,9 @@ namespace ProjectName.UI
             manaBackground = CreateBarSprite(manaBarContainer.transform, "ManaBackground", 0f, manaBackgroundColor, true);
             manaFill = CreateBarSprite(manaBarContainer.transform, "ManaFill", 0f, manaFillColor, false);
             manaFill.sortingOrder = manaBackground.sortingOrder + 1;
+
+            manaGlow = CreateBarSprite(manaBarContainer.transform, "ManaGlow", 0f, new Color(manaFillColor.r, manaFillColor.g, manaFillColor.b, 0f), true);
+            manaGlow.sortingOrder = manaBackground.sortingOrder + 2;
         }
 
         private SpriteRenderer CreateBarSprite(Transform parent, string name, float yOffset, Color color, bool isBackground)
@@ -226,14 +238,22 @@ namespace ProjectName.UI
 
         private void HandleHealthChanged(float current, float max)
         {
+            float prev = targetHealth;
             targetHealth = max > 0f ? current / max : 0f;
             healthRecentChangeTimer = recentChangeDisplayTime;
+
+            if (!Mathf.Approximately(prev, targetHealth))
+                FlashGlow(healthGlow, healthFillColor, ref healthGlowCoroutine);
         }
 
         private void HandleManaChanged(float current, float max)
         {
+            float prev = targetMana;
             targetMana = max > 0f ? current / max : 0f;
             manaRecentChangeTimer = recentChangeDisplayTime;
+
+            if (!Mathf.Approximately(prev, targetMana))
+                FlashGlow(manaGlow, manaFillColor, ref manaGlowCoroutine);
         }
 
         private void UpdateBarPositions()
@@ -444,5 +464,30 @@ namespace ProjectName.UI
         /// Gets the current mana bar alpha.
         /// </summary>
         public float GetManaAlpha() => manaCurrentAlpha;
+
+        private void FlashGlow(SpriteRenderer glow, Color baseColor, ref Coroutine coroutine)
+        {
+            if (glow == null) return;
+            if (coroutine != null) StopCoroutine(coroutine);
+            coroutine = StartCoroutine(GlowFlashCoroutine(glow, baseColor));
+        }
+
+        private IEnumerator GlowFlashCoroutine(SpriteRenderer glow, Color baseColor)
+        {
+            float duration = 0.2f;
+            float startAlpha = 0.3f;
+            float elapsed = 0f;
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(elapsed / duration);
+                float alpha = Mathf.Lerp(startAlpha, 0f, t * t);
+                glow.color = new Color(baseColor.r, baseColor.g, baseColor.b, alpha);
+                yield return null;
+            }
+
+            glow.color = new Color(baseColor.r, baseColor.g, baseColor.b, 0f);
+        }
     }
 }

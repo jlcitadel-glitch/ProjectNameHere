@@ -189,4 +189,32 @@ public class SkillData : ScriptableObject
 
         return improvements.TrimEnd('\n');
     }
+
+#if UNITY_EDITOR
+    private string _lastValidatedIconId;
+
+    private void OnValidate()
+    {
+        if (string.IsNullOrEmpty(iconId) || iconId == _lastValidatedIconId)
+            return;
+
+        _lastValidatedIconId = iconId;
+
+        string[] guids = UnityEditor.AssetDatabase.FindAssets("t:SkillData");
+        foreach (string guid in guids)
+        {
+            string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
+            var other = UnityEditor.AssetDatabase.LoadAssetAtPath<SkillData>(path);
+            if (other == null || other == this) continue;
+            if (other.iconId == iconId)
+            {
+                Debug.LogWarning(
+                    $"[SkillData] Duplicate iconId '{iconId}' — already used by '{other.skillName}' ({other.skillId}). " +
+                    $"Assign a different icon to '{skillName}'.",
+                    this);
+                return;
+            }
+        }
+    }
+#endif
 }

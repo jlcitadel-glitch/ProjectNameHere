@@ -116,6 +116,7 @@ namespace ProjectName.UI
             EnsureHighscoresPanel();
             AddButtonSounds();
             AdjustMainMenuLayout();
+            ApplyVisualDepth();
 
             // Wire credits back button
             if (creditsController != null)
@@ -1152,6 +1153,35 @@ namespace ProjectName.UI
             StyleConfirmDialog(deleteConfirmPanel, deleteWarningText,
                 "This chronicle will be lost forever.",
                 confirmDeleteButton, cancelDeleteButton);
+        }
+
+        /// <summary>
+        /// Applies visual depth layers (shadows, frames, breathing) to main menu panels.
+        /// </summary>
+        private void ApplyVisualDepth()
+        {
+            // Depth layer + frame on the main menu panel
+            if (mainMenuPanel != null)
+            {
+                var rt = mainMenuPanel.GetComponent<RectTransform>();
+                if (rt != null)
+                {
+                    mainMenuPanel.AddComponent<UIDepthLayer>();
+                    ProceduralFrameBuilder.ApplyFrame(rt);
+                }
+            }
+
+            // Breathing animation on title text
+            if (titleGroup != null)
+            {
+                var titleTmp = titleGroup.GetComponentInChildren<TMP_Text>(true);
+                var transitions = UIManager.Instance?.Transitions;
+                if (titleTmp != null && transitions != null)
+                {
+                    transitions.StartCandleFlicker(titleTmp);
+                    transitions.StartBreathing(titleTmp.transform);
+                }
+            }
         }
 
         /// <summary>

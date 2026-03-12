@@ -356,9 +356,24 @@ namespace ProjectName.UI
 
             if (menuCanvasGroup != null)
             {
-                menuCanvasGroup.alpha = 1f;
-                menuCanvasGroup.interactable = true;
-                menuCanvasGroup.blocksRaycasts = true;
+                var transitions = UIManager.Instance?.Transitions;
+                if (transitions != null)
+                {
+                    menuCanvasGroup.alpha = 0f;
+                    menuCanvasGroup.interactable = false;
+                    menuCanvasGroup.blocksRaycasts = false;
+                    transitions.OpenMenu(menuCanvasGroup, menuCanvasGroup.GetComponent<RectTransform>(), () =>
+                    {
+                        menuCanvasGroup.interactable = true;
+                        menuCanvasGroup.blocksRaycasts = true;
+                    });
+                }
+                else
+                {
+                    menuCanvasGroup.alpha = 1f;
+                    menuCanvasGroup.interactable = true;
+                    menuCanvasGroup.blocksRaycasts = true;
+                }
             }
 
             RefreshAll();
@@ -389,13 +404,28 @@ namespace ProjectName.UI
 
             if (menuCanvasGroup != null)
             {
-                menuCanvasGroup.alpha = 0f;
-                menuCanvasGroup.interactable = false;
-                menuCanvasGroup.blocksRaycasts = false;
+                var transitions = UIManager.Instance?.Transitions;
+                if (transitions != null)
+                {
+                    transitions.CloseMenu(menuCanvasGroup, menuCanvasGroup.GetComponent<RectTransform>(), () =>
+                    {
+                        if (menuCanvas != null)
+                            menuCanvas.enabled = false;
+                    });
+                }
+                else
+                {
+                    menuCanvasGroup.alpha = 0f;
+                    menuCanvasGroup.interactable = false;
+                    menuCanvasGroup.blocksRaycasts = false;
+                    if (menuCanvas != null)
+                        menuCanvas.enabled = false;
+                }
             }
-
-            if (menuCanvas != null)
+            else if (menuCanvas != null)
+            {
                 menuCanvas.enabled = false;
+            }
 
             if (pauseGameWhenOpen && GameManager.Instance != null)
                 GameManager.Instance.ReleaseMenuPause();
@@ -1588,6 +1618,10 @@ namespace ProjectName.UI
 
             // Wire button listeners (close, allocate)
             controller.WireButtonListeners();
+
+            // --- Visual depth layers ---
+            panelGo.AddComponent<UIDepthLayer>();
+            ProceduralFrameBuilder.ApplyFrame(panelRect);
 
             Debug.Log("[CharacterMenuController] Runtime UI created.");
             return controller;
