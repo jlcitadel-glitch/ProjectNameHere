@@ -1237,6 +1237,10 @@ namespace ProjectName.UI
 
             // Input field with gold border
             var inputFrame = MakeGothicFrame(content.transform, 440f, 54f);
+            var inputFrameOuter = inputFrame.transform.parent.gameObject;
+            var inputFrameLE = inputFrameOuter.GetComponent<LayoutElement>();
+            inputFrameLE.preferredWidth = -1f;
+            inputFrameLE.flexibleWidth = 1f;
             ctrl.nameInputField = MakeInputFieldInto(inputFrame);
             MakeSpacer(content.transform, 6f);
 
@@ -1437,7 +1441,9 @@ namespace ProjectName.UI
             var bodyTypeRow = MakeHRow(leftCol.transform, 10f, 45f);
             var btLabel = MakeLabel(bodyTypeRow.transform, "Body Type", 22f);
             btLabel.textWrappingMode = TextWrappingModes.NoWrap;
-            btLabel.GetComponent<LayoutElement>().preferredWidth = 110f;
+            var btLabelLE = btLabel.GetComponent<LayoutElement>();
+            btLabelLE.preferredWidth = 110f;
+            btLabelLE.flexibleWidth = 0f;
             ctrl.bodyTypeMaleButton = MakeButton(bodyTypeRow.transform, "A", 90f, 40f);
             ctrl.bodyTypeFemaleButton = MakeButton(bodyTypeRow.transform, "B", 90f, 40f);
             ctrl.bodyTypeLabel = MakeLabel(bodyTypeRow.transform, "A", 20f);
@@ -1927,15 +1933,24 @@ namespace ProjectName.UI
             out Button prevBtn, out Button nextBtn, out TMP_Text nameText)
         {
             var row = MakeHRow(parent, 10f, 42f);
+            // Allow the row to stretch to parent width so flexible children can expand
+            var rowCsf = row.GetComponent<ContentSizeFitter>();
+            if (rowCsf != null) rowCsf.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            var rowLE = row.GetComponent<LayoutElement>();
+            if (rowLE != null) rowLE.flexibleWidth = 1f;
             var label = MakeLabel(row.transform, labelText, 20f);
             label.textWrappingMode = TextWrappingModes.NoWrap;
-            label.GetComponent<LayoutElement>().preferredWidth = 130f;
+            var labelLE = label.GetComponent<LayoutElement>();
+            labelLE.preferredWidth = 130f;
+            labelLE.flexibleWidth = 0f;
             label.alignment = TextAlignmentOptions.MidlineRight;
             label.color = TextSecondary;
 
             prevBtn = MakeArrowButton(row.transform, "<");
             nameText = MakeLabel(row.transform, "None", 19f);
-            nameText.GetComponent<LayoutElement>().preferredWidth = 210f;
+            var nameLE = nameText.GetComponent<LayoutElement>();
+            nameLE.preferredWidth = -1f;
+            nameLE.flexibleWidth = 1f;
             nameText.textWrappingMode = TextWrappingModes.NoWrap;
             nameText.enableAutoSizing = true;
             nameText.fontSizeMin = 14f;
@@ -1951,9 +1966,16 @@ namespace ProjectName.UI
             out Button prevBtn, out Button nextBtn, out Image colorPreview, out TMP_Text nameText)
         {
             var row = MakeHRow(parent, 10f, 42f);
+            // Allow the row to stretch to parent width so flexible children can expand
+            var rowCsf = row.GetComponent<ContentSizeFitter>();
+            if (rowCsf != null) rowCsf.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            var rowLE = row.GetComponent<LayoutElement>();
+            if (rowLE != null) rowLE.flexibleWidth = 1f;
             var label = MakeLabel(row.transform, labelText, 20f);
             label.textWrappingMode = TextWrappingModes.NoWrap;
-            label.GetComponent<LayoutElement>().preferredWidth = 130f;
+            var labelLE = label.GetComponent<LayoutElement>();
+            labelLE.preferredWidth = 130f;
+            labelLE.flexibleWidth = 0f;
             label.alignment = TextAlignmentOptions.MidlineRight;
             label.color = TextSecondary;
 
@@ -1978,7 +2000,9 @@ namespace ProjectName.UI
 
             // Name text
             var nameTmp = MakeLabel(row.transform, initialName, 18f);
-            nameTmp.GetComponent<LayoutElement>().preferredWidth = 150f;
+            var nameTmpLE = nameTmp.GetComponent<LayoutElement>();
+            nameTmpLE.preferredWidth = -1f;
+            nameTmpLE.flexibleWidth = 1f;
             nameTmp.textWrappingMode = TextWrappingModes.NoWrap;
             nameTmp.enableAutoSizing = true;
             nameTmp.fontSizeMin = 12f;

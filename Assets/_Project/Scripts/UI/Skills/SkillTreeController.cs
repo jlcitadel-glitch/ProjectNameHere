@@ -367,7 +367,7 @@ namespace ProjectName.UI
             overlayImg.sprite = RTBWhiteSprite;
             overlayImg.color = new Color(0f, 0f, 0f, 0.6f);
 
-            // --- Main panel (900x600) ---
+            // --- Main panel (VLG + ContentSizeFitter, minHeight=600) ---
             var panelGo = MakeRect("Panel", canvasGo.transform);
             var panelRect = panelGo.GetComponent<RectTransform>();
             panelRect.anchorMin = new Vector2(0.5f, 0.5f);
@@ -379,35 +379,45 @@ namespace ProjectName.UI
             panelImg.sprite = RTBWhiteSprite;
             panelImg.color = RTBPanelBg;
 
-            // --- Header (50px) ---
+            var panelVlg = panelGo.AddComponent<VerticalLayoutGroup>();
+            panelVlg.childForceExpandWidth = true;
+            panelVlg.childForceExpandHeight = false;
+            panelVlg.childControlWidth = true;
+            panelVlg.childControlHeight = true;
+            panelVlg.childScaleWidth = false;
+            panelVlg.childScaleHeight = false;
+            panelVlg.spacing = 0;
+            panelVlg.padding = new RectOffset(0, 0, 0, 0);
+
+            var panelFitter = panelGo.AddComponent<ContentSizeFitter>();
+            panelFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            panelFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            AddLayout(panelGo, minH: 600);
+
+            // --- Header (HLG, prefH=50) ---
             var headerGo = MakeRect("Header", panelGo.transform);
-            var headerRect = headerGo.GetComponent<RectTransform>();
-            headerRect.anchorMin = new Vector2(0, 1);
-            headerRect.anchorMax = new Vector2(1, 1);
-            headerRect.pivot = new Vector2(0.5f, 1);
-            headerRect.anchoredPosition = Vector2.zero;
-            headerRect.sizeDelta = new Vector2(0, 50);
+            var headerHlg = headerGo.AddComponent<HorizontalLayoutGroup>();
+            headerHlg.childForceExpandWidth = false;
+            headerHlg.childForceExpandHeight = false;
+            headerHlg.childControlWidth = true;
+            headerHlg.childControlHeight = true;
+            headerHlg.childScaleWidth = false;
+            headerHlg.childScaleHeight = false;
+            headerHlg.childAlignment = TextAnchor.MiddleLeft;
+            headerHlg.spacing = 8;
+            headerHlg.padding = new RectOffset(15, 10, 0, 0);
+            AddLayout(headerGo, prefH: 50);
 
             // Job icon
             var iconGo = MakeRect("JobIcon", headerGo.transform);
-            var iconRect = iconGo.GetComponent<RectTransform>();
-            iconRect.anchorMin = new Vector2(0, 0.5f);
-            iconRect.anchorMax = new Vector2(0, 0.5f);
-            iconRect.pivot = new Vector2(0, 0.5f);
-            iconRect.anchoredPosition = new Vector2(15, 0);
-            iconRect.sizeDelta = new Vector2(36, 36);
             var jobIconImg = iconGo.AddComponent<Image>();
             jobIconImg.sprite = RTBWhiteSprite;
             jobIconImg.color = RTBCharcoal;
             jobIconImg.preserveAspect = true;
+            AddLayout(iconGo, prefW: 36, prefH: 36);
 
-            // Job title
+            // Job title (flexible width fills remaining space)
             var titleGo = MakeRect("JobTitle", headerGo.transform);
-            var titleRect = titleGo.GetComponent<RectTransform>();
-            titleRect.anchorMin = new Vector2(0, 0);
-            titleRect.anchorMax = new Vector2(0.5f, 1);
-            titleRect.offsetMin = new Vector2(60, 0);
-            titleRect.offsetMax = Vector2.zero;
             var jobTitleTmp = titleGo.AddComponent<TextMeshProUGUI>();
             jobTitleTmp.text = "Skill Tree";
             jobTitleTmp.fontSize = 26;
@@ -415,46 +425,30 @@ namespace ProjectName.UI
             jobTitleTmp.color = RTBAgedGold;
             jobTitleTmp.alignment = TextAlignmentOptions.Left;
             FontManager.EnsureFont(jobTitleTmp);
+            AddLayout(titleGo, flexW: 1);
 
             // SP display
             var spGo = MakeRect("SPDisplay", headerGo.transform);
-            var spRect = spGo.GetComponent<RectTransform>();
-            spRect.anchorMin = new Vector2(1, 0);
-            spRect.anchorMax = new Vector2(1, 1);
-            spRect.pivot = new Vector2(1, 0.5f);
-            spRect.anchoredPosition = new Vector2(-160, 0);
-            spRect.sizeDelta = new Vector2(100, 0);
             var spTmp = spGo.AddComponent<TextMeshProUGUI>();
             spTmp.text = "SP: 0";
             spTmp.fontSize = 20;
             spTmp.color = RTBAgedGold;
             spTmp.alignment = TextAlignmentOptions.Right;
             FontManager.EnsureFont(spTmp);
+            AddLayout(spGo, prefW: 100);
 
             // Level display
             var lvlGo = MakeRect("LevelDisplay", headerGo.transform);
-            var lvlRect = lvlGo.GetComponent<RectTransform>();
-            lvlRect.anchorMin = new Vector2(1, 0);
-            lvlRect.anchorMax = new Vector2(1, 1);
-            lvlRect.pivot = new Vector2(1, 0.5f);
-            lvlRect.anchoredPosition = new Vector2(-60, 0);
-            lvlRect.sizeDelta = new Vector2(80, 0);
             var lvlTmp = lvlGo.AddComponent<TextMeshProUGUI>();
             lvlTmp.text = "Lv. 1";
             lvlTmp.fontSize = 20;
             lvlTmp.color = RTBBoneWhite;
             lvlTmp.alignment = TextAlignmentOptions.Right;
             FontManager.EnsureFont(lvlTmp);
+            AddLayout(lvlGo, prefW: 80);
 
             // Close button
             var closeBtnGo = MakeRect("CloseButton", headerGo.transform);
-            var closeBtnRect = closeBtnGo.GetComponent<RectTransform>();
-            closeBtnRect.anchorMin = new Vector2(1, 0.5f);
-            closeBtnRect.anchorMax = new Vector2(1, 0.5f);
-            closeBtnRect.pivot = new Vector2(1, 0.5f);
-            closeBtnRect.anchoredPosition = new Vector2(-10, 0);
-            closeBtnRect.sizeDelta = new Vector2(36, 36);
-
             var closeBtnImg = closeBtnGo.AddComponent<Image>();
             closeBtnImg.sprite = RTBWhiteSprite;
             closeBtnImg.color = RTBBtnNormal;
@@ -467,6 +461,7 @@ namespace ProjectName.UI
             closeBtnColors.selectedColor = RTBBtnHover;
             closeBtnColors.fadeDuration = 0.1f;
             closeBtn.colors = closeBtnColors;
+            AddLayout(closeBtnGo, prefW: 36, prefH: 36);
 
             var closeBtnTextGo = MakeRect("Text", closeBtnGo.transform);
             Stretch(closeBtnTextGo);
@@ -479,30 +474,31 @@ namespace ProjectName.UI
             FontManager.EnsureFont(closeBtnTmp);
 
             // --- Divider (below header) ---
-            BuildDivider(panelGo.transform, 50f);
+            BuildLayoutDivider(panelGo.transform, true);
 
-            // --- Body area (below header divider, split into tree view + info panel) ---
+            // --- Body (HLG, fills remaining space) ---
             var bodyGo = MakeRect("Body", panelGo.transform);
-            var bodyRect = bodyGo.GetComponent<RectTransform>();
-            bodyRect.anchorMin = new Vector2(0, 0);
-            bodyRect.anchorMax = new Vector2(1, 1);
-            bodyRect.offsetMin = new Vector2(0, 0);
-            bodyRect.offsetMax = new Vector2(0, -54);
+            var bodyHlg = bodyGo.AddComponent<HorizontalLayoutGroup>();
+            bodyHlg.childForceExpandWidth = false;
+            bodyHlg.childForceExpandHeight = true;
+            bodyHlg.childControlWidth = true;
+            bodyHlg.childControlHeight = true;
+            bodyHlg.childScaleWidth = false;
+            bodyHlg.childScaleHeight = false;
+            bodyHlg.spacing = 0;
+            bodyHlg.padding = new RectOffset(0, 0, 0, 0);
+            AddLayout(bodyGo, flexH: 1);
 
-            // --- Left side: Scroll view for skill tree (65%) ---
+            // --- Left side: Scroll view for skill tree (flexW=0.65) ---
             var scrollGo = MakeRect("ScrollView", bodyGo.transform);
             var scrollRectComp = scrollGo.AddComponent<ScrollRect>();
-            var scrollGoRect = scrollGo.GetComponent<RectTransform>();
-            scrollGoRect.anchorMin = new Vector2(0, 0);
-            scrollGoRect.anchorMax = new Vector2(0.65f, 1);
-            scrollGoRect.offsetMin = Vector2.zero;
-            scrollGoRect.offsetMax = Vector2.zero;
 
             var scrollImg = scrollGo.AddComponent<Image>();
             scrollImg.sprite = RTBWhiteSprite;
             scrollImg.color = new Color(0.05f, 0.05f, 0.07f, 1f);
 
             scrollGo.AddComponent<Mask>().showMaskGraphic = true;
+            AddLayout(scrollGo, flexW: 0.65f);
 
             // Content inside scroll view — anchored at top, stretches horizontally,
             // height is set by SkillTreePanel.CalculateLayout() based on actual node count.
@@ -529,49 +525,33 @@ namespace ProjectName.UI
             scrollRectComp.scrollSensitivity = 20f;
 
             // --- Vertical divider ---
-            var vDivGo = MakeRect("VerticalDivider", bodyGo.transform);
-            var vDivRect = vDivGo.GetComponent<RectTransform>();
-            vDivRect.anchorMin = new Vector2(0.65f, 0.02f);
-            vDivRect.anchorMax = new Vector2(0.65f, 0.98f);
-            vDivRect.pivot = new Vector2(0.5f, 0.5f);
-            vDivRect.sizeDelta = new Vector2(2, 0);
-            var vDivImg = vDivGo.AddComponent<Image>();
-            vDivImg.sprite = RTBWhiteSprite;
-            vDivImg.color = RTBDividerCol;
+            BuildLayoutDivider(bodyGo.transform, false);
 
-            // --- Right side: Skill info panel (35%) ---
+            // --- Right side: Skill info panel (VLG, flexW=0.35) ---
             var infoPanelGo = MakeRect("SkillInfoPanel", bodyGo.transform);
-            var infoPanelRect = infoPanelGo.GetComponent<RectTransform>();
-            infoPanelRect.anchorMin = new Vector2(0.65f, 0);
-            infoPanelRect.anchorMax = new Vector2(1, 1);
-            infoPanelRect.offsetMin = new Vector2(10, 15);
-            infoPanelRect.offsetMax = new Vector2(-15, -10);
+            var infoPanelVlg = infoPanelGo.AddComponent<VerticalLayoutGroup>();
+            infoPanelVlg.childForceExpandWidth = true;
+            infoPanelVlg.childForceExpandHeight = false;
+            infoPanelVlg.childControlWidth = true;
+            infoPanelVlg.childControlHeight = true;
+            infoPanelVlg.childScaleWidth = false;
+            infoPanelVlg.childScaleHeight = false;
+            infoPanelVlg.childAlignment = TextAnchor.UpperCenter;
+            infoPanelVlg.spacing = 5;
+            infoPanelVlg.padding = new RectOffset(10, 15, 10, 15);
+            AddLayout(infoPanelGo, flexW: 0.35f);
             infoPanelGo.SetActive(false);
-
-            float infoY = 0f;
 
             // Skill icon
             var skillIconGo = MakeRect("SkillIcon", infoPanelGo.transform);
-            var skillIconRect = skillIconGo.GetComponent<RectTransform>();
-            skillIconRect.anchorMin = new Vector2(0.5f, 1);
-            skillIconRect.anchorMax = new Vector2(0.5f, 1);
-            skillIconRect.pivot = new Vector2(0.5f, 1);
-            skillIconRect.anchoredPosition = new Vector2(0, infoY);
-            skillIconRect.sizeDelta = new Vector2(64, 64);
             var skillIconImg = skillIconGo.AddComponent<Image>();
             skillIconImg.sprite = RTBWhiteSprite;
             skillIconImg.color = RTBCharcoal;
             skillIconImg.preserveAspect = true;
-            infoY -= 70;
+            AddLayout(skillIconGo, prefH: 64, prefW: 64);
 
             // Skill name
             var skillNameGo = MakeRect("SkillName", infoPanelGo.transform);
-            var skillNameRect = skillNameGo.GetComponent<RectTransform>();
-            skillNameRect.anchorMin = new Vector2(0, 1);
-            skillNameRect.anchorMax = new Vector2(1, 1);
-            skillNameRect.pivot = new Vector2(0.5f, 1);
-            skillNameRect.anchoredPosition = new Vector2(0, infoY);
-            skillNameRect.sizeDelta = new Vector2(0, 30);
             var skillNameTmp = skillNameGo.AddComponent<TextMeshProUGUI>();
             skillNameTmp.text = "";
             skillNameTmp.fontSize = 22;
@@ -579,16 +559,10 @@ namespace ProjectName.UI
             skillNameTmp.color = RTBAgedGold;
             skillNameTmp.alignment = TextAlignmentOptions.Center;
             FontManager.EnsureFont(skillNameTmp);
-            infoY -= 35;
+            AddLayout(skillNameGo, prefH: 30);
 
             // Skill description
             var skillDescGo = MakeRect("SkillDescription", infoPanelGo.transform);
-            var skillDescRect = skillDescGo.GetComponent<RectTransform>();
-            skillDescRect.anchorMin = new Vector2(0, 1);
-            skillDescRect.anchorMax = new Vector2(1, 1);
-            skillDescRect.pivot = new Vector2(0.5f, 1);
-            skillDescRect.anchoredPosition = new Vector2(0, infoY);
-            skillDescRect.sizeDelta = new Vector2(0, 80);
             var skillDescTmp = skillDescGo.AddComponent<TextMeshProUGUI>();
             skillDescTmp.text = "";
             skillDescTmp.fontSize = 16;
@@ -596,16 +570,10 @@ namespace ProjectName.UI
             skillDescTmp.alignment = TextAlignmentOptions.TopLeft;
             skillDescTmp.textWrappingMode = TextWrappingModes.Normal;
             FontManager.EnsureFont(skillDescTmp);
-            infoY -= 85;
+            AddLayout(skillDescGo, prefH: 80);
 
             // Skill stats
             var skillStatsGo = MakeRect("SkillStats", infoPanelGo.transform);
-            var skillStatsRect = skillStatsGo.GetComponent<RectTransform>();
-            skillStatsRect.anchorMin = new Vector2(0, 1);
-            skillStatsRect.anchorMax = new Vector2(1, 1);
-            skillStatsRect.pivot = new Vector2(0.5f, 1);
-            skillStatsRect.anchoredPosition = new Vector2(0, infoY);
-            skillStatsRect.sizeDelta = new Vector2(0, 120);
             var skillStatsTmp = skillStatsGo.AddComponent<TextMeshProUGUI>();
             skillStatsTmp.text = "";
             skillStatsTmp.fontSize = 15;
@@ -613,16 +581,10 @@ namespace ProjectName.UI
             skillStatsTmp.alignment = TextAlignmentOptions.TopLeft;
             skillStatsTmp.textWrappingMode = TextWrappingModes.Normal;
             FontManager.EnsureFont(skillStatsTmp);
-            infoY -= 125;
+            AddLayout(skillStatsGo, prefH: 120);
 
             // Skill requirements
             var skillReqGo = MakeRect("SkillRequirements", infoPanelGo.transform);
-            var skillReqRect = skillReqGo.GetComponent<RectTransform>();
-            skillReqRect.anchorMin = new Vector2(0, 1);
-            skillReqRect.anchorMax = new Vector2(1, 1);
-            skillReqRect.pivot = new Vector2(0.5f, 1);
-            skillReqRect.anchoredPosition = new Vector2(0, infoY);
-            skillReqRect.sizeDelta = new Vector2(0, 80);
             var skillReqTmp = skillReqGo.AddComponent<TextMeshProUGUI>();
             skillReqTmp.text = "";
             skillReqTmp.fontSize = 14;
@@ -631,17 +593,14 @@ namespace ProjectName.UI
             skillReqTmp.textWrappingMode = TextWrappingModes.Normal;
             skillReqTmp.richText = true;
             FontManager.EnsureFont(skillReqTmp);
-            infoY -= 90;
+            AddLayout(skillReqGo, prefH: 80);
 
-            // Assign to Hotbar button (anchored above Learn button)
+            // Flexible spacer pushes buttons to the bottom
+            var spacerGo = MakeRect("Spacer", infoPanelGo.transform);
+            AddLayout(spacerGo, flexH: 1);
+
+            // Assign to Hotbar button
             var assignBtnGo = MakeRect("AssignHotbarButton", infoPanelGo.transform);
-            var assignBtnRect = assignBtnGo.GetComponent<RectTransform>();
-            assignBtnRect.anchorMin = new Vector2(0.1f, 0);
-            assignBtnRect.anchorMax = new Vector2(0.9f, 0);
-            assignBtnRect.pivot = new Vector2(0.5f, 0);
-            assignBtnRect.anchoredPosition = new Vector2(0, 55);
-            assignBtnRect.sizeDelta = new Vector2(0, 36);
-
             var assignBtnImg = assignBtnGo.AddComponent<Image>();
             assignBtnImg.sprite = RTBWhiteSprite;
             assignBtnImg.color = RTBBtnNormal;
@@ -654,6 +613,7 @@ namespace ProjectName.UI
             assignBtnColors.selectedColor = RTBBtnHover;
             assignBtnColors.fadeDuration = 0.1f;
             assignBtn.colors = assignBtnColors;
+            AddLayout(assignBtnGo, prefH: 36);
 
             var assignBtnTextGo = MakeRect("Text", assignBtnGo.transform);
             Stretch(assignBtnTextGo);
@@ -666,15 +626,8 @@ namespace ProjectName.UI
 
             assignBtnGo.SetActive(false); // Hidden until a learned skill is selected
 
-            // Learn button (anchored to bottom of info panel)
+            // Learn button
             var learnBtnGo = MakeRect("LearnButton", infoPanelGo.transform);
-            var learnBtnRect = learnBtnGo.GetComponent<RectTransform>();
-            learnBtnRect.anchorMin = new Vector2(0.1f, 0);
-            learnBtnRect.anchorMax = new Vector2(0.9f, 0);
-            learnBtnRect.pivot = new Vector2(0.5f, 0);
-            learnBtnRect.anchoredPosition = new Vector2(0, 10);
-            learnBtnRect.sizeDelta = new Vector2(0, 40);
-
             var learnBtnImg = learnBtnGo.AddComponent<Image>();
             learnBtnImg.sprite = RTBWhiteSprite;
             learnBtnImg.color = RTBBtnNormal;
@@ -687,6 +640,7 @@ namespace ProjectName.UI
             learnBtnColors.selectedColor = RTBBtnHover;
             learnBtnColors.fadeDuration = 0.1f;
             learnBtn.colors = learnBtnColors;
+            AddLayout(learnBtnGo, prefH: 40);
 
             var learnBtnTextGo = MakeRect("Text", learnBtnGo.transform);
             Stretch(learnBtnTextGo);
@@ -850,19 +804,32 @@ namespace ProjectName.UI
             return go;
         }
 
-        private static void BuildDivider(Transform parent, float yOffset)
+        private static LayoutElement AddLayout(GameObject go,
+            float prefH = -1, float prefW = -1,
+            float flexH = -1, float flexW = -1,
+            float minH = -1, float minW = -1)
         {
-            var divider = MakeRect("Divider", parent);
-            var divRect = divider.GetComponent<RectTransform>();
-            divRect.anchorMin = new Vector2(0, 1);
-            divRect.anchorMax = new Vector2(1, 1);
-            divRect.pivot = new Vector2(0.5f, 1);
-            divRect.anchoredPosition = new Vector2(0, -yOffset);
-            divRect.sizeDelta = new Vector2(-30, 2);
+            var le = go.AddComponent<LayoutElement>();
+            if (prefH >= 0) le.preferredHeight = prefH;
+            if (prefW >= 0) le.preferredWidth = prefW;
+            if (flexH >= 0) le.flexibleHeight = flexH;
+            if (flexW >= 0) le.flexibleWidth = flexW;
+            if (minH >= 0) le.minHeight = minH;
+            if (minW >= 0) le.minWidth = minW;
+            return le;
+        }
 
-            var divImg = divider.AddComponent<Image>();
-            divImg.sprite = RTBWhiteSprite;
-            divImg.color = RTBDividerCol;
+        private static void BuildLayoutDivider(Transform parent, bool horizontal)
+        {
+            var go = new GameObject("Divider", typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            var img = go.AddComponent<Image>();
+            img.sprite = RTBWhiteSprite;
+            img.color = RTBDividerCol;
+            img.raycastTarget = false;
+            var le = go.AddComponent<LayoutElement>();
+            if (horizontal) { le.preferredHeight = 2; le.flexibleWidth = 1; }
+            else { le.preferredWidth = 2; le.flexibleHeight = 1; }
         }
 
         private static GameObject MakeRect(string name, Transform parent)

@@ -9,9 +9,8 @@ using TMPro;
 namespace ProjectName.UI
 {
     /// <summary>
-    /// Controller for the equipment menu. Opens with E key, shows 7 equipment slots
-    /// (Weapon, Head, Armor, Hands, Legs, Feet, Accessory) with character preview.
-    /// Clicking a slot opens a selection panel to swap gear.
+    /// Controller for the equipment menu. Opens with E key, shows equipment slots
+    /// with character preview. Clicking a slot opens a selection panel to swap gear.
     /// </summary>
     public class EquipmentMenuController : MonoBehaviour
     {
@@ -70,6 +69,17 @@ namespace ProjectName.UI
 
         public event System.Action OnOpened;
         public event System.Action OnClosed;
+
+        private static readonly (EquipmentSlotType slot, string label)[] SlotDisplayOrder =
+        {
+            (EquipmentSlotType.Weapon, "Weapon"),
+            (EquipmentSlotType.Head, "Head"),
+            (EquipmentSlotType.Armor, "Armor"),
+            (EquipmentSlotType.Hands, "Hands"),
+            (EquipmentSlotType.Legs, "Legs"),
+            (EquipmentSlotType.Feet, "Feet"),
+            (EquipmentSlotType.Accessory, "Accessory"),
+        };
 
         private void Awake()
         {
@@ -169,7 +179,6 @@ namespace ProjectName.UI
             if (isOpen)
             {
                 RefreshDisplay();
-                // If selection panel is open for the changed slot, refresh it too
                 if (selectionPanel != null && selectionPanel.activeSelf && selectedSlotType == slot)
                     PopulateSelectionList(slot);
             }
@@ -353,15 +362,12 @@ namespace ProjectName.UI
 
             Sprite result = null;
 
-            // For weapons, prefer a mid-attack frame where the weapon is fully visible
             if (slot == EquipmentSlotType.Weapon)
                 result = FindBestWeaponFrame(item.visualPart);
 
-            // Fall back to preview sprite
             if (result == null && item.visualPart.previewSprite != null)
                 result = item.visualPart.previewSprite;
 
-            // Last resort: first non-null frame
             if (result == null && item.visualPart.frames != null)
             {
                 foreach (var f in item.visualPart.frames)
@@ -370,8 +376,6 @@ namespace ProjectName.UI
                 }
             }
 
-            // Crop weapon sprites to visible pixels — LPC weapon overlays are tiny
-            // pixels on large transparent 64x64 frames that are invisible at icon size
             if (result != null && slot == EquipmentSlotType.Weapon)
                 result = CropToVisiblePixels(result);
 
@@ -386,7 +390,6 @@ namespace ProjectName.UI
         private static Sprite FindBestWeaponFrame(BodyPartData part)
         {
             if (part?.frames == null) return null;
-            // Try ranges in order of visual prominence for weapon overlays
             int[][] ranges = { new[]{26,33}, new[]{20,25}, new[]{34,40} };
             foreach (var range in ranges)
             {
@@ -448,13 +451,12 @@ namespace ProjectName.UI
                     }
                 }
 
-                if (maxX < minX) // fully transparent
+                if (maxX < minX)
                 {
                     _croppedSpriteCache[key] = source;
                     return source;
                 }
 
-                // Skip cropping if content already fills most of the frame
                 float coverage = (float)(maxX - minX + 1) * (maxY - minY + 1) / (sw * sh);
                 if (coverage > 0.6f)
                 {
@@ -535,7 +537,6 @@ namespace ProjectName.UI
 
         private void PopulateSelectionList(EquipmentSlotType slot)
         {
-            // Clear previous entries
             foreach (var row in selectionRows)
             {
                 if (row != null) Destroy(row);
@@ -546,7 +547,6 @@ namespace ProjectName.UI
 
             var currentItem = equipmentManager != null ? equipmentManager.GetEquipped(slot) : null;
 
-            // Only show equipment the player owns (their class's starter gear)
             var currentJob = SkillManager.Instance?.CurrentJob;
             var starterGear = currentJob?.starterEquipment;
 
@@ -559,7 +559,6 @@ namespace ProjectName.UI
             }
             else
             {
-                // Fallback: load all from Resources (shouldn't happen in normal play)
                 var allEquipment = Resources.LoadAll<EquipmentData>("Equipment");
                 matchingItems = allEquipment.Where(e => e.slotType == slot).ToList();
             }
@@ -568,7 +567,6 @@ namespace ProjectName.UI
             float rowHeight = 70f;
             float spacing = 6f;
 
-            // "Unequip" option at the top (if something is equipped)
             if (currentItem != null)
             {
                 var unequipRow = BuildSelectionRow(selectionListContent, "-- Unequip --", "",
@@ -583,7 +581,6 @@ namespace ProjectName.UI
                 yPos -= rowHeight + spacing;
             }
 
-            // List each matching item
             foreach (var item in matchingItems)
             {
                 bool isCurrentlyEquipped = currentItem != null && currentItem.equipmentId == item.equipmentId;
@@ -618,7 +615,6 @@ namespace ProjectName.UI
                 yPos -= rowHeight + spacing;
             }
 
-            // Resize content area
             var contentRect = selectionListContent.GetComponent<RectTransform>();
             if (contentRect != null)
                 contentRect.sizeDelta = new Vector2(contentRect.sizeDelta.x, Mathf.Abs(yPos));
@@ -687,26 +683,36 @@ namespace ProjectName.UI
             overlayImg.sprite = WhiteSprite;
             overlayImg.color = new Color(0f, 0f, 0f, 0.6f);
 
-            // Center panel (wider to accommodate selection panel)
+            // Center panel (VLG + ContentSizeFitter)
             var panelGo = MakeRect("Panel", canvasGo.transform);
             var panelRect = panelGo.GetComponent<RectTransform>();
             panelRect.anchorMin = new Vector2(0.5f, 0.5f);
             panelRect.anchorMax = new Vector2(0.5f, 0.5f);
             panelRect.pivot = new Vector2(0.5f, 0.5f);
-            panelRect.sizeDelta = new Vector2(1000f, 580f);
+            panelRect.sizeDelta = new Vector2(1000f, 0f);
 
             var panelImg = panelGo.AddComponent<Image>();
             panelImg.sprite = WhiteSprite;
             panelImg.color = PanelBg;
 
+            var panelVLG = panelGo.AddComponent<VerticalLayoutGroup>();
+            panelVLG.childAlignment = TextAnchor.UpperCenter;
+            panelVLG.childControlWidth = true;
+            panelVLG.childControlHeight = true;
+            panelVLG.childForceExpandWidth = true;
+            panelVLG.childForceExpandHeight = false;
+            panelVLG.padding = new RectOffset(0, 0, 0, 0);
+            panelVLG.spacing = 0;
+
+            var panelCSF = panelGo.AddComponent<ContentSizeFitter>();
+            panelCSF.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            panelCSF.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            AddLayout(panelGo, minH: 580);
+
             // Title row
             var titleRow = MakeRect("TitleRow", panelGo.transform);
-            var titleRowRect = titleRow.GetComponent<RectTransform>();
-            titleRowRect.anchorMin = new Vector2(0, 1);
-            titleRowRect.anchorMax = new Vector2(1, 1);
-            titleRowRect.pivot = new Vector2(0.5f, 1);
-            titleRowRect.anchoredPosition = Vector2.zero;
-            titleRowRect.sizeDelta = new Vector2(0, 50);
+            AddLayout(titleRow, prefH: 50);
 
             var titleTextGo = MakeRect("TitleText", titleRow.transform);
             Stretch(titleTextGo);
@@ -751,29 +757,30 @@ namespace ProjectName.UI
             FontManager.EnsureFont(closeBtnTmp);
 
             // Divider
-            BuildDivider(panelGo.transform, 50f);
+            BuildLayoutDivider(panelGo.transform, true);
 
-            // Body: left = character preview, center = equipment slots, right = selection panel
+            // Body (HLG)
             var bodyGo = MakeRect("Body", panelGo.transform);
-            var bodyRect = bodyGo.GetComponent<RectTransform>();
-            bodyRect.anchorMin = new Vector2(0, 0);
-            bodyRect.anchorMax = new Vector2(1, 1);
-            bodyRect.offsetMin = new Vector2(20, 20);
-            bodyRect.offsetMax = new Vector2(-20, -54);
+            AddLayout(bodyGo, flexH: 1, minH: 510);
 
-            // Left side: character preview
-            var previewContainer = MakeRect("PreviewContainer", bodyGo.transform);
-            var previewContainerRect = previewContainer.GetComponent<RectTransform>();
-            previewContainerRect.anchorMin = new Vector2(0, 0);
-            previewContainerRect.anchorMax = new Vector2(0.22f, 1);
-            previewContainerRect.offsetMin = Vector2.zero;
-            previewContainerRect.offsetMax = Vector2.zero;
+            var bodyHLG = bodyGo.AddComponent<HorizontalLayoutGroup>();
+            bodyHLG.childAlignment = TextAnchor.UpperLeft;
+            bodyHLG.childControlWidth = true;
+            bodyHLG.childControlHeight = true;
+            bodyHLG.childForceExpandWidth = false;
+            bodyHLG.childForceExpandHeight = true;
+            bodyHLG.padding = new RectOffset(20, 20, 10, 20);
+            bodyHLG.spacing = 0;
 
-            var previewBg = previewContainer.AddComponent<Image>();
+            // Left: character preview
+            var previewCol = MakeRect("PreviewCol", bodyGo.transform);
+            AddLayout(previewCol, flexW: 0.22f);
+
+            var previewBg = previewCol.AddComponent<Image>();
             previewBg.sprite = WhiteSprite;
             previewBg.color = Charcoal;
 
-            var previewGo = MakeRect("CharacterPreview", previewContainer.transform);
+            var previewGo = MakeRect("CharacterPreview", previewCol.transform);
             var previewGoRect = previewGo.GetComponent<RectTransform>();
             previewGoRect.anchorMin = new Vector2(0.05f, 0.05f);
             previewGoRect.anchorMax = new Vector2(0.95f, 0.95f);
@@ -782,38 +789,41 @@ namespace ProjectName.UI
             var charPreview = previewGo.AddComponent<UILayeredSpritePreview>();
 
             // Vertical divider (preview | slots)
-            BuildVerticalDivider(bodyGo.transform, 0.24f);
+            BuildLayoutDivider(bodyGo.transform, false);
 
-            // Center: equipment slots
-            var slotsContainer = MakeRect("SlotsContainer", bodyGo.transform);
-            var slotsRect = slotsContainer.GetComponent<RectTransform>();
-            slotsRect.anchorMin = new Vector2(0.26f, 0);
-            slotsRect.anchorMax = new Vector2(0.58f, 1);
-            slotsRect.offsetMin = Vector2.zero;
-            slotsRect.offsetMax = Vector2.zero;
+            // Center: equipment slots (VLG)
+            var slotsCol = MakeRect("SlotsCol", bodyGo.transform);
+            AddLayout(slotsCol, flexW: 0.34f);
 
-            float slotY = 0f;
-            float slotSpacing = 8f;
+            var slotsVLG = slotsCol.AddComponent<VerticalLayoutGroup>();
+            slotsVLG.childAlignment = TextAnchor.UpperCenter;
+            slotsVLG.childControlWidth = true;
+            slotsVLG.childControlHeight = false;
+            slotsVLG.childForceExpandWidth = true;
+            slotsVLG.childForceExpandHeight = false;
+            slotsVLG.padding = new RectOffset(0, 0, 0, 0);
+            slotsVLG.spacing = 8;
 
-            var (wRow, wIcon, wName, wStats) = BuildEquipmentSlotRow(slotsContainer.transform, "Weapon", slotY);
-            slotY -= SLOT_ROW_HEIGHT + slotSpacing;
-            var (hRow, hIcon, hName, hStats) = BuildEquipmentSlotRow(slotsContainer.transform, "Head", slotY);
-            slotY -= SLOT_ROW_HEIGHT + slotSpacing;
-            var (aRow, aIcon, aName, aStats) = BuildEquipmentSlotRow(slotsContainer.transform, "Armor", slotY);
-            slotY -= SLOT_ROW_HEIGHT + slotSpacing;
-            var (glRow, glIcon, glName, glStats) = BuildEquipmentSlotRow(slotsContainer.transform, "Hands", slotY);
-            slotY -= SLOT_ROW_HEIGHT + slotSpacing;
-            var (lRow, lIcon, lName, lStats) = BuildEquipmentSlotRow(slotsContainer.transform, "Legs", slotY);
-            slotY -= SLOT_ROW_HEIGHT + slotSpacing;
-            var (fRow, fIcon, fName, fStats) = BuildEquipmentSlotRow(slotsContainer.transform, "Feet", slotY);
-            slotY -= SLOT_ROW_HEIGHT + slotSpacing;
-            var (accRow, accIcon, accName, accStats) = BuildEquipmentSlotRow(slotsContainer.transform, "Accessory", slotY);
+            // Build slot rows from data-driven array
+            var slotButtons = new Button[SlotDisplayOrder.Length];
+            var slotIcons = new Image[SlotDisplayOrder.Length];
+            var slotNames = new TMP_Text[SlotDisplayOrder.Length];
+            var slotStats = new TMP_Text[SlotDisplayOrder.Length];
+
+            for (int i = 0; i < SlotDisplayOrder.Length; i++)
+            {
+                var (rowBtn, icon, nameT, statsT) = BuildEquipmentSlotRow(slotsCol.transform, SlotDisplayOrder[i].label);
+                AddLayout(rowBtn.gameObject, prefH: SLOT_ROW_HEIGHT);
+                slotButtons[i] = rowBtn;
+                slotIcons[i] = icon;
+                slotNames[i] = nameT;
+                slotStats[i] = statsT;
+            }
 
             // Vertical divider (slots | selection)
-            BuildVerticalDivider(bodyGo.transform, 0.60f);
+            BuildLayoutDivider(bodyGo.transform, false);
 
-
-            // Right side: selection panel (hidden initially)
+            // Right: selection panel
             var selPanel = BuildSelectionPanel(bodyGo.transform);
 
             // Wire controller
@@ -823,49 +833,60 @@ namespace ProjectName.UI
             controller.closeButton = closeBtn;
             controller.characterPreview = charPreview;
 
-            controller.weaponIcon = wIcon;
-            controller.weaponNameText = wName;
-            controller.weaponStatsText = wStats;
-            controller.headIcon = hIcon;
-            controller.headNameText = hName;
-            controller.headStatsText = hStats;
-            controller.armorIcon = aIcon;
-            controller.armorNameText = aName;
-            controller.armorStatsText = aStats;
-            controller.handsIcon = glIcon;
-            controller.handsNameText = glName;
-            controller.handsStatsText = glStats;
-            controller.legsIcon = lIcon;
-            controller.legsNameText = lName;
-            controller.legsStatsText = lStats;
-            controller.feetIcon = fIcon;
-            controller.feetNameText = fName;
-            controller.feetStatsText = fStats;
-            controller.accessoryIcon = accIcon;
-            controller.accessoryNameText = accName;
-            controller.accessoryStatsText = accStats;
+            // Wire slot fields by matching SlotDisplayOrder
+            for (int i = 0; i < SlotDisplayOrder.Length; i++)
+            {
+                switch (SlotDisplayOrder[i].slot)
+                {
+                    case EquipmentSlotType.Weapon:
+                        controller.weaponIcon = slotIcons[i];
+                        controller.weaponNameText = slotNames[i];
+                        controller.weaponStatsText = slotStats[i];
+                        break;
+                    case EquipmentSlotType.Head:
+                        controller.headIcon = slotIcons[i];
+                        controller.headNameText = slotNames[i];
+                        controller.headStatsText = slotStats[i];
+                        break;
+                    case EquipmentSlotType.Armor:
+                        controller.armorIcon = slotIcons[i];
+                        controller.armorNameText = slotNames[i];
+                        controller.armorStatsText = slotStats[i];
+                        break;
+                    case EquipmentSlotType.Hands:
+                        controller.handsIcon = slotIcons[i];
+                        controller.handsNameText = slotNames[i];
+                        controller.handsStatsText = slotStats[i];
+                        break;
+                    case EquipmentSlotType.Legs:
+                        controller.legsIcon = slotIcons[i];
+                        controller.legsNameText = slotNames[i];
+                        controller.legsStatsText = slotStats[i];
+                        break;
+                    case EquipmentSlotType.Feet:
+                        controller.feetIcon = slotIcons[i];
+                        controller.feetNameText = slotNames[i];
+                        controller.feetStatsText = slotStats[i];
+                        break;
+                    case EquipmentSlotType.Accessory:
+                        controller.accessoryIcon = slotIcons[i];
+                        controller.accessoryNameText = slotNames[i];
+                        controller.accessoryStatsText = slotStats[i];
+                        break;
+                }
+            }
 
             controller.selectionPanel = selPanel.panel;
             controller.selectionTitleText = selPanel.title;
             controller.selectionListContent = selPanel.content;
 
-            // Wire slot left-click handlers (opens selection panel)
-            wRow.onClick.AddListener(() => controller.OnSlotClicked(EquipmentSlotType.Weapon));
-            hRow.onClick.AddListener(() => controller.OnSlotClicked(EquipmentSlotType.Head));
-            aRow.onClick.AddListener(() => controller.OnSlotClicked(EquipmentSlotType.Armor));
-            glRow.onClick.AddListener(() => controller.OnSlotClicked(EquipmentSlotType.Hands));
-            lRow.onClick.AddListener(() => controller.OnSlotClicked(EquipmentSlotType.Legs));
-            fRow.onClick.AddListener(() => controller.OnSlotClicked(EquipmentSlotType.Feet));
-            accRow.onClick.AddListener(() => controller.OnSlotClicked(EquipmentSlotType.Accessory));
-
-            // Wire slot right-click handlers (unequip immediately)
-            WireRightClick(wRow.gameObject, () => controller.OnSlotRightClicked(EquipmentSlotType.Weapon));
-            WireRightClick(hRow.gameObject, () => controller.OnSlotRightClicked(EquipmentSlotType.Head));
-            WireRightClick(aRow.gameObject, () => controller.OnSlotRightClicked(EquipmentSlotType.Armor));
-            WireRightClick(glRow.gameObject, () => controller.OnSlotRightClicked(EquipmentSlotType.Hands));
-            WireRightClick(lRow.gameObject, () => controller.OnSlotRightClicked(EquipmentSlotType.Legs));
-            WireRightClick(fRow.gameObject, () => controller.OnSlotRightClicked(EquipmentSlotType.Feet));
-            WireRightClick(accRow.gameObject, () => controller.OnSlotRightClicked(EquipmentSlotType.Accessory));
+            // Wire slot click and right-click handlers via loop
+            for (int i = 0; i < SlotDisplayOrder.Length; i++)
+            {
+                var slotType = SlotDisplayOrder[i].slot;
+                slotButtons[i].onClick.AddListener(() => controller.OnSlotClicked(slotType));
+                WireRightClick(slotButtons[i].gameObject, () => controller.OnSlotRightClicked(slotType));
+            }
 
             controller.WireButtonListeners();
 
@@ -876,21 +897,14 @@ namespace ProjectName.UI
         private const float SLOT_ROW_HEIGHT = 58f;
 
         private static (Button rowBtn, Image icon, TMP_Text name, TMP_Text stats) BuildEquipmentSlotRow(
-            Transform parent, string slotLabel, float yOffset)
+            Transform parent, string slotLabel)
         {
             var rowGo = MakeRect(slotLabel + "Row", parent);
-            var rowRect = rowGo.GetComponent<RectTransform>();
-            rowRect.anchorMin = new Vector2(0, 1);
-            rowRect.anchorMax = new Vector2(1, 1);
-            rowRect.pivot = new Vector2(0, 1);
-            rowRect.anchoredPosition = new Vector2(0, yOffset);
-            rowRect.sizeDelta = new Vector2(0, SLOT_ROW_HEIGHT);
 
             var rowBg = rowGo.AddComponent<Image>();
             rowBg.sprite = WhiteSprite;
             rowBg.color = new Color(0.12f, 0.12f, 0.15f, 0.8f);
 
-            // Make the row clickable
             var rowBtn = rowGo.AddComponent<Button>();
             var btnColors = rowBtn.colors;
             btnColors.normalColor = new Color(0.12f, 0.12f, 0.15f, 0.8f);
@@ -901,7 +915,6 @@ namespace ProjectName.UI
             rowBtn.colors = btnColors;
             rowBtn.targetGraphic = rowBg;
 
-            // Left column: icon with slot label above it
             // Icon container (left side, with RectMask2D to clip scaled weapon sprites)
             var iconContainerGo = MakeRect("IconContainer", rowGo.transform);
             var iconContainerRect = iconContainerGo.GetComponent<RectTransform>();
@@ -916,7 +929,7 @@ namespace ProjectName.UI
             iconContainerBg.raycastTarget = false;
             iconContainerGo.AddComponent<RectMask2D>();
 
-            // Icon (child of container, scaled up for weapons to make tiny overlays visible)
+            // Icon
             var iconGo = MakeRect("Icon", iconContainerGo.transform);
             var iconRect = iconGo.GetComponent<RectTransform>();
             iconRect.anchorMin = new Vector2(0, 0);
@@ -930,8 +943,7 @@ namespace ProjectName.UI
             iconImg.raycastTarget = false;
             iconImg.type = Image.Type.Simple;
 
-            // Right column: slot label on top, name middle, stats bottom
-            // Slot label (top-right area, above name)
+            // Slot label
             var labelGo = MakeRect("SlotLabel", rowGo.transform);
             var labelRect = labelGo.GetComponent<RectTransform>();
             labelRect.anchorMin = new Vector2(0, 1);
@@ -947,7 +959,7 @@ namespace ProjectName.UI
             labelTmp.raycastTarget = false;
             FontManager.EnsureFont(labelTmp);
 
-            // Item name (middle row, right of icon)
+            // Item name
             var nameGo = MakeRect("ItemName", rowGo.transform);
             var nameRect = nameGo.GetComponent<RectTransform>();
             nameRect.anchorMin = new Vector2(0, 0.28f);
@@ -967,7 +979,7 @@ namespace ProjectName.UI
             nameTmp.fontSizeMax = 15f;
             FontManager.EnsureFont(nameTmp);
 
-            // Stats (bottom row, right of icon)
+            // Stats
             var statsGo = MakeRect("Stats", rowGo.transform);
             var statsRect = statsGo.GetComponent<RectTransform>();
             statsRect.anchorMin = new Vector2(0, 0);
@@ -993,11 +1005,7 @@ namespace ProjectName.UI
         private static (GameObject panel, TMP_Text title, Transform content) BuildSelectionPanel(Transform parent)
         {
             var panelGo = MakeRect("SelectionPanel", parent);
-            var panelRect = panelGo.GetComponent<RectTransform>();
-            panelRect.anchorMin = new Vector2(0.62f, 0);
-            panelRect.anchorMax = new Vector2(1, 1);
-            panelRect.offsetMin = Vector2.zero;
-            panelRect.offsetMax = Vector2.zero;
+            AddLayout(panelGo, flexW: 0.40f);
 
             var panelBg = panelGo.AddComponent<Image>();
             panelBg.sprite = WhiteSprite;
@@ -1046,10 +1054,9 @@ namespace ProjectName.UI
             scrollView.movementType = ScrollRect.MovementType.Clamped;
             scrollView.scrollSensitivity = 30f;
 
-            // Add mask
             var maskImg = scrollGo.AddComponent<Image>();
             maskImg.sprite = WhiteSprite;
-            maskImg.color = new Color(0, 0, 0, 0.01f); // near-invisible but needed for mask
+            maskImg.color = new Color(0, 0, 0, 0.01f);
             scrollGo.AddComponent<Mask>().showMaskGraphic = false;
 
             // Content container
@@ -1176,32 +1183,31 @@ namespace ProjectName.UI
             handler.onRightClick = callback;
         }
 
-        private static void BuildDivider(Transform parent, float yOffset)
+        private static LayoutElement AddLayout(GameObject go,
+            float prefH = -1, float prefW = -1,
+            float flexH = -1, float flexW = -1,
+            float minH = -1, float minW = -1)
         {
-            var divider = MakeRect("Divider", parent);
-            var divRect = divider.GetComponent<RectTransform>();
-            divRect.anchorMin = new Vector2(0, 1);
-            divRect.anchorMax = new Vector2(1, 1);
-            divRect.pivot = new Vector2(0.5f, 1);
-            divRect.anchoredPosition = new Vector2(0, -yOffset);
-            divRect.sizeDelta = new Vector2(-30, 2);
-
-            var divImg = divider.AddComponent<Image>();
-            divImg.sprite = WhiteSprite;
-            divImg.color = DividerCol;
+            var le = go.AddComponent<LayoutElement>();
+            if (prefH >= 0) le.preferredHeight = prefH;
+            if (prefW >= 0) le.preferredWidth = prefW;
+            if (flexH >= 0) le.flexibleHeight = flexH;
+            if (flexW >= 0) le.flexibleWidth = flexW;
+            if (minH >= 0) le.minHeight = minH;
+            if (minW >= 0) le.minWidth = minW;
+            return le;
         }
 
-        private static void BuildVerticalDivider(Transform parent, float xAnchor)
+        private static void BuildLayoutDivider(Transform parent, bool horizontal)
         {
-            var vDivGo = MakeRect("VerticalDivider", parent);
-            var vDivRect = vDivGo.GetComponent<RectTransform>();
-            vDivRect.anchorMin = new Vector2(xAnchor, 0.02f);
-            vDivRect.anchorMax = new Vector2(xAnchor, 0.98f);
-            vDivRect.pivot = new Vector2(0.5f, 0.5f);
-            vDivRect.sizeDelta = new Vector2(2, 0);
-            var vDivImg = vDivGo.AddComponent<Image>();
-            vDivImg.sprite = WhiteSprite;
-            vDivImg.color = DividerCol;
+            var go = new GameObject("Divider", typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            var img = go.AddComponent<Image>();
+            img.color = DividerCol;
+            img.raycastTarget = false;
+            var le = go.AddComponent<LayoutElement>();
+            if (horizontal) { le.preferredHeight = 2; le.flexibleWidth = 1; }
+            else { le.preferredWidth = 2; le.flexibleHeight = 1; }
         }
 
         private static GameObject MakeRect(string name, Transform parent)

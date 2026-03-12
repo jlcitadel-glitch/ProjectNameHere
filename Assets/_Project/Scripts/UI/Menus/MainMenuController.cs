@@ -1044,8 +1044,14 @@ namespace ProjectName.UI
                     menuRect.anchorMax = new Vector2(0.5f, 0.5f);
                     menuRect.pivot = new Vector2(0.5f, 0.5f);
                     menuRect.anchoredPosition = new Vector2(0, 0);
-                    menuRect.sizeDelta = new Vector2(400, 0);
+                    menuRect.sizeDelta = new Vector2(0, 0);
                 }
+
+                // Panel width via LayoutElement so parent layouts can negotiate
+                var panelLe = mainMenuPanel.GetComponent<LayoutElement>();
+                if (panelLe == null)
+                    panelLe = mainMenuPanel.AddComponent<LayoutElement>();
+                panelLe.preferredWidth = 400;
 
                 // VerticalLayoutGroup for the whole stack
                 var vlg = mainMenuPanel.GetComponent<VerticalLayoutGroup>();
@@ -1064,11 +1070,10 @@ namespace ProjectName.UI
                 csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
                 csf.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
 
-                // Move TitleGroup into MainMenuPanel as first child
+                // Move TitleGroup into MainMenuPanel (added first so it's at the top)
                 if (titleGroup != null)
                 {
                     titleGroup.SetParent(mainMenuPanel.transform, false);
-                    titleGroup.SetAsFirstSibling();
                     titleGroup.gameObject.SetActive(true);
                     ResetRectForLayout(titleGroup.GetComponent<RectTransform>());
 
@@ -1099,13 +1104,11 @@ namespace ProjectName.UI
                 {
                     var divGo = new GameObject("TitleDivider", typeof(RectTransform));
                     divGo.transform.SetParent(mainMenuPanel.transform, false);
-                    divGo.transform.SetSiblingIndex(1);
                     var divImg = divGo.AddComponent<Image>();
                     divImg.color = DividerGold;
                     var divLe = divGo.AddComponent<LayoutElement>();
                     divLe.preferredHeight = 1;
-                    divLe.preferredWidth = 280;
-                    divLe.flexibleWidth = 0;
+                    divLe.flexibleWidth = 1;
                 }
 
                 // Spacer between divider and buttons
@@ -1113,7 +1116,6 @@ namespace ProjectName.UI
                 {
                     var spacer = new GameObject("MenuSpacer", typeof(RectTransform));
                     spacer.transform.SetParent(mainMenuPanel.transform, false);
-                    spacer.transform.SetSiblingIndex(2);
                     var spacerLe = spacer.AddComponent<LayoutElement>();
                     spacerLe.preferredHeight = 30;
                 }
@@ -1128,14 +1130,13 @@ namespace ProjectName.UI
                 StyleSoulsMenuButton(quitButton, "Quit Game");
 
                 // Ensure button order: Load Game, New Game, Options, Quit
-                if (startGameButton != null)
-                    startGameButton.transform.SetSiblingIndex(3);
-                if (newGameMainButton != null)
-                    newGameMainButton.transform.SetSiblingIndex(4);
-                if (optionsButton != null)
-                    optionsButton.transform.SetSiblingIndex(5);
-                if (quitButton != null)
-                    quitButton.transform.SetSiblingIndex(6);
+                // Re-parent each button so it lands at the end in sequence
+                Button[] menuOrder = { startGameButton, newGameMainButton, optionsButton, quitButton };
+                foreach (var btn in menuOrder)
+                {
+                    if (btn != null)
+                        btn.transform.SetAsLastSibling();
+                }
             }
 
             // Save selection panel layout

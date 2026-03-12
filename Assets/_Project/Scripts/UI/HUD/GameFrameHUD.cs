@@ -457,7 +457,7 @@ namespace ProjectName.UI
             topBorderImg.sprite = WhiteSprite;
             topBorderImg.color = BorderGrey;
 
-            // Stats row with padding (12px sides, 10px top/bottom)
+            // Stats row with HLG for automatic spacing
             var row = MakeRect("StatsRow", barGo.transform);
             var rowRect = row.GetComponent<RectTransform>();
             rowRect.anchorMin = Vector2.zero;
@@ -465,14 +465,18 @@ namespace ProjectName.UI
             rowRect.offsetMin = new Vector2(12, 10);
             rowRect.offsetMax = new Vector2(-12, -10);
 
-            // --- Level display (anchor-based, same gap to HP as HP-to-MP) ---
+            var rowHLG = row.AddComponent<HorizontalLayoutGroup>();
+            rowHLG.spacing = 8;
+            rowHLG.childAlignment = TextAnchor.MiddleCenter;
+            rowHLG.childControlWidth = true;
+            rowHLG.childControlHeight = true;
+            rowHLG.childForceExpandWidth = false;
+            rowHLG.childForceExpandHeight = true;
+
+            // --- Level display (fixed width) ---
             var levelGo = MakeRect("LevelDisplay", row.transform);
             var levelComp = levelGo.AddComponent<LevelDisplay>();
-            var levelRect = levelGo.GetComponent<RectTransform>();
-            levelRect.anchorMin = new Vector2(0, 0);
-            levelRect.anchorMax = new Vector2(0.055f, 1);
-            levelRect.offsetMin = new Vector2(4, 0);
-            levelRect.offsetMax = new Vector2(-4, 0);
+            AddLayout(levelGo, prefW: 70, minW: 50);
             hud.levelDisplay = levelComp;
 
             // Level recess frame
@@ -508,32 +512,25 @@ namespace ProjectName.UI
             levelComp.SetReferences(levelTmp);
             levelComp.SetLevelFormat($"Lv. <font=\"{NumFont}\">{{0}}</font>");
 
-            // --- Three half-width recessed resource bars (left side) ---
-            hud.healthBar = BuildHBar(row.transform, "HealthBarGroup",
-                0.06f, 0.215f, DeepCrimson, "HP");
+            // --- Three recessed resource bars (flex width) ---
+            hud.healthBar = BuildHBar(row.transform, "HealthBarGroup", DeepCrimson, "HP");
+            hud.manaBar = BuildHBar(row.transform, "ManaBarGroup", MpBlue, "MP");
+            BuildExpBar(hud, row.transform);
 
-            hud.manaBar = BuildHBar(row.transform, "ManaBarGroup",
-                0.22f, 0.375f, MpBlue, "MP");
-
-            BuildExpBar(hud, row.transform, 0.38f, 0.535f);
-
-            // --- Skill hotbar (right side) ---
-            BuildSkillHotbar(hud, row.transform, 0.55f, 1.0f);
+            // --- Skill hotbar (flex width, right side) ---
+            BuildSkillHotbar(hud, row.transform);
         }
 
         /// <summary>
         /// Builds a recessed horizontal resource bar within the stats row.
+        /// Sized via LayoutElement (flexW=1) instead of anchor percentages.
         /// </summary>
         private static ResourceBarDisplay BuildHBar(Transform parent, string name,
-            float anchorMinX, float anchorMaxX, Color fillColor, string labelPrefix)
+            Color fillColor, string labelPrefix)
         {
             var barGo = MakeRect(name, parent);
             var barComp = barGo.AddComponent<ResourceBarDisplay>();
-            var barRect = barGo.GetComponent<RectTransform>();
-            barRect.anchorMin = new Vector2(anchorMinX, 0);
-            barRect.anchorMax = new Vector2(anchorMaxX, 1);
-            barRect.offsetMin = new Vector2(4, 0);
-            barRect.offsetMax = new Vector2(-4, 0);
+            AddLayout(barGo, flexW: 1, minW: 80);
 
             // Recess frame (dark outer border for sunken look)
             var recessGo = MakeRect("RecessFrame", barGo.transform);
@@ -589,17 +586,13 @@ namespace ProjectName.UI
 
         /// <summary>
         /// Builds the EXP bar with recessed styling (uses ExpBarDisplay).
+        /// Sized via LayoutElement (flexW=1) instead of anchor percentages.
         /// </summary>
-        private static void BuildExpBar(GameFrameHUD hud, Transform parent,
-            float anchorMinX, float anchorMaxX)
+        private static void BuildExpBar(GameFrameHUD hud, Transform parent)
         {
             var barGo = MakeRect("ExpBarGroup", parent);
             var expComp = barGo.AddComponent<ExpBarDisplay>();
-            var barRect = barGo.GetComponent<RectTransform>();
-            barRect.anchorMin = new Vector2(anchorMinX, 0);
-            barRect.anchorMax = new Vector2(anchorMaxX, 1);
-            barRect.offsetMin = new Vector2(4, 0);
-            barRect.offsetMax = new Vector2(-4, 0);
+            AddLayout(barGo, flexW: 1, minW: 80);
             hud.expBar = expComp;
 
             // Recess frame
@@ -654,17 +647,13 @@ namespace ProjectName.UI
         }
 
         /// <summary>
-        /// Builds the skill hotbar with 6 keycap-style slots.
+        /// Builds the skill hotbar with keycap-style slots.
+        /// Slot count derived from HotbarSlotCount constant.
         /// </summary>
-        private static void BuildSkillHotbar(GameFrameHUD hud, Transform parent,
-            float anchorMinX, float anchorMaxX)
+        private static void BuildSkillHotbar(GameFrameHUD hud, Transform parent)
         {
             var containerGo = MakeRect("SkillHotbarGroup", parent);
-            var containerRect = containerGo.GetComponent<RectTransform>();
-            containerRect.anchorMin = new Vector2(anchorMinX, 0);
-            containerRect.anchorMax = new Vector2(anchorMaxX, 1);
-            containerRect.offsetMin = new Vector2(4, 0);
-            containerRect.offsetMax = new Vector2(-4, 0);
+            AddLayout(containerGo, flexW: 1, minW: 200);
 
             var layoutGroup = containerGo.AddComponent<HorizontalLayoutGroup>();
             layoutGroup.spacing = 6;
@@ -675,12 +664,12 @@ namespace ProjectName.UI
             layoutGroup.childForceExpandHeight = false;
 
             var hotbarComp = containerGo.AddComponent<SkillHotbar>();
-            string[] keybinds = { "1", "2", "3", "4", "5", "6" };
-            var runtimeSlots = new SkillHotbar.HotbarSlot[6];
+            int slotCount = SkillHotbarAssignPopup.DefaultSlotCount;
+            var runtimeSlots = new SkillHotbar.HotbarSlot[slotCount];
 
-            for (int i = 0; i < 6; i++)
+            for (int i = 0; i < slotCount; i++)
             {
-                runtimeSlots[i] = BuildKeycapSlot(containerGo.transform, $"Slot{i + 1}", keybinds[i]);
+                runtimeSlots[i] = BuildKeycapSlot(containerGo.transform, $"Slot{i + 1}", (i + 1).ToString());
             }
 
             hotbarComp.SetRuntimeSlots(runtimeSlots);
@@ -823,6 +812,21 @@ namespace ProjectName.UI
             rt.anchorMax = Vector2.one;
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
+        }
+
+        private static LayoutElement AddLayout(GameObject go,
+            float prefH = -1, float prefW = -1,
+            float flexH = -1, float flexW = -1,
+            float minH = -1, float minW = -1)
+        {
+            var le = go.AddComponent<LayoutElement>();
+            if (prefH >= 0) le.preferredHeight = prefH;
+            if (prefW >= 0) le.preferredWidth = prefW;
+            if (flexH >= 0) le.flexibleHeight = flexH;
+            if (flexW >= 0) le.flexibleWidth = flexW;
+            if (minH >= 0) le.minHeight = minH;
+            if (minW >= 0) le.minWidth = minW;
+            return le;
         }
 
         #endregion

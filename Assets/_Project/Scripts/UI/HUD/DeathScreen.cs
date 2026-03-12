@@ -464,13 +464,21 @@ namespace ProjectName.UI
             contentRect.anchorMin = new Vector2(0.5f, 0.5f);
             contentRect.anchorMax = new Vector2(0.5f, 0.5f);
             contentRect.pivot = new Vector2(0.5f, 0.5f);
-            contentRect.sizeDelta = new Vector2(600f, 400f);
+            contentRect.sizeDelta = new Vector2(600f, 0f);
+
+            var contentFitter = contentGo.AddComponent<ContentSizeFitter>();
+            contentFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            contentFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            var contentLayout = contentGo.AddComponent<LayoutElement>();
+            contentLayout.minHeight = 400f;
+            contentLayout.preferredWidth = 600f;
 
             var vlg = contentGo.AddComponent<VerticalLayoutGroup>();
             vlg.childAlignment = TextAnchor.MiddleCenter;
             vlg.spacing = 20f;
             vlg.childControlWidth = true;
-            vlg.childControlHeight = false;
+            vlg.childControlHeight = true;
             vlg.childForceExpandWidth = true;
             vlg.childForceExpandHeight = false;
 
@@ -499,7 +507,7 @@ namespace ProjectName.UI
             // --- Spacer ---
             var spacerGo = MakeUIObject("Spacer", contentGo.transform);
             var spacerLayout = spacerGo.AddComponent<LayoutElement>();
-            spacerLayout.preferredHeight = 50f;
+            spacerLayout.flexibleHeight = 1f;
 
             // --- Buttons ---
             var quitBtn = MakeButton("Quit to Menu", contentGo.transform);

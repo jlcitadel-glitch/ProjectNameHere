@@ -552,6 +552,40 @@ namespace ProjectName.UI
         }
 
         /// <summary>
+        /// Adds a LayoutElement to the given GameObject with optional size constraints.
+        /// Negative values are ignored (left at Unity defaults).
+        /// </summary>
+        private static LayoutElement AddLayout(GameObject go,
+            float prefH = -1, float prefW = -1,
+            float flexH = -1, float flexW = -1,
+            float minH = -1, float minW = -1)
+        {
+            var le = go.AddComponent<LayoutElement>();
+            if (prefH >= 0) le.preferredHeight = prefH;
+            if (prefW >= 0) le.preferredWidth = prefW;
+            if (flexH >= 0) le.flexibleHeight = flexH;
+            if (flexW >= 0) le.flexibleWidth = flexW;
+            if (minH >= 0) le.minHeight = minH;
+            if (minW >= 0) le.minWidth = minW;
+            return le;
+        }
+
+        /// <summary>
+        /// Builds a thin divider line as a child of the given parent LayoutGroup.
+        /// </summary>
+        private static void BuildLayoutDivider(Transform parent, bool horizontal)
+        {
+            var go = new GameObject("Divider", typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            var img = go.AddComponent<Image>();
+            img.color = new Color(0.812f, 0.710f, 0.231f, 0.3f);
+            img.raycastTarget = false;
+            var le = go.AddComponent<LayoutElement>();
+            if (horizontal) { le.preferredHeight = 2; le.flexibleWidth = 1; }
+            else { le.preferredWidth = 2; le.flexibleHeight = 1; }
+        }
+
+        /// <summary>
         /// Builds the entire stat menu UI at runtime. No scene setup required.
         /// Call from UIManager.EnsureStatMenu() or similar.
         /// </summary>
@@ -582,7 +616,7 @@ namespace ProjectName.UI
             overlayImg.sprite = WhiteSprite;
             overlayImg.color = new Color(0f, 0f, 0f, 0.6f);
 
-            // --- Center panel (700x500) ---
+            // --- Center panel with VLG + ContentSizeFitter ---
             var panelGo = MakeRect("Panel", canvasGo.transform);
             var panelRect = panelGo.GetComponent<RectTransform>();
             panelRect.anchorMin = new Vector2(0.5f, 0.5f);
@@ -594,14 +628,25 @@ namespace ProjectName.UI
             panelImg.sprite = WhiteSprite;
             panelImg.color = PanelBg;
 
+            var panelVLG = panelGo.AddComponent<VerticalLayoutGroup>();
+            panelVLG.padding = new RectOffset(20, 20, 0, 10);
+            panelVLG.spacing = 4f;
+            panelVLG.childAlignment = TextAnchor.UpperCenter;
+            panelVLG.childControlWidth = true;
+            panelVLG.childControlHeight = false;
+            panelVLG.childForceExpandWidth = true;
+            panelVLG.childForceExpandHeight = false;
+
+            var panelFitter = panelGo.AddComponent<ContentSizeFitter>();
+            panelFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            panelFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            // Keep a minimum height so the panel doesn't collapse when empty
+            AddLayout(panelGo, minH: 520);
+
             // --- Title row ---
             var titleRow = MakeRect("TitleRow", panelGo.transform);
-            var titleRowRect = titleRow.GetComponent<RectTransform>();
-            titleRowRect.anchorMin = new Vector2(0, 1);
-            titleRowRect.anchorMax = new Vector2(1, 1);
-            titleRowRect.pivot = new Vector2(0.5f, 1);
-            titleRowRect.anchoredPosition = Vector2.zero;
-            titleRowRect.sizeDelta = new Vector2(0, 50);
+            AddLayout(titleRow, prefH: 50);
 
             var titleTextGo = MakeRect("TitleText", titleRow.transform);
             Stretch(titleTextGo);
@@ -646,16 +691,11 @@ namespace ProjectName.UI
             FontManager.EnsureFont(closeBtnTmp);
 
             // --- Divider 1 (below title) ---
-            BuildDivider(panelGo.transform, 50f);
+            BuildLayoutDivider(panelGo.transform, true);
 
             // --- Top section: player image + info (horizontal) ---
             var topSection = MakeRect("TopSection", panelGo.transform);
-            var topRect = topSection.GetComponent<RectTransform>();
-            topRect.anchorMin = new Vector2(0, 1);
-            topRect.anchorMax = new Vector2(1, 1);
-            topRect.pivot = new Vector2(0.5f, 1);
-            topRect.anchoredPosition = new Vector2(0, -54);
-            topRect.sizeDelta = new Vector2(-40, 140);
+            AddLayout(topSection, prefH: 140);
 
             // Player image container (left side)
             var imgContainer = MakeRect("PlayerImageContainer", topSection.transform);
@@ -697,44 +737,41 @@ namespace ProjectName.UI
             infoColRect.offsetMin = new Vector2(140, 0);
             infoColRect.offsetMax = Vector2.zero;
 
-            float infoY = -5f;
-            float infoLineH = 24f;
+            var infoVLG = infoCol.AddComponent<VerticalLayoutGroup>();
+            infoVLG.padding = new RectOffset(0, 0, 5, 0);
+            infoVLG.spacing = 2f;
+            infoVLG.childAlignment = TextAnchor.UpperLeft;
+            infoVLG.childControlWidth = true;
+            infoVLG.childControlHeight = false;
+            infoVLG.childForceExpandWidth = true;
+            infoVLG.childForceExpandHeight = false;
 
             var charNameGo = MakeRect("CharacterName", infoCol.transform);
             var charNameTmp = BuildInfoLabel(charNameGo, "Hero", 22, AgedGold);
-            PositionInfoLine(charNameGo, infoY);
-            infoY -= infoLineH + 2f;
+            AddLayout(charNameGo, prefH: 24);
 
             var classGo = MakeRect("Class", infoCol.transform);
             var classTmp = BuildInfoLabel(classGo, "Adventurer", 18, SubtleText);
-            PositionInfoLine(classGo, infoY);
-            infoY -= infoLineH + 2f;
+            AddLayout(classGo, prefH: 24);
 
             var levelGo = MakeRect("Level", infoCol.transform);
             var lvlTmp = BuildInfoLabel(levelGo, "Level: 1", 18, BoneWhite);
-            PositionInfoLine(levelGo, infoY);
-            infoY -= infoLineH + 2f;
+            AddLayout(levelGo, prefH: 24);
 
             var hpGo = MakeRect("HP", infoCol.transform);
             var hpTmpRef = BuildInfoLabel(hpGo, "HP: 100/100", 18, DeepCrimson);
-            PositionInfoLine(hpGo, infoY);
-            infoY -= infoLineH + 2f;
+            AddLayout(hpGo, prefH: 24);
 
             var mpGo = MakeRect("MP", infoCol.transform);
             var mpTmpRef = BuildInfoLabel(mpGo, "MP: 50/50", 18, DarkBlue);
-            PositionInfoLine(mpGo, infoY);
+            AddLayout(mpGo, prefH: 24);
 
             // --- Divider 2 (below top section) ---
-            BuildDivider(panelGo.transform, 198f);
+            BuildLayoutDivider(panelGo.transform, true);
 
             // --- Available Points label ---
             var pointsGo = MakeRect("AvailablePoints", panelGo.transform);
-            var pointsRect = pointsGo.GetComponent<RectTransform>();
-            pointsRect.anchorMin = new Vector2(0, 1);
-            pointsRect.anchorMax = new Vector2(1, 1);
-            pointsRect.pivot = new Vector2(0.5f, 1);
-            pointsRect.anchoredPosition = new Vector2(0, -206);
-            pointsRect.sizeDelta = new Vector2(-40, 30);
+            AddLayout(pointsGo, prefH: 30);
 
             var pointsTmp = pointsGo.AddComponent<TextMeshProUGUI>();
             pointsTmp.text = "Available Points: 0";
@@ -744,35 +781,80 @@ namespace ProjectName.UI
             pointsTmp.alignment = TextAlignmentOptions.Center;
             FontManager.EnsureFont(pointsTmp);
 
-            // --- Stats Grid (3 rows) ---
-            float gridY = -240f;
-            float rowH = 40f;
+            // --- Scrollable stats area ---
+            var scrollGo = MakeRect("StatsScroll", panelGo.transform);
+            AddLayout(scrollGo, prefH: 160, flexH: 1);
 
-            // STR row
-            var strRow = MakeRect("StrRow", panelGo.transform);
-            PositionGridRow(strRow, gridY);
-            var strTmp = BuildStatCell(strRow.transform, "StatVal", "Strength: 1", 0f, 0.26f);
-            var strBtn = BuildAllocateButton(strRow.transform, "+", 0.26f, 0.32f);
-            var bonusHpTmp = BuildStatCell(strRow.transform, "BonusHP", "Bonus HP: +5", 0.34f, 0.62f);
-            var meleeTmp = BuildStatCell(strRow.transform, "MeleeDmg", "Melee Damage: x1.02", 0.64f, 1f);
-            gridY -= rowH + 6f;
+            var scrollRect = scrollGo.AddComponent<ScrollRect>();
+            scrollRect.horizontal = false;
+            scrollRect.vertical = true;
+            scrollRect.movementType = ScrollRect.MovementType.Clamped;
+            scrollRect.scrollSensitivity = 20f;
 
-            // INT row
-            var intRow = MakeRect("IntRow", panelGo.transform);
-            PositionGridRow(intRow, gridY);
-            var intTmp = BuildStatCell(intRow.transform, "StatVal", "Intelligence: 1", 0f, 0.26f);
-            var intBtn = BuildAllocateButton(intRow.transform, "+", 0.26f, 0.32f);
-            var bonusManaTmp = BuildStatCell(intRow.transform, "BonusMana", "Bonus Mana: +3", 0.34f, 0.62f);
-            var skillDmgTmp = BuildStatCell(intRow.transform, "SkillDmg", "Skill Damage: x1.02", 0.64f, 1f);
-            gridY -= rowH + 6f;
+            // Mask for scroll clipping
+            var scrollMask = scrollGo.AddComponent<RectMask2D>();
+            // RectMask2D handles clipping without needing an Image
 
-            // AGI row
-            var agiRow = MakeRect("AgiRow", panelGo.transform);
-            PositionGridRow(agiRow, gridY);
-            var agiTmp = BuildStatCell(agiRow.transform, "StatVal", "Agility: 1", 0f, 0.26f);
-            var agiBtn = BuildAllocateButton(agiRow.transform, "+", 0.26f, 0.32f);
-            var spdTmp = BuildStatCell(agiRow.transform, "AtkSpd", "Attack Speed: x1.01", 0.34f, 0.62f);
-            var critTmp = BuildStatCell(agiRow.transform, "Crit", "Critical: 0.5% (x2.01)", 0.64f, 1f);
+            // Scroll content container (VLG)
+            var contentGo = MakeRect("Content", scrollGo.transform);
+            var contentRect = contentGo.GetComponent<RectTransform>();
+            contentRect.anchorMin = new Vector2(0, 1);
+            contentRect.anchorMax = new Vector2(1, 1);
+            contentRect.pivot = new Vector2(0.5f, 1);
+            contentRect.anchoredPosition = Vector2.zero;
+            contentRect.sizeDelta = new Vector2(0, 0);
+
+            var contentVLG = contentGo.AddComponent<VerticalLayoutGroup>();
+            contentVLG.spacing = 6f;
+            contentVLG.childAlignment = TextAnchor.UpperCenter;
+            contentVLG.childControlWidth = true;
+            contentVLG.childControlHeight = false;
+            contentVLG.childForceExpandWidth = true;
+            contentVLG.childForceExpandHeight = false;
+
+            var contentFitter = contentGo.AddComponent<ContentSizeFitter>();
+            contentFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            contentFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            scrollRect.content = contentRect;
+            scrollRect.viewport = scrollGo.GetComponent<RectTransform>();
+
+            // --- Stat definition array for data-driven row creation ---
+            var statDefs = new[]
+            {
+                new { Name = "StrRow", StatLabel = "Strength: 1", Derived1Name = "BonusHP",
+                      Derived1Label = "Bonus HP: +5", Derived2Name = "MeleeDmg",
+                      Derived2Label = "Melee Damage: x1.02" },
+                new { Name = "IntRow", StatLabel = "Intelligence: 1", Derived1Name = "BonusMana",
+                      Derived1Label = "Bonus Mana: +3", Derived2Name = "SkillDmg",
+                      Derived2Label = "Skill Damage: x1.02" },
+                new { Name = "AgiRow", StatLabel = "Agility: 1", Derived1Name = "AtkSpd",
+                      Derived1Label = "Attack Speed: x1.01", Derived2Name = "Crit",
+                      Derived2Label = "Critical: 0.5% (x2.01)" },
+            };
+
+            // Arrays to collect references for wiring
+            var statTexts = new TMP_Text[statDefs.Length];
+            var allocButtons = new Button[statDefs.Length];
+            var derived1Texts = new TMP_Text[statDefs.Length];
+            var derived2Texts = new TMP_Text[statDefs.Length];
+
+            for (int i = 0; i < statDefs.Length; i++)
+            {
+                var def = statDefs[i];
+
+                var row = MakeRect(def.Name, contentGo.transform);
+                AddLayout(row, prefH: 40);
+
+                // Internal layout of each row uses anchor-based positioning (unchanged)
+                var rowRect = row.GetComponent<RectTransform>();
+                // Row height is driven by LayoutElement; width by parent VLG
+
+                statTexts[i] = BuildStatCell(row.transform, "StatVal", def.StatLabel, 0f, 0.26f);
+                allocButtons[i] = BuildAllocateButton(row.transform, "+", 0.26f, 0.32f);
+                derived1Texts[i] = BuildStatCell(row.transform, def.Derived1Name, def.Derived1Label, 0.34f, 0.62f);
+                derived2Texts[i] = BuildStatCell(row.transform, def.Derived2Name, def.Derived2Label, 0.64f, 1f);
+            }
 
             // --- Wire up StatMenuController component ---
             var controller = canvasGo.AddComponent<StatMenuController>();
@@ -791,22 +873,22 @@ namespace ProjectName.UI
 
             // Stat display
             controller.availablePointsText = pointsTmp;
-            controller.strengthText = strTmp;
-            controller.intelligenceText = intTmp;
-            controller.agilityText = agiTmp;
+            controller.strengthText = statTexts[0];
+            controller.intelligenceText = statTexts[1];
+            controller.agilityText = statTexts[2];
 
             // Derived stats
-            controller.bonusHPText = bonusHpTmp;
-            controller.meleeDamageText = meleeTmp;
-            controller.bonusManaText = bonusManaTmp;
-            controller.skillDamageText = skillDmgTmp;
-            controller.speedText = spdTmp;
-            controller.critChanceText = critTmp;
+            controller.bonusHPText = derived1Texts[0];
+            controller.meleeDamageText = derived2Texts[0];
+            controller.bonusManaText = derived1Texts[1];
+            controller.skillDamageText = derived2Texts[1];
+            controller.speedText = derived1Texts[2];
+            controller.critChanceText = derived2Texts[2];
 
             // Buttons
-            controller.allocateStrButton = strBtn;
-            controller.allocateIntButton = intBtn;
-            controller.allocateAgiButton = agiBtn;
+            controller.allocateStrButton = allocButtons[0];
+            controller.allocateIntButton = allocButtons[1];
+            controller.allocateAgiButton = allocButtons[2];
 
             // Wire button listeners now that fields are assigned
             // (Awake() already ran before fields were set, so listeners were not attached)
@@ -814,21 +896,6 @@ namespace ProjectName.UI
 
             Debug.Log("[StatMenuController] Runtime UI created.");
             return controller;
-        }
-
-        private static void BuildDivider(Transform parent, float yOffset)
-        {
-            var divider = MakeRect("Divider", parent);
-            var divRect = divider.GetComponent<RectTransform>();
-            divRect.anchorMin = new Vector2(0, 1);
-            divRect.anchorMax = new Vector2(1, 1);
-            divRect.pivot = new Vector2(0.5f, 1);
-            divRect.anchoredPosition = new Vector2(0, -yOffset);
-            divRect.sizeDelta = new Vector2(-30, 2);
-
-            var divImg = divider.AddComponent<Image>();
-            divImg.sprite = WhiteSprite;
-            divImg.color = DividerCol;
         }
 
         private static TMP_Text BuildInfoLabel(GameObject go, string text, float fontSize, Color color)
@@ -840,26 +907,6 @@ namespace ProjectName.UI
             tmp.alignment = TextAlignmentOptions.Left;
             FontManager.EnsureFont(tmp);
             return tmp;
-        }
-
-        private static void PositionInfoLine(GameObject go, float yOffset)
-        {
-            var rt = go.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0, 1);
-            rt.anchorMax = new Vector2(1, 1);
-            rt.pivot = new Vector2(0, 1);
-            rt.anchoredPosition = new Vector2(0, yOffset);
-            rt.sizeDelta = new Vector2(0, 24);
-        }
-
-        private static void PositionGridRow(GameObject go, float yOffset)
-        {
-            var rt = go.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0, 1);
-            rt.anchorMax = new Vector2(1, 1);
-            rt.pivot = new Vector2(0.5f, 1);
-            rt.anchoredPosition = new Vector2(0, yOffset);
-            rt.sizeDelta = new Vector2(-40, 40);
         }
 
         private static TMP_Text BuildStatCell(Transform parent, string name, string text,

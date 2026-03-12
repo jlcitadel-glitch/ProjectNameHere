@@ -12,6 +12,8 @@ namespace ProjectName.UI
     /// </summary>
     public class SkillHotbarAssignPopup : MonoBehaviour
     {
+        public const int DefaultSlotCount = 6;
+
         public static SkillHotbarAssignPopup Instance { get; private set; }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -240,26 +242,33 @@ namespace ProjectName.UI
             var overlayBtn = overlayGo.AddComponent<Button>();
             overlayBtn.transition = Selectable.Transition.None;
 
-            // Main panel (320x340)
+            // Main panel (320 wide, height driven by content)
             var panelGo = MakeRect("Panel", popupGo.transform);
             var panelRect = panelGo.GetComponent<RectTransform>();
             panelRect.anchorMin = new Vector2(0.5f, 0.5f);
             panelRect.anchorMax = new Vector2(0.5f, 0.5f);
             panelRect.pivot = new Vector2(0.5f, 0.5f);
-            panelRect.sizeDelta = new Vector2(320f, 340f);
+            panelRect.sizeDelta = new Vector2(320f, 0f);
 
             var panelImg = panelGo.AddComponent<Image>();
             panelImg.sprite = WhiteSprite;
             panelImg.color = PanelBg;
 
+            var panelVLG = panelGo.AddComponent<VerticalLayoutGroup>();
+            panelVLG.padding = new RectOffset(10, 10, 10, 10);
+            panelVLG.spacing = 0;
+            panelVLG.childControlWidth = true;
+            panelVLG.childControlHeight = true;
+            panelVLG.childForceExpandWidth = true;
+            panelVLG.childForceExpandHeight = false;
+
+            var panelCSF = panelGo.AddComponent<ContentSizeFitter>();
+            panelCSF.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            panelCSF.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
             // Title
             var titleGo = MakeRect("Title", panelGo.transform);
-            var titleRect = titleGo.GetComponent<RectTransform>();
-            titleRect.anchorMin = new Vector2(0, 1);
-            titleRect.anchorMax = new Vector2(1, 1);
-            titleRect.pivot = new Vector2(0.5f, 1);
-            titleRect.anchoredPosition = new Vector2(0, -10);
-            titleRect.sizeDelta = new Vector2(-20, 35);
+            AddLayout(titleGo, prefH: 35);
             var titleTmp = titleGo.AddComponent<TextMeshProUGUI>();
             titleTmp.text = "Assign to Hotbar";
             titleTmp.fontSize = 20;
@@ -269,43 +278,30 @@ namespace ProjectName.UI
             FontManager.EnsureFont(titleTmp);
 
             // Divider
-            var divGo = MakeRect("Divider", panelGo.transform);
-            var divRect = divGo.GetComponent<RectTransform>();
-            divRect.anchorMin = new Vector2(0.05f, 1);
-            divRect.anchorMax = new Vector2(0.95f, 1);
-            divRect.pivot = new Vector2(0.5f, 1);
-            divRect.anchoredPosition = new Vector2(0, -50);
-            divRect.sizeDelta = new Vector2(0, 2);
-            var divImg = divGo.AddComponent<Image>();
-            divImg.sprite = WhiteSprite;
-            divImg.color = new Color(AgedGold.r, AgedGold.g, AgedGold.b, 0.3f);
+            BuildLayoutDivider(panelGo.transform, true);
 
-            // Slot buttons (6 slots, stacked vertically)
+            // Slot container (VLG — slot count derived from PlayerSkillController)
+            var controller = FindAnyObjectByType<PlayerSkillController>();
+            int slotCount = controller != null ? controller.HotbarSlots : DefaultSlotCount;
+
             var slotsContainer = MakeRect("Slots", panelGo.transform);
-            var slotsRect = slotsContainer.GetComponent<RectTransform>();
-            slotsRect.anchorMin = new Vector2(0, 0);
-            slotsRect.anchorMax = new Vector2(1, 1);
-            slotsRect.offsetMin = new Vector2(15, 15);
-            slotsRect.offsetMax = new Vector2(-15, -58);
+            var slotsVLG = slotsContainer.AddComponent<VerticalLayoutGroup>();
+            slotsVLG.padding = new RectOffset(5, 5, 5, 10);
+            slotsVLG.spacing = 4;
+            slotsVLG.childControlWidth = true;
+            slotsVLG.childControlHeight = true;
+            slotsVLG.childForceExpandWidth = true;
+            slotsVLG.childForceExpandHeight = false;
 
-            int slotCount = 6;
+            float slotHeight = 40f;
             var buttons = new Button[slotCount];
             var labels = new TMP_Text[slotCount];
             var keyLabels = new TMP_Text[slotCount];
-            float slotHeight = 40f;
-            float spacing = 4f;
 
             for (int i = 0; i < slotCount; i++)
             {
-                float yPos = -(i * (slotHeight + spacing));
-
                 var slotGo = MakeRect($"Slot_{i + 1}", slotsContainer.transform);
-                var slotRect = slotGo.GetComponent<RectTransform>();
-                slotRect.anchorMin = new Vector2(0, 1);
-                slotRect.anchorMax = new Vector2(1, 1);
-                slotRect.pivot = new Vector2(0.5f, 1);
-                slotRect.anchoredPosition = new Vector2(0, yPos);
-                slotRect.sizeDelta = new Vector2(0, slotHeight);
+                AddLayout(slotGo, prefH: slotHeight);
 
                 var slotImg = slotGo.AddComponent<Image>();
                 slotImg.sprite = WhiteSprite;
@@ -354,7 +350,6 @@ namespace ProjectName.UI
                 labels[i] = labelTmp;
                 keyLabels[i] = keyTmp;
 
-                // Capture index for closure
                 int slotIndex = i;
                 btn.onClick.AddListener(() =>
                 {
@@ -393,6 +388,34 @@ namespace ProjectName.UI
             rt.anchorMax = Vector2.one;
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
+        }
+
+        private static LayoutElement AddLayout(GameObject go,
+            float prefH = -1, float prefW = -1,
+            float flexH = -1, float flexW = -1,
+            float minH = -1, float minW = -1)
+        {
+            var le = go.AddComponent<LayoutElement>();
+            if (prefH >= 0) le.preferredHeight = prefH;
+            if (prefW >= 0) le.preferredWidth = prefW;
+            if (flexH >= 0) le.flexibleHeight = flexH;
+            if (flexW >= 0) le.flexibleWidth = flexW;
+            if (minH >= 0) le.minHeight = minH;
+            if (minW >= 0) le.minWidth = minW;
+            return le;
+        }
+
+        private static void BuildLayoutDivider(Transform parent, bool horizontal)
+        {
+            var go = new GameObject("Divider", typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            var img = go.AddComponent<Image>();
+            img.sprite = WhiteSprite;
+            img.color = new Color(AgedGold.r, AgedGold.g, AgedGold.b, 0.3f);
+            img.raycastTarget = false;
+            var le = go.AddComponent<LayoutElement>();
+            if (horizontal) { le.preferredHeight = 2; le.flexibleWidth = 1; }
+            else { le.preferredWidth = 2; le.flexibleHeight = 1; }
         }
     }
 }
