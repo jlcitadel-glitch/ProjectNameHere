@@ -498,7 +498,7 @@ namespace ProjectName.UI
             scrollImg.color = new Color(0.05f, 0.05f, 0.07f, 1f);
 
             scrollGo.AddComponent<Mask>().showMaskGraphic = true;
-            AddLayout(scrollGo, flexW: 0.65f);
+            AddLayout(scrollGo, prefW: 0, flexW: 0.65f);
 
             // Content inside scroll view — anchored at top, stretches horizontally,
             // height is set by SkillTreePanel.CalculateLayout() based on actual node count.
@@ -539,7 +539,7 @@ namespace ProjectName.UI
             infoPanelVlg.childAlignment = TextAnchor.UpperCenter;
             infoPanelVlg.spacing = 5;
             infoPanelVlg.padding = new RectOffset(10, 15, 10, 15);
-            AddLayout(infoPanelGo, flexW: 0.35f);
+            AddLayout(infoPanelGo, prefW: 0, flexW: 0.35f);
             infoPanelGo.SetActive(false);
 
             // Skill icon

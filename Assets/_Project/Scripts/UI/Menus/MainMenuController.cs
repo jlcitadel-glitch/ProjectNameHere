@@ -1044,7 +1044,7 @@ namespace ProjectName.UI
                     menuRect.anchorMax = new Vector2(0.5f, 0.5f);
                     menuRect.pivot = new Vector2(0.5f, 0.5f);
                     menuRect.anchoredPosition = new Vector2(0, 0);
-                    menuRect.sizeDelta = new Vector2(0, 0);
+                    menuRect.sizeDelta = new Vector2(400, 0);
                 }
 
                 // Panel width via LayoutElement so parent layouts can negotiate
