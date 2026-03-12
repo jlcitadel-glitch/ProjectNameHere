@@ -47,10 +47,10 @@ namespace ProjectName.UI
         [SerializeField] private TMP_Text critChanceText;
 
         [Header("Equipment Slots")]
-        [SerializeField] private Image[] equipSlotIcons = new Image[7];
-        [SerializeField] private TMP_Text[] equipSlotNames = new TMP_Text[7];
-        [SerializeField] private TMP_Text[] equipSlotStats = new TMP_Text[7];
-        [SerializeField] private Button[] equipSlotButtons = new Button[7];
+        [SerializeField] private Image[] equipSlotIcons;
+        [SerializeField] private TMP_Text[] equipSlotNames;
+        [SerializeField] private TMP_Text[] equipSlotStats;
+        [SerializeField] private Button[] equipSlotButtons;
 
         [Header("Inventory")]
         [SerializeField] private TMP_Text inventoryCountText;
@@ -498,7 +498,7 @@ namespace ProjectName.UI
                 if (equipmentManager == null) return;
             }
 
-            for (int i = 0; i < SlotDisplayOrder.Length && i < 7; i++)
+            for (int i = 0; i < SlotDisplayOrder.Length; i++)
             {
                 var slot = SlotDisplayOrder[i];
                 var item = equipmentManager.GetEquipped(slot);
@@ -1040,6 +1040,14 @@ namespace ProjectName.UI
         /// </summary>
         public static CharacterMenuController CreateRuntimeUI()
         {
+            int slotCount = SlotDisplayOrder.Length;
+            int totalCells = InventoryManager.MAX_CAPACITY;
+            int invCols = 8;
+            int invRows = Mathf.CeilToInt((float)totalCells / invCols);
+            float cellSize = 64f;
+            float cellSpacing = 4f;
+            float invGridHeight = invRows * cellSize + Mathf.Max(0, invRows - 1) * cellSpacing;
+
             // --- Canvas ---
             var canvasGo = new GameObject("CharacterMenu_Canvas");
             var canvas = canvasGo.AddComponent<Canvas>();
@@ -1065,25 +1073,34 @@ namespace ProjectName.UI
             overlayImg.sprite = WhiteSprite;
             overlayImg.color = new Color(0f, 0f, 0f, 0.6f);
 
-            // --- Center panel (960x680) ---
+            // --- Center panel (960 wide, height driven by content, min 680) ---
             var panelGo = MakeRect("Panel", canvasGo.transform);
             var panelRect = panelGo.GetComponent<RectTransform>();
             panelRect.anchorMin = new Vector2(0.5f, 0.5f);
             panelRect.anchorMax = new Vector2(0.5f, 0.5f);
             panelRect.pivot = new Vector2(0.5f, 0.5f);
-            panelRect.sizeDelta = new Vector2(960f, 680f);
+            panelRect.sizeDelta = new Vector2(960f, 0f);
             var panelImg = panelGo.AddComponent<Image>();
             panelImg.sprite = WhiteSprite;
             panelImg.color = PanelBg;
 
-            // --- Title row (top 50px) ---
+            var panelVLG = panelGo.AddComponent<VerticalLayoutGroup>();
+            panelVLG.padding = new RectOffset(0, 0, 0, 0);
+            panelVLG.spacing = 0;
+            panelVLG.childControlWidth = true;
+            panelVLG.childControlHeight = true;
+            panelVLG.childForceExpandWidth = true;
+            panelVLG.childForceExpandHeight = false;
+
+            var panelCSF = panelGo.AddComponent<ContentSizeFitter>();
+            panelCSF.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            panelCSF.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            AddLayout(panelGo, minH: 680);
+
+            // --- Title row (50px) ---
             var titleRow = MakeRect("TitleRow", panelGo.transform);
-            var titleRowRect = titleRow.GetComponent<RectTransform>();
-            titleRowRect.anchorMin = new Vector2(0, 1);
-            titleRowRect.anchorMax = new Vector2(1, 1);
-            titleRowRect.pivot = new Vector2(0.5f, 1);
-            titleRowRect.anchoredPosition = Vector2.zero;
-            titleRowRect.sizeDelta = new Vector2(0, 50);
+            AddLayout(titleRow, prefH: 50);
 
             var titleTextGo = MakeRect("TitleText", titleRow.transform);
             Stretch(titleTextGo);
@@ -1099,25 +1116,25 @@ namespace ProjectName.UI
             var closeBtn = BuildCloseButton(titleRow.transform);
 
             // --- Divider below title ---
-            BuildHorizontalDivider(panelGo.transform, 50f);
+            BuildLayoutDivider(panelGo.transform, true);
 
             // =================================================================
-            // TOP SECTION: anchorMin(0, 0.37) to anchorMax(1, 1) minus title
+            // TOP SECTION: HLG with left column, vertical divider, right column
+            // Height is driven by the taller column (equipment slots).
             // =================================================================
             var topSection = MakeRect("TopSection", panelGo.transform);
-            var topRect = topSection.GetComponent<RectTransform>();
-            topRect.anchorMin = new Vector2(0, 0.37f);
-            topRect.anchorMax = new Vector2(1, 1);
-            topRect.offsetMin = new Vector2(20, 10);
-            topRect.offsetMax = new Vector2(-20, -54);
+            AddLayout(topSection, flexH: 1, minH: 200);
+            var topHLG = topSection.AddComponent<HorizontalLayoutGroup>();
+            topHLG.padding = new RectOffset(20, 20, 10, 10);
+            topHLG.spacing = 4;
+            topHLG.childControlWidth = true;
+            topHLG.childControlHeight = true;
+            topHLG.childForceExpandWidth = false;
+            topHLG.childForceExpandHeight = true;
 
-            // --- LEFT COLUMN: Preview + Player Info + Stats (0-48%) ---
+            // --- LEFT COLUMN: Preview + Player Info + Stats ---
             var leftCol = MakeRect("LeftColumn", topSection.transform);
-            var leftColRect = leftCol.GetComponent<RectTransform>();
-            leftColRect.anchorMin = new Vector2(0, 0);
-            leftColRect.anchorMax = new Vector2(0.48f, 1);
-            leftColRect.offsetMin = Vector2.zero;
-            leftColRect.offsetMax = Vector2.zero;
+            AddLayout(leftCol, flexW: 0.48f);
 
             // Character preview (200x250, top-left)
             var previewContainer = MakeRect("PreviewContainer", leftCol.transform);
@@ -1210,162 +1227,136 @@ namespace ProjectName.UI
             rightY -= 22f;
             var critTmp = BuildDerivedStatLine(statRightCol.transform, "Critical: 0.0% (x2.00)", rightY);
 
-            // --- GOLD VERTICAL DIVIDER at 49% ---
-            BuildVerticalDivider(topSection.transform, 0.49f);
+            // --- GOLD VERTICAL DIVIDER ---
+            BuildLayoutDivider(topSection.transform, false);
 
-            // --- RIGHT COLUMN: Equipment Slots (50-100%) ---
+            // --- RIGHT COLUMN: Equipment Slots (VLG — slot count drives height) ---
             var rightCol = MakeRect("RightColumn", topSection.transform);
-            var rightColRect = rightCol.GetComponent<RectTransform>();
-            rightColRect.anchorMin = new Vector2(0.51f, 0);
-            rightColRect.anchorMax = new Vector2(1, 1);
-            rightColRect.offsetMin = Vector2.zero;
-            rightColRect.offsetMax = Vector2.zero;
+            AddLayout(rightCol, flexW: 0.52f);
             rightCol.AddComponent<RectMask2D>();
+            var rightVLG = rightCol.AddComponent<VerticalLayoutGroup>();
+            rightVLG.spacing = 6;
+            rightVLG.childControlWidth = true;
+            rightVLG.childControlHeight = true;
+            rightVLG.childForceExpandWidth = true;
+            rightVLG.childForceExpandHeight = false;
 
-            // Build 7 equipment slot rows
-            var slotIcons = new Image[7];
-            var slotNames = new TMP_Text[7];
-            var slotStatTexts = new TMP_Text[7];
-            var slotRowBtns = new Button[7];
+            // Build equipment slot rows (count driven by SlotDisplayOrder)
+            var slotIcons = new Image[slotCount];
+            var slotNames = new TMP_Text[slotCount];
+            var slotStatTexts = new TMP_Text[slotCount];
+            var slotRowBtns = new Button[slotCount];
 
-            float slotY = 0f;
-            float slotRowHeight = 50f;
-            float slotSpacing = 6f;
-
-            for (int i = 0; i < 7; i++)
+            for (int i = 0; i < slotCount; i++)
             {
                 var (rowBtn, icon, nameTxt, statsTxt) =
-                    BuildEquipmentSlotRow(rightCol.transform, SlotLabels[i], slotY);
+                    BuildEquipmentSlotRow(rightCol.transform, SlotLabels[i], 0f);
+                AddLayout(rowBtn.gameObject, prefH: SLOT_ROW_HEIGHT);
                 slotIcons[i] = icon;
                 slotNames[i] = nameTxt;
                 slotStatTexts[i] = statsTxt;
                 slotRowBtns[i] = rowBtn;
-
-                int capturedIndex = i;
-                rowBtn.onClick.AddListener(() => { /* wired after controller created */ });
-
-                slotY -= slotRowHeight + slotSpacing;
             }
 
             // =================================================================
-            // GOLD HORIZONTAL DIVIDER at y=37%
+            // GOLD HORIZONTAL DIVIDER (position driven by VLG)
             // =================================================================
-            BuildHorizontalDivider(panelGo.transform, 680f * 0.63f); // ~428px from top
+            BuildLayoutDivider(panelGo.transform, true);
 
             // =================================================================
-            // BOTTOM STRIP: Inventory + Compare Panel
+            // BOTTOM STRIP: Inventory (height driven by cell count and rows)
             // =================================================================
             var bottomSection = MakeRect("BottomSection", panelGo.transform);
-            var bottomRect = bottomSection.GetComponent<RectTransform>();
-            bottomRect.anchorMin = new Vector2(0, 0);
-            bottomRect.anchorMax = new Vector2(1, 0.35f);
-            bottomRect.offsetMin = new Vector2(20, 16);
-            bottomRect.offsetMax = new Vector2(-20, -6);
+            var bottomVLG = bottomSection.AddComponent<VerticalLayoutGroup>();
+            bottomVLG.padding = new RectOffset(20, 20, 6, 16);
+            bottomVLG.spacing = 4;
+            bottomVLG.childControlWidth = true;
+            bottomVLG.childControlHeight = true;
+            bottomVLG.childForceExpandWidth = true;
+            bottomVLG.childForceExpandHeight = false;
 
             // Inventory label
             var invLabelGo = MakeRect("InvLabel", bottomSection.transform);
-            var invLabelRect = invLabelGo.GetComponent<RectTransform>();
-            invLabelRect.anchorMin = new Vector2(0, 1);
-            invLabelRect.anchorMax = new Vector2(1f, 1);
-            invLabelRect.pivot = new Vector2(0, 1);
-            invLabelRect.anchoredPosition = Vector2.zero;
-            invLabelRect.sizeDelta = new Vector2(0, 22);
+            AddLayout(invLabelGo, prefH: 22);
             var invLabelTmp = invLabelGo.AddComponent<TextMeshProUGUI>();
-            invLabelTmp.text = "INVENTORY (0/24)";
+            invLabelTmp.text = $"INVENTORY (0/{totalCells})";
             invLabelTmp.fontSize = FontSecondary;
             invLabelTmp.fontStyle = FontStyles.Bold;
             invLabelTmp.color = AgedGold;
             invLabelTmp.alignment = TextAlignmentOptions.Left;
             FontManager.EnsureFont(invLabelTmp);
 
-            // Inventory grid (left 60%): 8 cols x 3 rows
+            // Inventory grid (GridLayoutGroup — rows/cols derived from MAX_CAPACITY)
             var gridContainer = MakeRect("InventoryGrid", bottomSection.transform);
-            var gridRect = gridContainer.GetComponent<RectTransform>();
-            gridRect.anchorMin = new Vector2(0, 0);
-            gridRect.anchorMax = new Vector2(1f, 1);
-            gridRect.offsetMin = new Vector2(0, 0);
-            gridRect.offsetMax = new Vector2(0, -26);
-
-            int cols = 8;
-            int rows = 3;
-            int totalCells = cols * rows;
-            float cellSize = 64f;
-            float cellSpacing = 4f;
+            AddLayout(gridContainer, prefH: invGridHeight, flexW: 1);
+            var gridLayout = gridContainer.AddComponent<GridLayoutGroup>();
+            gridLayout.cellSize = new Vector2(cellSize, cellSize);
+            gridLayout.spacing = new Vector2(cellSpacing, cellSpacing);
+            gridLayout.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+            gridLayout.constraintCount = invCols;
+            gridLayout.startCorner = GridLayoutGroup.Corner.UpperLeft;
+            gridLayout.startAxis = GridLayoutGroup.Axis.Horizontal;
+            gridLayout.childAlignment = TextAnchor.UpperLeft;
 
             var cellIcons = new Image[totalCells];
             var cellBorders = new Image[totalCells];
             var cellButtons = new Button[totalCells];
 
-            for (int row = 0; row < rows; row++)
+            for (int i = 0; i < totalCells; i++)
             {
-                for (int col = 0; col < cols; col++)
-                {
-                    int idx = row * cols + col;
-                    float x = col * (cellSize + cellSpacing);
-                    float y = -(row * (cellSize + cellSpacing));
+                // Size/position managed by GridLayoutGroup
+                var cellGo = MakeRect($"Cell_{i}", gridContainer.transform);
 
-                    var cellGo = MakeRect($"Cell_{idx}", gridContainer.transform);
-                    var cellRect = cellGo.GetComponent<RectTransform>();
-                    cellRect.anchorMin = new Vector2(0, 1);
-                    cellRect.anchorMax = new Vector2(0, 1);
-                    cellRect.pivot = new Vector2(0, 1);
-                    cellRect.anchoredPosition = new Vector2(x, y);
-                    cellRect.sizeDelta = new Vector2(cellSize, cellSize);
+                var cellBg = cellGo.AddComponent<Image>();
+                cellBg.sprite = WhiteSprite;
+                cellBg.color = CellBg;
 
-                    // Cell background
-                    var cellBg = cellGo.AddComponent<Image>();
-                    cellBg.sprite = WhiteSprite;
-                    cellBg.color = CellBg;
+                // Border (child overlay)
+                var borderGo = MakeRect("Border", cellGo.transform);
+                Stretch(borderGo);
+                var borderImg = borderGo.AddComponent<Image>();
+                borderImg.sprite = WhiteSprite;
+                borderImg.color = CellBorderNormal;
+                borderImg.raycastTarget = false;
+                var innerGo = MakeRect("Inner", borderGo.transform);
+                var innerRect = innerGo.GetComponent<RectTransform>();
+                innerRect.anchorMin = Vector2.zero;
+                innerRect.anchorMax = Vector2.one;
+                innerRect.offsetMin = new Vector2(1, 1);
+                innerRect.offsetMax = new Vector2(-1, -1);
+                var innerImg = innerGo.AddComponent<Image>();
+                innerImg.sprite = WhiteSprite;
+                innerImg.color = CellBg;
+                innerImg.raycastTarget = false;
 
-                    // Border (child overlay)
-                    var borderGo = MakeRect("Border", cellGo.transform);
-                    Stretch(borderGo);
-                    var borderImg = borderGo.AddComponent<Image>();
-                    borderImg.sprite = WhiteSprite;
-                    borderImg.color = CellBorderNormal;
-                    borderImg.raycastTarget = false;
-                    // Make it an outline by adding a child that covers the interior
-                    var innerGo = MakeRect("Inner", borderGo.transform);
-                    var innerRect = innerGo.GetComponent<RectTransform>();
-                    innerRect.anchorMin = Vector2.zero;
-                    innerRect.anchorMax = Vector2.one;
-                    innerRect.offsetMin = new Vector2(1, 1);
-                    innerRect.offsetMax = new Vector2(-1, -1);
-                    var innerImg = innerGo.AddComponent<Image>();
-                    innerImg.sprite = WhiteSprite;
-                    innerImg.color = CellBg;
-                    innerImg.raycastTarget = false;
+                // Item icon
+                var iconGo = MakeRect("Icon", cellGo.transform);
+                var iconRect = iconGo.GetComponent<RectTransform>();
+                iconRect.anchorMin = new Vector2(0.05f, 0.05f);
+                iconRect.anchorMax = new Vector2(0.95f, 0.95f);
+                iconRect.offsetMin = Vector2.zero;
+                iconRect.offsetMax = Vector2.zero;
+                var iconImg = iconGo.AddComponent<Image>();
+                iconImg.preserveAspect = true;
+                iconImg.raycastTarget = false;
+                iconImg.enabled = false;
 
-                    // Item icon
-                    var iconGo = MakeRect("Icon", cellGo.transform);
-                    var iconRect = iconGo.GetComponent<RectTransform>();
-                    iconRect.anchorMin = new Vector2(0.05f, 0.05f);
-                    iconRect.anchorMax = new Vector2(0.95f, 0.95f);
-                    iconRect.offsetMin = Vector2.zero;
-                    iconRect.offsetMax = Vector2.zero;
-                    var iconImg = iconGo.AddComponent<Image>();
-                    iconImg.preserveAspect = true;
-                    iconImg.raycastTarget = false;
-                    iconImg.enabled = false;
+                // Button for interaction
+                var cellBtn = cellGo.AddComponent<Button>();
+                var btnColors = cellBtn.colors;
+                btnColors.normalColor = CellBg;
+                btnColors.highlightedColor = new Color(0.12f, 0.12f, 0.15f, 0.9f);
+                btnColors.pressedColor = new Color(0.2f, 0.18f, 0.1f, 0.9f);
+                btnColors.selectedColor = btnColors.highlightedColor;
+                btnColors.fadeDuration = 0.08f;
+                cellBtn.colors = btnColors;
+                cellBtn.targetGraphic = cellBg;
 
-                    // Button for interaction
-                    var cellBtn = cellGo.AddComponent<Button>();
-                    var btnColors = cellBtn.colors;
-                    btnColors.normalColor = CellBg;
-                    btnColors.highlightedColor = new Color(0.12f, 0.12f, 0.15f, 0.9f);
-                    btnColors.pressedColor = new Color(0.2f, 0.18f, 0.1f, 0.9f);
-                    btnColors.selectedColor = btnColors.highlightedColor;
-                    btnColors.fadeDuration = 0.08f;
-                    cellBtn.colors = btnColors;
-                    cellBtn.targetGraphic = cellBg;
+                cellGo.AddComponent<EventTrigger>();
 
-                    // EventTrigger for hover
-                    var trigger = cellGo.AddComponent<EventTrigger>();
-
-                    cellIcons[idx] = iconImg;
-                    cellBorders[idx] = borderImg;
-                    cellButtons[idx] = cellBtn;
-                }
+                cellIcons[i] = iconImg;
+                cellBorders[i] = borderImg;
+                cellButtons[i] = cellBtn;
             }
 
             // Floating tooltip (parented to canvas root, not panel, so it renders on top)
@@ -1495,7 +1486,7 @@ namespace ProjectName.UI
             controller.canvasRect = canvasGo.GetComponent<RectTransform>();
 
             // Wire equipment slot click handlers
-            for (int i = 0; i < 7; i++)
+            for (int i = 0; i < slotCount; i++)
             {
                 // Left-click: start drag of equipped item
                 slotRowBtns[i].onClick.RemoveAllListeners();
@@ -1557,7 +1548,7 @@ namespace ProjectName.UI
             }
 
             // Wire drag + drop + hover on equipment slot rows
-            for (int i = 0; i < 7; i++)
+            for (int i = 0; i < slotCount; i++)
             {
                 int capturedSlot = i;
                 var slotTrigger = slotRowBtns[i].gameObject.AddComponent<EventTrigger>();
@@ -1908,31 +1899,39 @@ namespace ProjectName.UI
             return (rowBtn, iconImg, nameTmp, statsTmp);
         }
 
-        private static void BuildHorizontalDivider(Transform parent, float yOffset)
+        private static void BuildLayoutDivider(Transform parent, bool horizontal)
         {
-            var divider = MakeRect("HDivider", parent);
-            var divRect = divider.GetComponent<RectTransform>();
-            divRect.anchorMin = new Vector2(0, 1);
-            divRect.anchorMax = new Vector2(1, 1);
-            divRect.pivot = new Vector2(0.5f, 1);
-            divRect.anchoredPosition = new Vector2(0, -yOffset);
-            divRect.sizeDelta = new Vector2(-20, 2);
-            var divImg = divider.AddComponent<Image>();
-            divImg.sprite = WhiteSprite;
-            divImg.color = DividerCol;
+            var go = MakeRect("Divider", parent);
+            var img = go.AddComponent<Image>();
+            img.sprite = WhiteSprite;
+            img.color = DividerCol;
+            img.raycastTarget = false;
+            var le = go.AddComponent<LayoutElement>();
+            if (horizontal)
+            {
+                le.preferredHeight = 2;
+                le.flexibleWidth = 1;
+            }
+            else
+            {
+                le.preferredWidth = 2;
+                le.flexibleHeight = 1;
+            }
         }
 
-        private static void BuildVerticalDivider(Transform parent, float xAnchor)
+        private static LayoutElement AddLayout(GameObject go,
+            float prefH = -1, float prefW = -1,
+            float flexH = -1, float flexW = -1,
+            float minH = -1, float minW = -1)
         {
-            var divider = MakeRect("VDivider", parent);
-            var divRect = divider.GetComponent<RectTransform>();
-            divRect.anchorMin = new Vector2(xAnchor, 0.05f);
-            divRect.anchorMax = new Vector2(xAnchor, 0.95f);
-            divRect.pivot = new Vector2(0.5f, 0.5f);
-            divRect.sizeDelta = new Vector2(2, 0);
-            var divImg = divider.AddComponent<Image>();
-            divImg.sprite = WhiteSprite;
-            divImg.color = DividerCol;
+            var le = go.AddComponent<LayoutElement>();
+            if (prefH >= 0) le.preferredHeight = prefH;
+            if (prefW >= 0) le.preferredWidth = prefW;
+            if (flexH >= 0) le.flexibleHeight = flexH;
+            if (flexW >= 0) le.flexibleWidth = flexW;
+            if (minH >= 0) le.minHeight = minH;
+            if (minW >= 0) le.minWidth = minW;
+            return le;
         }
 
         private static GameObject MakeRect(string name, Transform parent)
