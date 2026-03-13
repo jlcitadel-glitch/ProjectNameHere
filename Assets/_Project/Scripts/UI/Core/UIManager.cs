@@ -113,11 +113,11 @@ namespace ProjectName.UI
             // Ensure a death screen exists for gameplay scenes
             EnsureDeathScreen();
 
-            // Ensure the character menu (merged stats+equipment+inventory) exists
+            // Ensure the character menu (merged stats+equipment+inventory+skills) exists
             EnsureCharacterMenu();
 
-            // Ensure the skill tree exists for gameplay scenes
-            EnsureSkillTree();
+            // SkillTree is now integrated into CharacterMenu as a tab
+            // EnsureSkillTree();
 
             // Ensure damage number spawner exists for gameplay scenes
             EnsureDamageNumberSpawner();

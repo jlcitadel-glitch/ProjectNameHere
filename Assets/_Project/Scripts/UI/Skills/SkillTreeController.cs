@@ -9,6 +9,7 @@ namespace ProjectName.UI
     /// Controller for opening/closing the skill tree UI.
     /// Handles input binding and integration with game state.
     /// </summary>
+    [System.Obsolete("Use CharacterMenuController skills tab instead. This controller is no longer instantiated by UIManager.")]
     public class SkillTreeController : MonoBehaviour
     {
         [Header("References")]

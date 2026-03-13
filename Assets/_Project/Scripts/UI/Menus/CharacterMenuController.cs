@@ -77,6 +77,19 @@ namespace ProjectName.UI
         private InputAction fallbackOpenAction;
         private InputAction escapeAction;
 
+        // Tab system
+        private int activeTabIndex; // 0 = Character, 1 = Skills
+        private GameObject characterTabContent;
+        private GameObject skillsTabContent;
+        private TMP_Text[] tabTexts;
+        private Image[] tabBgs;
+        private SkillListPanel skillListPanel;
+
+        // Additional input actions for tab system
+        private InputAction skillKeyAction;  // K key
+        private InputAction tabLeftAction;   // LB / Q
+        private InputAction tabRightAction;  // RB
+
         // Player systems
         private StatSystem statSystem;
         private HealthSystem healthSystem;
@@ -136,6 +149,15 @@ namespace ProjectName.UI
             fallbackOpenAction = new InputAction("OpenCharMenu", InputActionType.Button, "<Keyboard>/e");
             escapeAction = new InputAction("CloseCharMenu", InputActionType.Button, "<Keyboard>/escape");
 
+            skillKeyAction = new InputAction("OpenSkillsTab", InputActionType.Button, "<Keyboard>/k");
+
+            tabLeftAction = new InputAction("TabLeft", InputActionType.Button);
+            tabLeftAction.AddBinding("<Gamepad>/leftShoulder");
+            tabLeftAction.AddBinding("<Keyboard>/q");
+
+            tabRightAction = new InputAction("TabRight", InputActionType.Button);
+            tabRightAction.AddBinding("<Gamepad>/rightShoulder");
+
             WireButtonListeners();
 
             Close();
@@ -158,6 +180,24 @@ namespace ProjectName.UI
                 escapeAction.performed += OnEscapeInput;
             }
 
+            if (skillKeyAction != null)
+            {
+                skillKeyAction.Enable();
+                skillKeyAction.performed += OnSkillKeyInput;
+            }
+
+            if (tabLeftAction != null)
+            {
+                tabLeftAction.Enable();
+                tabLeftAction.performed += OnTabLeftInput;
+            }
+
+            if (tabRightAction != null)
+            {
+                tabRightAction.Enable();
+                tabRightAction.performed += OnTabRightInput;
+            }
+
             if (GameManager.Instance != null)
                 GameManager.Instance.OnGameStateChanged += HandleGameStateChanged;
 
@@ -178,6 +218,24 @@ namespace ProjectName.UI
                 escapeAction.Disable();
             }
 
+            if (skillKeyAction != null)
+            {
+                skillKeyAction.performed -= OnSkillKeyInput;
+                skillKeyAction.Disable();
+            }
+
+            if (tabLeftAction != null)
+            {
+                tabLeftAction.performed -= OnTabLeftInput;
+                tabLeftAction.Disable();
+            }
+
+            if (tabRightAction != null)
+            {
+                tabRightAction.performed -= OnTabRightInput;
+                tabRightAction.Disable();
+            }
+
             if (GameManager.Instance != null)
                 GameManager.Instance.OnGameStateChanged -= HandleGameStateChanged;
 
@@ -188,6 +246,9 @@ namespace ProjectName.UI
         {
             fallbackOpenAction?.Dispose();
             escapeAction?.Dispose();
+            skillKeyAction?.Dispose();
+            tabLeftAction?.Dispose();
+            tabRightAction?.Dispose();
 
             if (dragGhost != null)
                 Destroy(dragGhost);
@@ -304,7 +365,40 @@ namespace ProjectName.UI
         {
             if (Time.frameCount == lastToggleFrame) return;
             lastToggleFrame = Time.frameCount;
-            Toggle();
+
+            if (!isOpen)
+                OpenToTab(0);
+            else if (activeTabIndex != 0)
+                SwitchTab(0);
+            else
+                Close();
+        }
+
+        private void OnSkillKeyInput(InputAction.CallbackContext context)
+        {
+            if (Time.frameCount == lastToggleFrame) return;
+            lastToggleFrame = Time.frameCount;
+
+            if (!isOpen)
+                OpenToTab(1);
+            else if (activeTabIndex != 1)
+                SwitchTab(1);
+            else
+                Close();
+        }
+
+        private void OnTabLeftInput(InputAction.CallbackContext context)
+        {
+            if (!isOpen) return;
+            if (activeTabIndex > 0)
+                SwitchTab(activeTabIndex - 1);
+        }
+
+        private void OnTabRightInput(InputAction.CallbackContext context)
+        {
+            if (!isOpen) return;
+            if (activeTabIndex < 1)
+                SwitchTab(activeTabIndex + 1);
         }
 
         private void OnEscapeInput(InputAction.CallbackContext context)
@@ -325,12 +419,65 @@ namespace ProjectName.UI
 
         #endregion
 
+        #region Tab Switching
+
+        /// <summary>
+        /// Opens the menu directly to the specified tab.
+        /// </summary>
+        public void OpenToTab(int tabIndex)
+        {
+            activeTabIndex = tabIndex;
+            ApplyTabState();
+            Open();
+
+            // Load skills data when opening to Skills tab
+            if (tabIndex == 1 && skillListPanel != null)
+                skillListPanel.LoadTree(SkillManager.Instance?.CurrentJob?.skillTree);
+        }
+
+        internal void SwitchTab(int index)
+        {
+            if (index == activeTabIndex) return;
+            activeTabIndex = index;
+            ApplyTabState();
+            UpdateTabVisuals();
+
+            if (index == 1 && skillListPanel != null)
+                skillListPanel.LoadTree(SkillManager.Instance?.CurrentJob?.skillTree);
+
+            UIManager.Instance?.PlayTabSwitchSound();
+        }
+
+        private void ApplyTabState()
+        {
+            if (characterTabContent != null)
+                characterTabContent.SetActive(activeTabIndex == 0);
+            if (skillsTabContent != null)
+                skillsTabContent.SetActive(activeTabIndex == 1);
+            UpdateTabVisuals();
+        }
+
+        private void UpdateTabVisuals()
+        {
+            if (tabTexts == null || tabBgs == null) return;
+            for (int i = 0; i < tabTexts.Length; i++)
+            {
+                bool active = i == activeTabIndex;
+                if (tabTexts[i] != null)
+                    tabTexts[i].color = active ? AgedGold : SubtleText;
+                if (tabBgs[i] != null)
+                    tabBgs[i].color = active ? new Color(0.15f, 0.15f, 0.2f, 1f) : Color.clear;
+            }
+        }
+
+        #endregion
+
         #region Open/Close
 
         public void Toggle()
         {
             if (isOpen) Close();
-            else Open();
+            else OpenToTab(0);
         }
 
         public void Open()
@@ -1128,31 +1275,112 @@ namespace ProjectName.UI
 
             AddLayout(panelGo, minH: 680);
 
-            // --- Title row (50px) ---
-            var titleRow = MakeRect("TitleRow", panelGo.transform);
-            AddLayout(titleRow, prefH: 50);
+            // =================================================================
+            // TAB BAR (44px) — replaces title row
+            // =================================================================
+            var tabBar = MakeRect("TabBar", panelGo.transform);
+            AddLayout(tabBar, prefH: 44);
+            var tabBarHLG = tabBar.AddComponent<HorizontalLayoutGroup>();
+            tabBarHLG.padding = new RectOffset(15, 10, 4, 4);
+            tabBarHLG.spacing = 4;
+            tabBarHLG.childControlWidth = true;
+            tabBarHLG.childControlHeight = true;
+            tabBarHLG.childForceExpandWidth = false;
+            tabBarHLG.childForceExpandHeight = true;
+            tabBarHLG.childAlignment = TextAnchor.MiddleLeft;
 
-            var titleTextGo = MakeRect("TitleText", titleRow.transform);
-            Stretch(titleTextGo);
-            var titleTmp = titleTextGo.AddComponent<TextMeshProUGUI>();
-            titleTmp.text = "CHARACTER";
-            titleTmp.fontSize = FontHeader;
-            titleTmp.fontStyle = FontStyles.Bold;
-            titleTmp.color = AgedGold;
-            titleTmp.alignment = TextAlignmentOptions.Center;
-            FontManager.EnsureFont(titleTmp);
+            // [LB] prompt
+            var lbPromptGo = MakeRect("LBPrompt", tabBar.transform);
+            var lbTmp = lbPromptGo.AddComponent<TextMeshProUGUI>();
+            lbTmp.text = "[LB]";
+            lbTmp.fontSize = FontSecondary;
+            lbTmp.color = SubtleText;
+            lbTmp.alignment = TextAlignmentOptions.Center;
+            FontManager.EnsureFont(lbTmp);
+            AddLayout(lbPromptGo, prefW: 36);
+
+            // Tab buttons
+            var tabButtonTexts = new TMP_Text[2];
+            var tabButtonBgs = new Image[2];
+            string[] tabLabels = { "CHARACTER", "SKILLS" };
+
+            for (int t = 0; t < 2; t++)
+            {
+                var tabBtnGo = MakeRect($"Tab_{tabLabels[t]}", tabBar.transform);
+                var tabBtnBg = tabBtnGo.AddComponent<Image>();
+                tabBtnBg.sprite = WhiteSprite;
+                tabBtnBg.color = t == 0 ? new Color(0.15f, 0.15f, 0.2f, 1f) : Color.clear;
+                tabButtonBgs[t] = tabBtnBg;
+
+                var tabBtn = tabBtnGo.AddComponent<Button>();
+                var tabBtnColors = tabBtn.colors;
+                tabBtnColors.normalColor = Color.clear;
+                tabBtnColors.highlightedColor = new Color(0.15f, 0.15f, 0.2f, 0.5f);
+                tabBtnColors.pressedColor = new Color(0.15f, 0.15f, 0.2f, 1f);
+                tabBtnColors.selectedColor = Color.clear;
+                tabBtnColors.fadeDuration = 0.1f;
+                tabBtn.colors = tabBtnColors;
+                tabBtn.targetGraphic = tabBtnBg;
+
+                var tabTextGo = MakeRect("Text", tabBtnGo.transform);
+                Stretch(tabTextGo);
+                var tabTmp = tabTextGo.AddComponent<TextMeshProUGUI>();
+                tabTmp.text = tabLabels[t];
+                tabTmp.fontSize = FontPrimary;
+                tabTmp.fontStyle = FontStyles.Bold;
+                tabTmp.color = t == 0 ? AgedGold : SubtleText;
+                tabTmp.alignment = TextAlignmentOptions.Center;
+                FontManager.EnsureFont(tabTmp);
+                tabButtonTexts[t] = tabTmp;
+
+                AddLayout(tabBtnGo, prefW: 120, prefH: 36);
+            }
+
+            // [RB] prompt
+            var rbPromptGo = MakeRect("RBPrompt", tabBar.transform);
+            var rbTmp = rbPromptGo.AddComponent<TextMeshProUGUI>();
+            rbTmp.text = "[RB]";
+            rbTmp.fontSize = FontSecondary;
+            rbTmp.color = SubtleText;
+            rbTmp.alignment = TextAlignmentOptions.Center;
+            FontManager.EnsureFont(rbTmp);
+            AddLayout(rbPromptGo, prefW: 36);
+
+            // Spacer
+            var tabSpacerGo = MakeRect("Spacer", tabBar.transform);
+            AddLayout(tabSpacerGo, flexW: 1);
 
             // Close [X] button
-            var closeBtn = BuildCloseButton(titleRow.transform);
+            var closeBtn = BuildCloseButton(tabBar.transform);
+            // Override the close button to use LayoutElement instead of anchored position
+            var closeBtnRect = closeBtn.GetComponent<RectTransform>();
+            closeBtnRect.anchorMin = new Vector2(0.5f, 0.5f);
+            closeBtnRect.anchorMax = new Vector2(0.5f, 0.5f);
+            closeBtnRect.pivot = new Vector2(0.5f, 0.5f);
+            closeBtnRect.anchoredPosition = Vector2.zero;
+            AddLayout(closeBtn.gameObject, prefW: 36, prefH: 36);
 
-            // --- Divider below title ---
+            // --- Divider below tab bar ---
             BuildLayoutDivider(panelGo.transform, true);
+
+            // =================================================================
+            // CHARACTER TAB CONTENT (wraps TopSection + Divider + BottomSection)
+            // =================================================================
+            var charTabContent = MakeRect("CharacterTabContent", panelGo.transform);
+            AddLayout(charTabContent, flexH: 1);
+            var charTabVLG = charTabContent.AddComponent<VerticalLayoutGroup>();
+            charTabVLG.padding = new RectOffset(0, 0, 0, 0);
+            charTabVLG.spacing = 0;
+            charTabVLG.childControlWidth = true;
+            charTabVLG.childControlHeight = true;
+            charTabVLG.childForceExpandWidth = true;
+            charTabVLG.childForceExpandHeight = false;
 
             // =================================================================
             // TOP SECTION: HLG with left column, vertical divider, right column
             // Height is driven by the taller column (equipment slots).
             // =================================================================
-            var topSection = MakeRect("TopSection", panelGo.transform);
+            var topSection = MakeRect("TopSection", charTabContent.transform);
             AddLayout(topSection, flexH: 1, minH: 200);
             var topHLG = topSection.AddComponent<HorizontalLayoutGroup>();
             topHLG.padding = new RectOffset(20, 20, 10, 10);
@@ -1291,12 +1519,12 @@ namespace ProjectName.UI
             // =================================================================
             // GOLD HORIZONTAL DIVIDER (position driven by VLG)
             // =================================================================
-            BuildLayoutDivider(panelGo.transform, true);
+            BuildLayoutDivider(charTabContent.transform, true);
 
             // =================================================================
             // BOTTOM STRIP: Inventory (height driven by cell count and rows)
             // =================================================================
-            var bottomSection = MakeRect("BottomSection", panelGo.transform);
+            var bottomSection = MakeRect("BottomSection", charTabContent.transform);
             var bottomVLG = bottomSection.AddComponent<VerticalLayoutGroup>();
             bottomVLG.padding = new RectOffset(20, 20, 6, 16);
             bottomVLG.spacing = 4;
@@ -1388,6 +1616,308 @@ namespace ProjectName.UI
                 cellBorders[i] = borderImg;
                 cellButtons[i] = cellBtn;
             }
+
+            // =================================================================
+            // SKILLS TAB CONTENT (hidden by default)
+            // =================================================================
+            var skillTabContent = MakeRect("SkillsTabContent", panelGo.transform);
+            AddLayout(skillTabContent, flexH: 1);
+            skillTabContent.SetActive(false);
+
+            var skillTabHLG = skillTabContent.AddComponent<HorizontalLayoutGroup>();
+            skillTabHLG.padding = new RectOffset(0, 0, 0, 0);
+            skillTabHLG.spacing = 0;
+            skillTabHLG.childControlWidth = true;
+            skillTabHLG.childControlHeight = true;
+            skillTabHLG.childForceExpandWidth = false;
+            skillTabHLG.childForceExpandHeight = true;
+
+            // --- SKILLS LEFT COLUMN (40%): Stats Summary + Detail Panel ---
+            var skillLeftCol = MakeRect("SkillLeftCol", skillTabContent.transform);
+            AddLayout(skillLeftCol, flexW: 0.4f);
+            var skillLeftVLG = skillLeftCol.AddComponent<VerticalLayoutGroup>();
+            skillLeftVLG.padding = new RectOffset(15, 10, 10, 10);
+            skillLeftVLG.spacing = 6;
+            skillLeftVLG.childControlWidth = true;
+            skillLeftVLG.childControlHeight = true;
+            skillLeftVLG.childForceExpandWidth = true;
+            skillLeftVLG.childForceExpandHeight = false;
+
+            // Stats summary header
+            var statsHeaderGo = MakeRect("StatsHeader", skillLeftCol.transform);
+            AddLayout(statsHeaderGo, prefH: 22);
+            var statsHeaderTmp = statsHeaderGo.AddComponent<TextMeshProUGUI>();
+            statsHeaderTmp.text = "STATS";
+            statsHeaderTmp.fontSize = FontSecondary;
+            statsHeaderTmp.fontStyle = FontStyles.Bold;
+            statsHeaderTmp.color = AgedGold;
+            statsHeaderTmp.alignment = TextAlignmentOptions.Left;
+            FontManager.EnsureFont(statsHeaderTmp);
+
+            // Stat lines
+            var skillHpGo = MakeRect("HP", skillLeftCol.transform);
+            AddLayout(skillHpGo, prefH: 20);
+            var skillHpTmp = skillHpGo.AddComponent<TextMeshProUGUI>();
+            skillHpTmp.text = "HP: --";
+            skillHpTmp.fontSize = FontPrimary;
+            skillHpTmp.color = BoneWhite;
+            skillHpTmp.alignment = TextAlignmentOptions.Left;
+            FontManager.EnsureFont(skillHpTmp);
+
+            var skillMpGo = MakeRect("MP", skillLeftCol.transform);
+            AddLayout(skillMpGo, prefH: 20);
+            var skillMpTmp = skillMpGo.AddComponent<TextMeshProUGUI>();
+            skillMpTmp.text = "MP: --";
+            skillMpTmp.fontSize = FontPrimary;
+            skillMpTmp.color = BoneWhite;
+            skillMpTmp.alignment = TextAlignmentOptions.Left;
+            FontManager.EnsureFont(skillMpTmp);
+
+            var skillStrGo = MakeRect("STR", skillLeftCol.transform);
+            AddLayout(skillStrGo, prefH: 20);
+            var skillStrTmp = skillStrGo.AddComponent<TextMeshProUGUI>();
+            skillStrTmp.text = "STR: --";
+            skillStrTmp.fontSize = FontPrimary;
+            skillStrTmp.color = BoneWhite;
+            skillStrTmp.alignment = TextAlignmentOptions.Left;
+            FontManager.EnsureFont(skillStrTmp);
+
+            var skillIntGo = MakeRect("INT", skillLeftCol.transform);
+            AddLayout(skillIntGo, prefH: 20);
+            var skillIntTmp = skillIntGo.AddComponent<TextMeshProUGUI>();
+            skillIntTmp.text = "INT: --";
+            skillIntTmp.fontSize = FontPrimary;
+            skillIntTmp.color = BoneWhite;
+            skillIntTmp.alignment = TextAlignmentOptions.Left;
+            FontManager.EnsureFont(skillIntTmp);
+
+            var skillAgiGo = MakeRect("AGI", skillLeftCol.transform);
+            AddLayout(skillAgiGo, prefH: 20);
+            var skillAgiTmp = skillAgiGo.AddComponent<TextMeshProUGUI>();
+            skillAgiTmp.text = "AGI: --";
+            skillAgiTmp.fontSize = FontPrimary;
+            skillAgiTmp.color = BoneWhite;
+            skillAgiTmp.alignment = TextAlignmentOptions.Left;
+            FontManager.EnsureFont(skillAgiTmp);
+
+            // Divider between stats and detail
+            BuildLayoutDivider(skillLeftCol.transform, true);
+
+            // Skill detail panel (hidden until a skill is selected)
+            var skillDetailGo = MakeRect("SkillDetail", skillLeftCol.transform);
+            AddLayout(skillDetailGo, flexH: 1);
+            var skillDetailVLG = skillDetailGo.AddComponent<VerticalLayoutGroup>();
+            skillDetailVLG.padding = new RectOffset(0, 0, 6, 6);
+            skillDetailVLG.spacing = 4;
+            skillDetailVLG.childControlWidth = true;
+            skillDetailVLG.childControlHeight = true;
+            skillDetailVLG.childForceExpandWidth = true;
+            skillDetailVLG.childForceExpandHeight = false;
+            skillDetailGo.SetActive(false);
+
+            // Detail icon
+            var sdIconGo = MakeRect("Icon", skillDetailGo.transform);
+            var sdIconImg = sdIconGo.AddComponent<Image>();
+            sdIconImg.sprite = WhiteSprite;
+            sdIconImg.color = Charcoal;
+            sdIconImg.preserveAspect = true;
+            AddLayout(sdIconGo, prefW: 64, prefH: 64);
+
+            // Detail name
+            var sdNameGo = MakeRect("Name", skillDetailGo.transform);
+            AddLayout(sdNameGo, prefH: 28);
+            var sdNameTmp = sdNameGo.AddComponent<TextMeshProUGUI>();
+            sdNameTmp.text = "";
+            sdNameTmp.fontSize = 20;
+            sdNameTmp.fontStyle = FontStyles.Bold;
+            sdNameTmp.color = AgedGold;
+            sdNameTmp.alignment = TextAlignmentOptions.Left;
+            FontManager.EnsureFont(sdNameTmp);
+
+            // Detail description
+            var sdDescGo = MakeRect("Desc", skillDetailGo.transform);
+            AddLayout(sdDescGo, prefH: 60);
+            var sdDescTmp = sdDescGo.AddComponent<TextMeshProUGUI>();
+            sdDescTmp.text = "";
+            sdDescTmp.fontSize = FontPrimary;
+            sdDescTmp.color = BoneWhite;
+            sdDescTmp.alignment = TextAlignmentOptions.TopLeft;
+            sdDescTmp.textWrappingMode = TextWrappingModes.Normal;
+            FontManager.EnsureFont(sdDescTmp);
+
+            // Detail stats
+            var sdStatsGo = MakeRect("Stats", skillDetailGo.transform);
+            AddLayout(sdStatsGo, prefH: 100);
+            var sdStatsTmp = sdStatsGo.AddComponent<TextMeshProUGUI>();
+            sdStatsTmp.text = "";
+            sdStatsTmp.fontSize = FontSecondary;
+            sdStatsTmp.color = SubtleText;
+            sdStatsTmp.alignment = TextAlignmentOptions.TopLeft;
+            sdStatsTmp.textWrappingMode = TextWrappingModes.Normal;
+            FontManager.EnsureFont(sdStatsTmp);
+
+            // Detail requirements
+            var sdReqGo = MakeRect("Requirements", skillDetailGo.transform);
+            AddLayout(sdReqGo, prefH: 60);
+            var sdReqTmp = sdReqGo.AddComponent<TextMeshProUGUI>();
+            sdReqTmp.text = "";
+            sdReqTmp.fontSize = FontSecondary;
+            sdReqTmp.color = SubtleText;
+            sdReqTmp.alignment = TextAlignmentOptions.TopLeft;
+            sdReqTmp.textWrappingMode = TextWrappingModes.Normal;
+            sdReqTmp.richText = true;
+            FontManager.EnsureFont(sdReqTmp);
+
+            // Spacer
+            var sdSpacerGo = MakeRect("Spacer", skillDetailGo.transform);
+            AddLayout(sdSpacerGo, flexH: 1);
+
+            // Assign Hotbar button
+            var sdAssignBtnGo = MakeRect("AssignHotbar", skillDetailGo.transform);
+            AddLayout(sdAssignBtnGo, prefH: 36);
+            var sdAssignBtnImg = sdAssignBtnGo.AddComponent<Image>();
+            sdAssignBtnImg.sprite = WhiteSprite;
+            sdAssignBtnImg.color = BtnNormal;
+            var sdAssignBtn = sdAssignBtnGo.AddComponent<Button>();
+            var sdAssignColors = sdAssignBtn.colors;
+            sdAssignColors.normalColor = BtnNormal;
+            sdAssignColors.highlightedColor = BtnHover;
+            sdAssignColors.pressedColor = BtnPress;
+            sdAssignColors.selectedColor = BtnHover;
+            sdAssignColors.fadeDuration = 0.1f;
+            sdAssignBtn.colors = sdAssignColors;
+            var sdAssignTextGo = MakeRect("Text", sdAssignBtnGo.transform);
+            Stretch(sdAssignTextGo);
+            var sdAssignTmp = sdAssignTextGo.AddComponent<TextMeshProUGUI>();
+            sdAssignTmp.text = "Assign to Hotbar";
+            sdAssignTmp.fontSize = FontPrimary;
+            sdAssignTmp.color = BoneWhite;
+            sdAssignTmp.alignment = TextAlignmentOptions.Center;
+            FontManager.EnsureFont(sdAssignTmp);
+            sdAssignBtnGo.SetActive(false);
+
+            // Learn/Upgrade button
+            var sdLearnBtnGo = MakeRect("LearnButton", skillDetailGo.transform);
+            AddLayout(sdLearnBtnGo, prefH: 40);
+            var sdLearnBtnImg = sdLearnBtnGo.AddComponent<Image>();
+            sdLearnBtnImg.sprite = WhiteSprite;
+            sdLearnBtnImg.color = BtnNormal;
+            var sdLearnBtn = sdLearnBtnGo.AddComponent<Button>();
+            var sdLearnColors = sdLearnBtn.colors;
+            sdLearnColors.normalColor = BtnNormal;
+            sdLearnColors.highlightedColor = BtnHover;
+            sdLearnColors.pressedColor = BtnPress;
+            sdLearnColors.selectedColor = BtnHover;
+            sdLearnColors.fadeDuration = 0.1f;
+            sdLearnBtn.colors = sdLearnColors;
+            var sdLearnTextGo = MakeRect("Text", sdLearnBtnGo.transform);
+            Stretch(sdLearnTextGo);
+            var sdLearnTmp = sdLearnTextGo.AddComponent<TextMeshProUGUI>();
+            sdLearnTmp.text = "Learn";
+            sdLearnTmp.fontSize = 18;
+            sdLearnTmp.color = BoneWhite;
+            sdLearnTmp.alignment = TextAlignmentOptions.Center;
+            FontManager.EnsureFont(sdLearnTmp);
+
+            // --- SKILLS VERTICAL DIVIDER ---
+            BuildLayoutDivider(skillTabContent.transform, false);
+
+            // --- SKILLS RIGHT COLUMN (60%): SP/Level header + Skill List ---
+            var skillRightCol = MakeRect("SkillRightCol", skillTabContent.transform);
+            AddLayout(skillRightCol, flexW: 0.6f);
+            var skillRightVLG = skillRightCol.AddComponent<VerticalLayoutGroup>();
+            skillRightVLG.padding = new RectOffset(10, 15, 10, 10);
+            skillRightVLG.spacing = 6;
+            skillRightVLG.childControlWidth = true;
+            skillRightVLG.childControlHeight = true;
+            skillRightVLG.childForceExpandWidth = true;
+            skillRightVLG.childForceExpandHeight = false;
+
+            // SP + Level header row
+            var spLvlRow = MakeRect("SPLevelRow", skillRightCol.transform);
+            AddLayout(spLvlRow, prefH: 28);
+            var spLvlHLG = spLvlRow.AddComponent<HorizontalLayoutGroup>();
+            spLvlHLG.childControlWidth = true;
+            spLvlHLG.childControlHeight = true;
+            spLvlHLG.childForceExpandWidth = false;
+            spLvlHLG.childForceExpandHeight = true;
+            spLvlHLG.spacing = 12;
+
+            var skillSpGo = MakeRect("SP", spLvlRow.transform);
+            AddLayout(skillSpGo, flexW: 1);
+            var skillSpTmp = skillSpGo.AddComponent<TextMeshProUGUI>();
+            skillSpTmp.text = "SP: 0";
+            skillSpTmp.fontSize = FontPrimary;
+            skillSpTmp.fontStyle = FontStyles.Bold;
+            skillSpTmp.color = AgedGold;
+            skillSpTmp.alignment = TextAlignmentOptions.Left;
+            FontManager.EnsureFont(skillSpTmp);
+
+            var skillLvlGo = MakeRect("Level", spLvlRow.transform);
+            AddLayout(skillLvlGo, prefW: 80);
+            var skillLvlTmp = skillLvlGo.AddComponent<TextMeshProUGUI>();
+            skillLvlTmp.text = "Lv. 1";
+            skillLvlTmp.fontSize = FontPrimary;
+            skillLvlTmp.color = BoneWhite;
+            skillLvlTmp.alignment = TextAlignmentOptions.Right;
+            FontManager.EnsureFont(skillLvlTmp);
+
+            // Skill list ScrollRect
+            var skillScrollGo = MakeRect("SkillScroll", skillRightCol.transform);
+            AddLayout(skillScrollGo, flexH: 1);
+            var skillScrollImg = skillScrollGo.AddComponent<Image>();
+            skillScrollImg.sprite = WhiteSprite;
+            skillScrollImg.color = new Color(0.05f, 0.05f, 0.07f, 1f);
+            skillScrollGo.AddComponent<Mask>().showMaskGraphic = true;
+
+            var skillScrollRect = skillScrollGo.AddComponent<ScrollRect>();
+            skillScrollRect.horizontal = false;
+            skillScrollRect.vertical = true;
+            skillScrollRect.movementType = ScrollRect.MovementType.Clamped;
+            skillScrollRect.scrollSensitivity = 20f;
+
+            var skillContentGo = MakeRect("Content", skillScrollGo.transform);
+            var skillContentRect = skillContentGo.GetComponent<RectTransform>();
+            skillContentRect.anchorMin = new Vector2(0, 1);
+            skillContentRect.anchorMax = new Vector2(1, 1);
+            skillContentRect.pivot = new Vector2(0.5f, 1);
+            skillContentRect.sizeDelta = new Vector2(0, 0);
+            skillContentRect.anchoredPosition = Vector2.zero;
+
+            var skillContentVLG = skillContentGo.AddComponent<VerticalLayoutGroup>();
+            skillContentVLG.spacing = 2;
+            skillContentVLG.childControlWidth = true;
+            skillContentVLG.childControlHeight = true;
+            skillContentVLG.childForceExpandWidth = true;
+            skillContentVLG.childForceExpandHeight = false;
+            skillContentVLG.padding = new RectOffset(4, 4, 4, 4);
+
+            var skillContentCSF = skillContentGo.AddComponent<ContentSizeFitter>();
+            skillContentCSF.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            skillContentCSF.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            skillScrollRect.content = skillContentRect;
+
+            // Wire SkillListPanel component
+            var listPanel = skillTabContent.AddComponent<SkillListPanel>();
+            listPanel.SetRuntimeReferences(
+                skillSpTmp, skillLvlTmp,
+                skillHpTmp, skillMpTmp, skillStrTmp, skillIntTmp, skillAgiTmp,
+                skillDetailGo, sdIconImg, sdNameTmp, sdDescTmp, sdStatsTmp, sdReqTmp,
+                sdLearnBtn, sdLearnTmp, sdAssignBtn, sdAssignTmp,
+                skillScrollRect, skillContentGo.transform
+            );
+
+            // Wire tab click events (deferred until controller is wired)
+            int tabIdx0 = 0, tabIdx1 = 1;
+            tabButtonBgs[0].GetComponent<Button>().onClick.AddListener(() =>
+            {
+                // Will be wired to controller.SwitchTab below
+            });
+            tabButtonBgs[1].GetComponent<Button>().onClick.AddListener(() =>
+            {
+                // Will be wired to controller.SwitchTab below
+            });
 
             // Floating tooltip (parented to canvas root, not panel, so it renders on top)
             var ttGo = MakeRect("Tooltip", canvasGo.transform);
@@ -1514,6 +2044,19 @@ namespace ProjectName.UI
             controller.tooltipDesc = ttDescTmp;
             controller.tooltipRect = ttRect;
             controller.canvasRect = canvasGo.GetComponent<RectTransform>();
+
+            // Tab system
+            controller.characterTabContent = charTabContent;
+            controller.skillsTabContent = skillTabContent;
+            controller.tabTexts = tabButtonTexts;
+            controller.tabBgs = tabButtonBgs;
+            controller.skillListPanel = listPanel;
+
+            // Wire tab button click handlers to controller
+            tabButtonBgs[0].GetComponent<Button>().onClick.RemoveAllListeners();
+            tabButtonBgs[0].GetComponent<Button>().onClick.AddListener(() => controller.SwitchTab(0));
+            tabButtonBgs[1].GetComponent<Button>().onClick.RemoveAllListeners();
+            tabButtonBgs[1].GetComponent<Button>().onClick.AddListener(() => controller.SwitchTab(1));
 
             // Wire equipment slot click handlers
             for (int i = 0; i < slotCount; i++)
