@@ -455,6 +455,11 @@ namespace ProjectName.UI
             if (skillsTabContent != null)
                 skillsTabContent.SetActive(activeTabIndex == 1);
             UpdateTabVisuals();
+
+            // Force layout rebuild — tab content created inactive never had layout calculated
+            var panelRect = characterTabContent?.transform.parent?.GetComponent<RectTransform>();
+            if (panelRect != null)
+                LayoutRebuilder.ForceRebuildLayoutImmediate(panelRect);
         }
 
         private void UpdateTabVisuals()
@@ -497,6 +502,10 @@ namespace ProjectName.UI
             FindPlayerSystems();
 
             isOpen = true;
+
+            // Ensure GO is active (CloseMenuCoroutine may have deactivated it)
+            if (menuCanvasGroup != null && !menuCanvasGroup.gameObject.activeSelf)
+                menuCanvasGroup.gameObject.SetActive(true);
 
             if (menuCanvas != null)
                 menuCanvas.enabled = true;
@@ -556,6 +565,11 @@ namespace ProjectName.UI
                 {
                     transitions.CloseMenu(menuCanvasGroup, menuCanvasGroup.GetComponent<RectTransform>(), () =>
                     {
+                        // CloseMenuCoroutine deactivates the GO, which fires OnDisable
+                        // and kills our standalone InputActions. Re-activate the GO so
+                        // input stays functional; canvas.enabled = false hides the UI.
+                        if (menuCanvasGroup != null)
+                            menuCanvasGroup.gameObject.SetActive(true);
                         if (menuCanvas != null)
                             menuCanvas.enabled = false;
                     });
@@ -1634,7 +1648,7 @@ namespace ProjectName.UI
 
             // --- SKILLS LEFT COLUMN (40%): Stats Summary + Detail Panel ---
             var skillLeftCol = MakeRect("SkillLeftCol", skillTabContent.transform);
-            AddLayout(skillLeftCol, flexW: 0.4f);
+            AddLayout(skillLeftCol, flexW: 0.4f, flexH: 1);
             var skillLeftVLG = skillLeftCol.AddComponent<VerticalLayoutGroup>();
             skillLeftVLG.padding = new RectOffset(15, 10, 10, 10);
             skillLeftVLG.spacing = 6;
@@ -1822,9 +1836,9 @@ namespace ProjectName.UI
             // --- SKILLS VERTICAL DIVIDER ---
             BuildLayoutDivider(skillTabContent.transform, false);
 
-            // --- SKILLS RIGHT COLUMN (60%): SP/Level header + Skill List ---
+            // --- SKILLS RIGHT COLUMN (60%): Skill List + SP/Level footer ---
             var skillRightCol = MakeRect("SkillRightCol", skillTabContent.transform);
-            AddLayout(skillRightCol, flexW: 0.6f);
+            AddLayout(skillRightCol, flexW: 0.6f, flexH: 1);
             var skillRightVLG = skillRightCol.AddComponent<VerticalLayoutGroup>();
             skillRightVLG.padding = new RectOffset(10, 15, 10, 10);
             skillRightVLG.spacing = 6;
@@ -1833,38 +1847,9 @@ namespace ProjectName.UI
             skillRightVLG.childForceExpandWidth = true;
             skillRightVLG.childForceExpandHeight = false;
 
-            // SP + Level header row
-            var spLvlRow = MakeRect("SPLevelRow", skillRightCol.transform);
-            AddLayout(spLvlRow, prefH: 28);
-            var spLvlHLG = spLvlRow.AddComponent<HorizontalLayoutGroup>();
-            spLvlHLG.childControlWidth = true;
-            spLvlHLG.childControlHeight = true;
-            spLvlHLG.childForceExpandWidth = false;
-            spLvlHLG.childForceExpandHeight = true;
-            spLvlHLG.spacing = 12;
-
-            var skillSpGo = MakeRect("SP", spLvlRow.transform);
-            AddLayout(skillSpGo, flexW: 1);
-            var skillSpTmp = skillSpGo.AddComponent<TextMeshProUGUI>();
-            skillSpTmp.text = "SP: 0";
-            skillSpTmp.fontSize = FontPrimary;
-            skillSpTmp.fontStyle = FontStyles.Bold;
-            skillSpTmp.color = AgedGold;
-            skillSpTmp.alignment = TextAlignmentOptions.Left;
-            FontManager.EnsureFont(skillSpTmp);
-
-            var skillLvlGo = MakeRect("Level", spLvlRow.transform);
-            AddLayout(skillLvlGo, prefW: 80);
-            var skillLvlTmp = skillLvlGo.AddComponent<TextMeshProUGUI>();
-            skillLvlTmp.text = "Lv. 1";
-            skillLvlTmp.fontSize = FontPrimary;
-            skillLvlTmp.color = BoneWhite;
-            skillLvlTmp.alignment = TextAlignmentOptions.Right;
-            FontManager.EnsureFont(skillLvlTmp);
-
-            // Skill list ScrollRect
+            // Skill list ScrollRect (at top, fills most of the column)
             var skillScrollGo = MakeRect("SkillScroll", skillRightCol.transform);
-            AddLayout(skillScrollGo, flexH: 1);
+            AddLayout(skillScrollGo, flexH: 1, minH: 400);
             var skillScrollImg = skillScrollGo.AddComponent<Image>();
             skillScrollImg.sprite = WhiteSprite;
             skillScrollImg.color = new Color(0.05f, 0.05f, 0.07f, 1f);
@@ -1898,6 +1883,35 @@ namespace ProjectName.UI
 
             skillScrollRect.content = skillContentRect;
 
+            // SP + Level footer row (below skill list)
+            var spLvlRow = MakeRect("SPLevelRow", skillRightCol.transform);
+            AddLayout(spLvlRow, prefH: 28);
+            var spLvlHLG = spLvlRow.AddComponent<HorizontalLayoutGroup>();
+            spLvlHLG.childControlWidth = true;
+            spLvlHLG.childControlHeight = true;
+            spLvlHLG.childForceExpandWidth = false;
+            spLvlHLG.childForceExpandHeight = true;
+            spLvlHLG.spacing = 12;
+
+            var skillSpGo = MakeRect("SP", spLvlRow.transform);
+            AddLayout(skillSpGo, flexW: 1);
+            var skillSpTmp = skillSpGo.AddComponent<TextMeshProUGUI>();
+            skillSpTmp.text = "SP: 0";
+            skillSpTmp.fontSize = FontPrimary;
+            skillSpTmp.fontStyle = FontStyles.Bold;
+            skillSpTmp.color = AgedGold;
+            skillSpTmp.alignment = TextAlignmentOptions.Left;
+            FontManager.EnsureFont(skillSpTmp);
+
+            var skillLvlGo = MakeRect("Level", spLvlRow.transform);
+            AddLayout(skillLvlGo, prefW: 80);
+            var skillLvlTmp = skillLvlGo.AddComponent<TextMeshProUGUI>();
+            skillLvlTmp.text = "Lv. 1";
+            skillLvlTmp.fontSize = FontPrimary;
+            skillLvlTmp.color = BoneWhite;
+            skillLvlTmp.alignment = TextAlignmentOptions.Right;
+            FontManager.EnsureFont(skillLvlTmp);
+
             // Wire SkillListPanel component
             var listPanel = skillTabContent.AddComponent<SkillListPanel>();
             listPanel.SetRuntimeReferences(
@@ -1908,16 +1922,7 @@ namespace ProjectName.UI
                 skillScrollRect, skillContentGo.transform
             );
 
-            // Wire tab click events (deferred until controller is wired)
-            int tabIdx0 = 0, tabIdx1 = 1;
-            tabButtonBgs[0].GetComponent<Button>().onClick.AddListener(() =>
-            {
-                // Will be wired to controller.SwitchTab below
-            });
-            tabButtonBgs[1].GetComponent<Button>().onClick.AddListener(() =>
-            {
-                // Will be wired to controller.SwitchTab below
-            });
+            // Tab click events are wired after controller is created (below)
 
             // Floating tooltip (parented to canvas root, not panel, so it renders on top)
             var ttGo = MakeRect("Tooltip", canvasGo.transform);

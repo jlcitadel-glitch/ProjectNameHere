@@ -1182,7 +1182,7 @@ namespace ProjectName.UI
         #region Runtime UI Builder
 
         // Gothic color palette for runtime-built UI
-        private static readonly Color PanelBg = new Color(0.06f, 0.05f, 0.08f, 0.97f);      // Obsidian
+        private static readonly Color PanelBg = new Color(0.051f, 0.051f, 0.051f, 0.97f);   // Deep black (matches main menu)
         private static readonly Color BtnNormal = new Color(0.10f, 0.10f, 0.18f, 1f);        // Midnight Blue btn
         private static readonly Color BtnHover = new Color(0.15f, 0.15f, 0.25f, 1f);
         private static readonly Color BtnPress = new Color(0.08f, 0.08f, 0.14f, 1f);

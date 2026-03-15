@@ -7,20 +7,20 @@ public class PlayerControllerScript : MonoBehaviour
     [SerializeField] private Rigidbody2D rb;
 
     [Header("Movement")]
-    [SerializeField] private float speed = 8f;
+    [SerializeField] private float speed = 9f;
 
     [Header("Jump")]
-    [SerializeField] private float jumpingPower = 12f;
-    [SerializeField] private float jumpCutMultiplier = 0.5f;
+    [SerializeField] private float jumpingPower = 18f;
+    [SerializeField] private float jumpCutMultiplier = 0.35f;
 
     [Header("Jump Forgiveness")]
-    [SerializeField] private float coyoteTime = 0.15f;
-    [SerializeField] private float jumpBufferTime = 0.15f;
+    [SerializeField] private float coyoteTime = 0.12f;
+    [SerializeField] private float jumpBufferTime = 0.12f;
 
     [Header("Gravity")]
-    [SerializeField] private float baseGravityScale = 1f;
-    [SerializeField] private float fallGravityMultiplier = 2.5f;
-    [SerializeField] private float maxFallSpeed = -20f;
+    [SerializeField] private float baseGravityScale = 5f;
+    [SerializeField] private float fallGravityMultiplier = 8f;
+    [SerializeField] private float maxFallSpeed = -28f;
 
     [Header("Grounding")]
     [SerializeField] private LayerMask groundLayer;

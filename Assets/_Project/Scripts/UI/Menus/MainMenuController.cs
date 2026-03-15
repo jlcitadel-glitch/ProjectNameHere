@@ -1330,7 +1330,7 @@ namespace ProjectName.UI
             var panelImg = saveSelectionPanel.GetComponent<Image>();
             if (panelImg == null)
                 panelImg = saveSelectionPanel.AddComponent<Image>();
-            panelImg.color = new Color(0.05f, 0.04f, 0.07f, 0.95f);
+            panelImg.color = new Color(0.051f, 0.051f, 0.051f, 0.97f);
 
             // Hide legacy scene-baked headers
             foreach (var name in new[] { "Header", "TitleText", "GothicTitle", "TitleDivider" })
@@ -1595,7 +1595,7 @@ namespace ProjectName.UI
             // Obsidian background
             var panelImg = panel.GetComponent<Image>();
             if (panelImg != null)
-                panelImg.color = new Color(0.06f, 0.05f, 0.08f, 0.97f);
+                panelImg.color = new Color(0.051f, 0.051f, 0.051f, 0.97f);
 
             // Warning text styling
             if (warningText != null)

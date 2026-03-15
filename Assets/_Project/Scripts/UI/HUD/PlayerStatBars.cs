@@ -11,10 +11,13 @@ namespace ProjectName.UI
     /// </summary>
     public class PlayerStatBars : MonoBehaviour
     {
-        [Header("Health Bar Position")]
-        [SerializeField] private Vector2 healthBarOffset = new Vector2(0f, 1.3f);
+        [Header("Bar Positioning")]
+        [SerializeField] private bool dynamicPositioning = true;
+        [SerializeField] private float healthPadding = 0.15f;  // Gap above collider top
+        [SerializeField] private float manaPadding = 0.1f;     // Gap below collider bottom
 
-        [Header("Mana Bar Position")]
+        [Header("Fallback Offsets (used when no collider/renderer found)")]
+        [SerializeField] private Vector2 healthBarOffset = new Vector2(0f, 1.3f);
         [SerializeField] private Vector2 manaBarOffset = new Vector2(0f, -0.3f);
 
         [Header("Bar Settings")]
@@ -47,6 +50,10 @@ namespace ProjectName.UI
 
         private HealthSystem healthSystem;
         private ManaSystem manaSystem;
+
+        // Bounds source for dynamic positioning
+        private Collider2D boundsCollider;
+        private SpriteRenderer boundsRenderer;
 
         private GameObject healthBarContainer;
         private GameObject manaBarContainer;
@@ -115,6 +122,14 @@ namespace ProjectName.UI
             if (manaSystem == null)
             {
                 manaSystem = GetComponent<ManaSystem>();
+            }
+
+            if (dynamicPositioning)
+            {
+                if (boundsCollider == null)
+                    boundsCollider = GetComponent<Collider2D>();
+                if (boundsRenderer == null)
+                    boundsRenderer = GetComponent<SpriteRenderer>();
             }
         }
 
@@ -262,14 +277,39 @@ namespace ProjectName.UI
             float parentScaleX = transform.localScale.x;
             float counterScaleX = parentScaleX != 0f ? Mathf.Sign(parentScaleX) : 1f;
 
+            // Calculate dynamic offsets from collider/renderer bounds
+            Vector2 hpOffset = healthBarOffset;
+            Vector2 mpOffset = manaBarOffset;
+
+            if (dynamicPositioning)
+            {
+                Bounds? bounds = null;
+                if (boundsCollider != null)
+                    bounds = boundsCollider.bounds;
+                else if (boundsRenderer != null)
+                    bounds = boundsRenderer.bounds;
+
+                if (bounds.HasValue)
+                {
+                    // Convert world-space bounds to local offsets relative to transform.position
+                    float localTop = bounds.Value.max.y - transform.position.y;
+                    float localBottom = bounds.Value.min.y - transform.position.y;
+
+                    hpOffset = new Vector2(0f, localTop + healthPadding);
+                    mpOffset = new Vector2(0f, localBottom - manaPadding - barSize.y);
+                }
+            }
+
             if (healthBarContainer != null)
             {
+                healthBarContainer.transform.localPosition = hpOffset;
                 healthBarContainer.transform.rotation = Quaternion.identity;
                 healthBarContainer.transform.localScale = new Vector3(counterScaleX, 1f, 1f);
             }
 
             if (manaBarContainer != null)
             {
+                manaBarContainer.transform.localPosition = mpOffset;
                 manaBarContainer.transform.rotation = Quaternion.identity;
                 manaBarContainer.transform.localScale = new Vector3(counterScaleX, 1f, 1f);
             }
